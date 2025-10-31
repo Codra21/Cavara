@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- 
+      Primary SEO
+      This is the new, advanced SEO block.
+    -->
+    <title>Cavara — A World Where Artistry Meets Elegance</title>
+    <meta name="description"
+        content="Discover Cavara — curated, premium home decor and luxury gifts. Imported ceramics, crockery and kitchenware to elevate your home.">
+    <!-- This URL should be your final, live domain name -->
+    <link rel="canonical" href="https://cavarabd.com/">
+
+    <!-- Robots -->
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph (Facebook, WhatsApp, etc.) -->
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Cavara">
+    <meta property="og:title" content="Cavara — A World Where Artistry Meets Elegance">
+    <meta property="og:description"
+        content="Curated imports and premium home décor from around the world. Explore Cavara's collections of ceramics, crockery and designer kitchenware.">
+    <meta property="og:url" content="https://cavarabd.com/">
+    <!-- 
+      ACTION REQUIRED: You must create this image and upload it to your site.
+      It should be 1200x630 pixels.
+    -->
+    <meta property="og:image" content="https://cavarabd.com/og-image.jpg">
+    <meta property="og:image:alt" content="Cavara — curated premium home decor">
+
+    <!-- Twitter card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Cavara — A World Where Artistry Meets Elegance">
+    <meta name="twitter:description" content="Curated imports and premium home décor from around the world.">
+    <!-- Twitter also uses the same og-image -->
+    <meta name="twitter:image" content="https://cavarabd.com/og-image.jpg">
+
+    <!-- 
+      ACTION REQUIRED: Favicons (Browser Tab Icons)
+      You should create these files and upload them to your root folder.
+    -->
+    <link rel="icon" href="/favicon.ico" type="image/x-icon">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="manifest" href="/site.webmanifest">
+
+    <!-- 
+      Schema.org Organization (Google's "Business Card")
+      This is the JSON-LD script we discussed.
+    -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Cavara",
+      "url": "https://cavarabd.com/",
+      "logo": "https://cavarabd.com/cavara-logo.png", // ACTION: Upload your logo as 'cavara-logo.png'
+      "sameAs": [
+        "https://www.facebook.com/cavarabd",
+        "https://www.instagram.com/your_instagram_handle" // ACTION: Replace 'your_instagram_handle'
+      ],
+      "contactPoint": [{
+        "@type": "ContactPoint",
+        "telephone": "+8801789080885", // Your phone number
+        "contactType": "customer service",
+        "email": "hridoyn02@gmail.com", // Your email
+        "areaServed": "BD"
+      }]
+    }
+    </script>
+
+    <!-- Google Fonts, Tailwind, and Font Awesome -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;700&family=Playfair+Display:wght@700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <!-- 
+      Your Custom Styles
+      I have preserved your entire <style> block here.
+    -->
+    <style>
+        /* Define our new custom fonts */
+        .font-serif {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .font-sans {
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        /* Define our new brand color from the logo */
+        .text-brand-gold {
+            color: #B9976A;
+            /* A sophisticated, muted gold */
+        }
+
+        .bg-brand-gold {
+            background-color: #B9976A;
+        }
+
+        .border-brand-gold {
+            border-color: #B9976A;
+        }
+
+        /* Apply the base body font */
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: #333;
+            /* A softer, more premium black for text */
+        }
+
+        /* Smooth scrolling for anchor links */
+        html {
+            scroll-behavior: smooth;
+        }
+    </style>
+</head>
+
+<body class="bg-white">
+
+    <!-- 
+      HEADER / NAVIGATION 
+      This contains the mobile menu fix (IDs and the hidden menu div)
+    -->
+    <nav class="sticky top-0 z-50 w-full bg-white/95 backdrop-blur-md shadow-sm relative">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <!-- LOGO (Keeping your .webp version) -->
+            <a href="#">
+                <img src="cavara final 1.1.webp" alt="Cavara Home & Living Logo" class="h-14 md:h-16">
+            </a>
+
+            <!-- Navigation Links -->
+            <div class="hidden md:flex space-x-8 uppercase tracking-widest text-sm">
+                <a href="#collections"
+                    class="text-gray-700 hover:text-brand-gold transition-colors duration-300">Collections</a>
+                <a href="#about" class="text-gray-700 hover:text-brand-gold transition-colors duration-300">About</a>
+                <a href="#contact"
+                    class="text-gray-700 hover:text-brand-gold transition-colors duration-300">Contact</a>
+            </div>
+
+            <!-- Mobile Menu Button -->
+            <div class="md:hidden">
+                <button id="mobile-menu-button" class="text-gray-900" aria-label="Toggle menu">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24"
+                        stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                            d="M4 6h16M4 12h16M4 18h16" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- MOBILE MENU (HIDDEN BY DEFAULT) -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white shadow-lg absolute w-full left-0 top-full">
+            <div class="flex flex-col space-y-4 p-6 uppercase tracking-widest text-sm">
+                <a href="#collections"
+                    class="text-gray-700 hover:text-brand-gold transition-colors duration-300">Collections</a>
+                <a href="#about" class="text-gray-700 hover:text-brand-gold transition-colors duration-300">About</a>
+                <a href="#contact"
+                    class="text-gray-700 hover:text-brand-gold transition-colors duration-300">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 
+      MAIN CONTENT
+      All your page sections are here, unchanged.
+    -->
+    <main>
+
+        <!-- HERO SECTION (with <picture> tag fix and your .webp images) -->
+        <header class="relative h-[90vh] w-full flex items-center justify-center text-center text-white px-6">
+            <div class="absolute inset-0 bg-black/60">
+                <!-- 
+                  ART DIRECTION FOR BACKGROUND IMAGE
+                  Keeping your .webp file paths.
+                -->
+                <picture class="w-full h-full">
+                    <!-- Mobile Image (screens 767px wide or less) -->
+                    <source srcset="mobile_background.webp" media="(max-width: 767px)">
+                    <!-- Desktop Image (default) -->
+                    <img src="main-background.webp" alt="Elegant home decor"
+                        class="w-full h-full object-cover opacity-50">
+                </picture>
+            </div>
+
+            <!-- Hero Text Content -->
+            <div class="relative z-10">
+                <h1 class="font-serif text-4xl md:text-6xl font-bold">
+                    A world where artistry meets elegance
+                </h1>
+                <p class="text-lg md:text-xl font-sans mt-4 max-w-2xl mx-auto">
+                    Curated imports for the discerning home.
+                </p>
+                <a href="#collections"
+                    class="mt-8 inline-block px-10 py-3 border-2 border-white text-white uppercase tracking-widest text-sm font-medium hover:bg-white hover:text-black transition-all duration-300 rounded-lg">
+                    Explore Collections
+                </a>
+            </div>
+        </header>
+
+        <!-- ABOUT US SECTION (Your text is preserved) -->
+        <section id="about" class="py-24 px-6 bg-gray-50">
+            <div class="container mx-auto max-w-3xl text-center">
+                <h2 class="font-serif text-3xl md:text-4xl font-bold text-black">Welcome to Cavara</h2>
+                <div class="w-24 h-1 bg-brand-gold mx-auto my-6 rounded-full"></div>
+                <p class="text-lg text-gray-700 leading-relaxed">
+                    Your home is a sanctuary, a personal gallery of your journey. We are your curators for the
+                    exceptional. We explore the globe to bring you inspiring home decor, exquisite ceramics, and premium
+                    kitchenware. Every item is personally selected for its superior quality, captivating story, and
+                    timeless design.
+                </p>
+            </div>
+        </section>
+
+        <!-- "OUR PHILOSOPHY" SECTION (Your text is preserved) -->
+        <section id="philosophy" class="py-24 px-6 bg-white">
+            <div class="container mx-auto max-w-6xl">
+                <h2 class="font-serif text-3xl md:text-4xl font-bold text-center text-black">Our Philosophy</h2>
+                <div class="w-24 h-1 bg-brand-gold mx-auto my-6 rounded-full"></div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-12 mt-16 text-center">
+                    <!-- Philosophy Item 1 -->
+                    <div class="flex flex-col items-center">
+                        <div class="text-brand-gold text-5xl mb-6">
+                            <i class="fa-solid fa-globe"></i>
+                        </div>
+                        <h3 class="font-serif text-2xl font-bold text-black mb-3">Curated Imports</h3>
+                        <p class="text-gray-700 leading-relaxed">
+                            Personally selected from international markets, we bring unique, trend-forward pieces
+                            directly
+                            to your home.
+                        </p>
+                    </div>
+                    <!-- Philosophy Item 2 -->
+                    <div class="flex flex-col items-center">
+                        <div class="text-brand-gold text-5xl mb-6">
+                            <i class="fa-solid fa-gem"></i>
+                        </div>
+                        <h3 class="font-serif text-2xl font-bold text-black mb-3">Premium Selection</h3>
+                        <p class="text-gray-700 leading-relaxed">
+                            Quality is our priority. We select each item for its excellent construction, fine materials,
+                            and
+                            notable attention to detail.
+                        </p>
+                    </div>
+                    <!-- Philosophy Item 3 -->
+                    <div class="flex flex-col items-center">
+                        <div class="text-brand-gold text-5xl mb-6">
+                            <i class="fa-solid fa-infinity"></i>
+                        </div>
+                        <h3 class="font-serif text-2xl font-bold text-black mb-3">Timeless Design</h3>
+                        <p class="text-gray-700 leading-relaxed">
+                            Our collections are curated to transcend trends, bringing lasting elegance to your living
+                            space.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- COLLECTIONS SECTION (Keeping your .webp images) -->
+        <section id="collections" class="py-24 px-6 bg-white">
+            <div class="container mx-auto">
+                <h2 class="font-serif text-3xl md:text-4xl font-bold text-center text-black">Our Collections</h2>
+                <div class="w-24 h-1 bg-brand-gold mx-auto my-6 rounded-full"></div>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
+                    <!-- Collection Item 1 -->
+                    <div class="group relative overflow-hidden rounded-lg shadow-xl">
+                        <img src="artisanal-ceramics2.webp" alt="Artisanal Ceramics"
+                            class="w-full h-96 object-cover transform group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-black/40 flex items-end">
+                            <h3 class="font-serif text-white text-3xl font-bold p-6">Ceramics</h3>
+                        </div>
+                    </div>
+                    <!-- Collection Item 2 -->
+                    <div class="group relative overflow-hidden rounded-lg shadow-xl">
+                        <img src="fine-corckery2.webp" alt="Fine Crockery"
+                            class="w-full h-96 object-cover transform group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-black/40 flex items-end">
+                            <h3 class="font-serif text-white text-3xl font-bold p-6">Crockery</h3>
+                        </div>
+                    </div>
+                    <!-- Collection Item 3 -->
+                    <div class="group relative overflow-hidden rounded-lg shadow-xl">
+                        <img src="modern-kitchen.webp" alt="Modern Kitchenware"
+                            class="w-full h-96 object-cover transform group-hover:scale-105 transition-transform duration-500">
+                        <div class="absolute inset-0 bg-black/40 flex items-end">
+                            <h3 class="font-serif text-white text-3xl font-bold p-6">Kitchenware</h3>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- "FOLLOW US" SECTION (Your Facebook link is preserved) -->
+        <section id="follow" class="py-24 px-6 bg-gray-50">
+            <div class="container mx-auto max-w-3xl text-center">
+                <h2 class="font-serif text-3xl md:text-4xl font-bold text-black">Join Our World</h2>
+                <div class="w-24 h-1 bg-brand-gold mx-auto my-6 rounded-full"></div>
+                <p class="text-lg text-gray-700 leading-relaxed mb-8">
+                    Follow us on Instagram & Facebook for new arrivals, inspiration, and behind-the-scenes stories.
+                </p>
+                <p class="text-lg text-brand-gold font-semibold leading-relaxed mb-10">
+                    To place an order, please send us a message on our Facebook page.
+                    <br>Our full e-commerce website is coming soon!
+                </p>
+                <div class="flex flex-col md:flex-row justify-center gap-6">
+                    <a href="#"
+                        class="flex items-center justify-center gap-3 bg-brand-gold text-white font-bold uppercase tracking-wider text-sm px-10 py-4 rounded-lg shadow-lg hover:opacity-90 transition-opacity duration-300">
+                        <i class="fa-brands fa-instagram text-2xl"></i>
+                        <span>Follow on Instagram</span>
+                    </a>
+                    <a href="https://www.facebook.com/cavarabd"
+                        class="flex items-center justify-center gap-3 bg-black text-white font-bold uppercase tracking-wider text-sm px-10 py-4 rounded-lg shadow-lg hover:opacity-90 transition-opacity duration-300">
+                        <i class="fa-brands fa-facebook-f text-2xl"></i>
+                        <span>Follow on Facebook</span>
+                    </a>
+                </div>
+            </div>
+        </section>
+
+    </main>
+    <!-- END of main content -->
+
+
+    <!-- FOOTER (Your contact info is preserved) -->
+    <footer id="contact" class="bg-black text-gray-300 py-20 px-6">
+        <div class="container mx-auto max-w-6xl grid grid-cols-1 md:grid-cols-3 gap-12">
+
+            <!-- Column 1: Brand -->
+            <div>
+                <a href="#" class="font-serif text-3xl font-bold text-white">CAVARA</a>
+                <p class="text-sm uppercase tracking-widest text-gray-400 mt-1">Home & Living</p>
+                <p class="font-light mt-4 text-gray-400">A world where artistry meets elegance.</p>
+            </div>
+
+            <!-- Column 2: Quick Links -->
+            <div>
+                <h4 class="text-white font-bold mb-4 uppercase tracking-wider">Navigate</h4>
+                <ul class="space-y-3">
+                    <li><a href="#collections"
+                            class="font-light hover:text-brand-gold transition-colors duration-300">Collections</a></li>
+                    <li><a href="#about" class="font-light hover:text-brand-gold transition-colors duration-300">About
+                            Us</a></li>
+                    <li><a href="#follow" class="font-light hover:text-brand-gold transition-colors duration-300">Follow
+                            Us</a></li>
+                </ul>
+            </div>
+
+            <!-- Column 3: Location (Your text is preserved) -->
+            <div>
+                <h4 class="text-white font-bold mb-4 uppercase tracking-wider">Visit Us</h4>
+                <p class="font-light leading-relaxed">
+                    Cavara Office<br>
+                    West Nandipara, South Banasree<br>
+                    Dhaka, Bangladesh
+                </p>
+                <p class="font-light mt-4">
+                    <!-- 
+                      FIXED: That small typo in your file (</D>) is now corrected to </p> 
+                    -->
+                    <a href="mailto:hridoyn02@gmail.com"
+                        class="hover:text-brand-gold transition-colors duration-300">info@cavara.com</a>
+                </p>
+                <p class="font-light">
+                    <a href="tel:+8801789080885"
+                        class="hover:text-brand-gold transition-colors duration-300">+8801789-080885</a>
+                </p>
+            </div>
+        </div>
+
+        <!-- Copyright -->
+        <div class="border-t border-gray-700 mt-16 pt-8 text-center text-gray-500 text-sm">
+            <p>&copy; 2025 Cavara. All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <!-- 
+      JAVASCRIPT FOR MOBILE MENU
+      This script is unchanged and works.
+    -->
+    <script>
+        // Get the button and the menu
+        const menuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+
+        // Get all the links inside the mobile menu
+        const menuLinks = mobileMenu.querySelectorAll('a');
+
+        // 1. Toggle the menu when the button is clicked
+        menuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+
+        // 2. Close the menu when any of its links are clicked
+        menuLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenu.classList.add('hidden');
+            });
+        });
+    </script>
+
+</body>
+
+</html>
