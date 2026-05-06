@@ -1,0 +1,993 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- 
+      PRIMARY SEO & BRANDING
+      ----------------------
+    -->
+    <title>Cavara — Premium Home Decor & Artistry</title>
+    <meta name="description"
+        content="Discover Cavara — Bangladesh's premier destination for curated, premium home decor. Explore our exclusive collections of imported ceramics, luxury crockery, and designer kitchenware.">
+    <link rel="canonical" href="https://cavarabd.com/" />
+    <meta name="robots" content="index, follow" />
+    <meta name="keywords"
+        content="premium home decor Bangladesh, ceramic kitchenware BD, luxury crockery Bangladesh, Cavara">
+    <!-- Open Graph (Facebook, WhatsApp) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Cavara" />
+    <meta property="og:title" content="Cavara — Premium Home Decor & Artistry" />
+    <meta property="og:description"
+        content="Curated imports and premium home décor from around the world. Elevate your living space with Cavara." />
+    <meta property="og:url" content="https://cavarabd.com/" />
+    <meta property="og:image" content="https://cavarabd.com/og-image.jpg" />
+    <meta property="og:image:alt" content="Cavara Luxury Home Decor" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Cavara — Premium Home Decor & Artistry" />
+    <meta name="twitter:description" content="Curated imports and premium home décor from around the world." />
+    <meta name="twitter:image" content="https://cavarabd.com/og-image.jpg" />
+
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+
+    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+
+    <link rel="manifest" href="/site.webmanifest">
+
+
+    <!-- Valid JSON-LD Schema (Organization) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "Cavara",
+      "alternateName": "Cavarabd",
+      "url": "https://cavarabd.com/",
+      "logo": "https://cavarabd.com/cavara%20final%201.1.webp",
+      "sameAs": [
+        "https://www.facebook.com/cavarabd"
+      ],
+      "contactPoint": [{
+        "@type": "ContactPoint",
+        "telephone": "+8801789080885",
+        "contactType": "customer service",
+        "email": "hridoyn02@gmail.com",
+        "areaServed": "BD"
+      }]
+    }
+    </script>
+
+    <script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "name": "Cavara Premium Collection",
+  "url": "https://cavarabd.com/",
+  "itemListElement": [
+    {
+      "@type": "Product",
+      "position": 1,
+      "name": "Red Polka Bow Cup & Bread Plate",
+      "image": [
+        "https://cavarabd.com/product-images/BCC&P/cup-plate.webp"
+      ],
+      "description": "Hand-painted red polka bow cup & bread plate set. Cup size 220 ml, plate size 16 cm.",
+      "brand": {
+        "@type": "Brand",
+        "name": "Cavara"
+      },
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "BDT",
+        "price": "1550",
+        "availability": "https://schema.org/InStock",
+        "url": "https://cavarabd.com/"
+      }
+    },
+    {
+      "@type": "Product",
+      "position": 2,
+      "name": "Jelly Bean Amphora Rectangular Dish",
+      "image": [
+        "https://cavarabd.com/product-images/jba-rect/jbar-green1.webp"
+      ],
+      "description": "9-inch rectangular ceramic dish available in multiple colors.",
+      "brand": {
+        "@type": "Brand",
+        "name": "Cavara"
+      },
+      "offers": {
+        "@type": "Offer",
+        "priceCurrency": "BDT",
+        "price": "1050",
+        "availability": "https://schema.org/InStock",
+        "url": "https://cavarabd.com/"
+      }
+    }
+  ]
+}
+</script>
+
+    <!-- Tailwind CSS & Fonts -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+
+    <style>
+        :root {
+            --brand-gold: #B9976A;
+        }
+
+        .font-serif {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .font-sans {
+            font-family: 'Montserrat', sans-serif;
+        }
+
+        .text-brand-gold {
+            color: var(--brand-gold);
+        }
+
+        .bg-brand-gold {
+            background-color: var(--brand-gold);
+        }
+
+        .border-brand-gold {
+            border-color: var(--brand-gold);
+        }
+
+        .swatch-active {
+            transform: scale(1.2);
+        }
+
+        body {
+            font-family: 'Montserrat', sans-serif;
+            color: #1a1a1a;
+            background-color: #fff;
+            overflow-x: hidden;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Luxury Transitions */
+        .premium-shadow {
+            box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.1);
+        }
+
+        .product-card {
+            transition: transform 0.5s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.5s ease;
+            cursor: pointer;
+        }
+
+        .product-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
+        }
+
+        .btn-luxury {
+            transition: all 0.3s ease;
+            letter-spacing: 0.15em;
+        }
+
+        .btn-luxury:hover {
+            letter-spacing: 0.2em;
+            opacity: 0.9;
+        }
+
+        /* Custom Scrollbar for Luxury Look */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--brand-gold);
+        }
+
+        /* UI States */
+        #product-modal {
+            transition: opacity 0.3s ease;
+        }
+
+        .active-thumb {
+            border-color: var(--brand-gold) !important;
+            opacity: 1 !important;
+        }
+
+        .swatch-active {
+            box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--brand-gold);
+        }
+
+        .swatch {
+            transition: transform 0.2s ease;
+            cursor: pointer;
+        }
+
+        .swatch:hover {
+            transform: scale(1.15);
+        }
+
+        /* Floating WhatsApp Button Animation */
+        @keyframes pulse-gold {
+            0% {
+                box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.55);
+            }
+
+            70% {
+                box-shadow: 0 0 0 16px rgba(37, 211, 102, 0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+            }
+        }
+
+        .float-wa {
+            animation: pulse-gold 2s infinite;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .animate-luxury {
+            animation: fadeIn 1s ease-out forwards;
+        }
+    </style>
+</head>
+
+<body class="antialiased">
+
+    <!-- NOTIFICATION TOAST (Used for copying messages) -->
+    <div id="toast"
+        class="fixed top-24 left-1/2 transform -translate-x-1/2 bg-black text-white px-8 py-4 rounded-md text-xs tracking-widest uppercase font-bold shadow-2xl opacity-0 pointer-events-none transition-opacity duration-300 z-[200]">
+        Message Copied!
+    </div>
+
+    <!-- NAVIGATION -->
+    <nav class="sticky top-0 z-[60] w-full bg-white/90 backdrop-blur-lg border-b border-gray-100 relative">
+        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
+            <a href="#" class="transition-transform hover:scale-105">
+                <img src="cavara-logo-black.webp" alt="Cavara Logo" class="h-10 md:h-14" />
+            </a>
+
+            <div class="hidden md:flex space-x-12 uppercase tracking-[0.25em] text-[10px] font-bold">
+                <a href="#collections" class="text-gray-500 hover:text-brand-gold transition-colors">Collections</a>
+                <a href="#about" class="text-gray-500 hover:text-brand-gold transition-colors">Philosophy</a>
+                <a href="#contact" class="text-gray-500 hover:text-brand-gold transition-colors">Contact</a>
+            </div>
+
+            <button id="mobile-menu-button" class="md:hidden p-2 text-black" aria-label="Open Menu">
+                <i class="fa-solid fa-bars-staggered text-xl"></i>
+            </button>
+        </div>
+
+        <!-- MOBILE MENU -->
+        <div id="mobile-menu"
+            class="hidden md:hidden bg-white border-t border-gray-100 absolute w-full left-0 top-full shadow-2xl">
+            <div class="flex flex-col space-y-6 p-10 uppercase tracking-widest text-xs font-bold text-center">
+                <a href="#collections" class="mobile-link py-2">Collections</a>
+                <a href="#about" class="mobile-link py-2">Philosophy</a>
+                <a href="#contact" class="mobile-link py-2">Contact</a>
+            </div>
+        </div>
+    </nav>
+
+    <main>
+        <!-- HERO SECTION -->
+        <header
+            class="relative h-[90vh] w-full flex items-center justify-center text-center text-white overflow-hidden bg-black">
+            <div class="absolute inset-0 z-0">
+                <picture class="w-full h-full">
+                    <source srcset="mobile_background.webp" media="(max-width: 767px)" />
+                    <img src="main-background.webp" alt="Luxury Home Decor"
+                        class="w-full h-full object-cover opacity-60" />
+                </picture>
+            </div>
+
+            <div class="relative z-10 px-6 animate-luxury">
+                <p class="text-[10px] md:text-xs uppercase tracking-[0.4em] mb-6 opacity-90 text-brand-gold font-bold">
+                    Premium Home Decor</p>
+                <h1 class="font-serif text-5xl md:text-8xl font-bold tracking-tight mb-8 leading-tight">
+                    A world where artistry<br class="hidden md:block" /> meets elegance
+                </h1>
+                <a href="#collections"
+                    class="btn-luxury inline-block px-12 py-5 border border-white text-white hover:bg-white hover:text-black uppercase tracking-widest text-[11px] font-bold">
+                    Explore Collections
+                </a>
+            </div>
+        </header>
+
+        <!-- PHILOSOPHY SECTION -->
+        <section id="about" class="py-32 px-6 bg-white">
+            <div class="container mx-auto max-w-6xl">
+                <div class="text-center max-w-4xl mx-auto mb-20">
+                    <h2 class="font-serif text-3xl md:text-5xl font-bold mb-10">Our Philosophy</h2>
+                    <div class="w-24 h-px bg-brand-gold mx-auto mb-12"></div>
+                    <p class="text-lg md:text-xl text-gray-500 leading-[2] font-light italic">
+                        "Your home is a sanctuary, a personal gallery of your journey. We explore the globe to bring you
+                        inspiring home decor, exquisite ceramics, and premium kitchenware."
+                    </p>
+                </div>
+
+                <!-- Visual Value Propositions -->
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-16">
+                    <div class="flex flex-col items-center text-center group">
+                        <div
+                            class="w-20 h-20 mb-8 border border-gray-100 rounded-full flex items-center justify-center bg-[#fafafa] group-hover:bg-brand-gold transition-all duration-500">
+                            <i
+                                class="fa-solid fa-earth-africa text-2xl text-brand-gold group-hover:text-white transition-colors"></i>
+                        </div>
+                        <h3 class="font-serif text-xl font-bold mb-4 uppercase tracking-widest">Global Selection</h3>
+                        <p class="text-gray-400 text-[10px] leading-loose tracking-widest uppercase font-bold">Artistry
+                            sourced from the world's most talented international artisans.</p>
+                    </div>
+
+                    <div class="flex flex-col items-center text-center group">
+                        <div
+                            class="w-20 h-20 mb-8 border border-gray-100 rounded-full flex items-center justify-center bg-[#fafafa] group-hover:bg-brand-gold transition-all duration-500">
+                            <i
+                                class="fa-solid fa-gem text-2xl text-brand-gold group-hover:text-white transition-colors"></i>
+                        </div>
+                        <h3 class="font-serif text-xl font-bold mb-4 uppercase tracking-widest">Premium Quality</h3>
+                        <p class="text-gray-400 text-[10px] leading-loose tracking-widest uppercase font-bold">Each item
+                            is hand-selected for its craftsmanship and material excellence.</p>
+                    </div>
+
+                    <div class="flex flex-col items-center text-center group">
+                        <div
+                            class="w-20 h-20 mb-8 border border-gray-100 rounded-full flex items-center justify-center bg-[#fafafa] group-hover:bg-brand-gold transition-all duration-500">
+                            <i
+                                class="fa-solid fa-infinity text-2xl text-brand-gold group-hover:text-white transition-colors"></i>
+                        </div>
+                        <h3 class="font-serif text-xl font-bold mb-4 uppercase tracking-widest">Classic Design</h3>
+                        <p class="text-gray-400 text-[10px] leading-loose tracking-widest uppercase font-bold">Curated
+                            pieces that transcend seasonal trends to last a lifetime.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- PRODUCT COLLECTION GRID -->
+        <section id="collections" class="py-24 px-6 bg-[#fafafa]">
+            <div class="container mx-auto max-w-7xl">
+                <div class="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
+                    <div class="max-w-xl">
+                        <h2 class="font-serif text-4xl md:text-6xl font-bold">The Collection</h2>
+                        <p class="text-brand-gold mt-6 uppercase tracking-[0.3em] text-[10px] font-bold">Premium Imports
+                            • Available Now</p>
+                    </div>
+                    <div
+                        class="text-[11px] text-gray-500 uppercase tracking-widest leading-loose text-right border-r-2 border-brand-gold pr-6 font-medium">
+                        Select a color to preview<br>Direct inquiries via WhatsApp & Messenger
+                    </div>
+                </div>
+
+                <!-- Product Grid Architecture (Injected via JS) -->
+                <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
+                    <!-- Products rendered dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- CONTACT & SUPPORT SECTION -->
+        <section id="contact" class="py-32 px-6 bg-white border-t border-gray-50">
+            <div class="container mx-auto max-w-4xl text-center">
+                <h2 class="font-serif text-4xl md:text-6xl font-bold mb-10 text-black">Order & Support</h2>
+                <p class="text-gray-500 mb-16 text-lg font-light tracking-wide">
+                    Our team is here to help you with orders, details, and personalized consultation.
+                </p>
+
+                <div class="flex flex-col md:flex-row justify-center items-center gap-6">
+                    <a href="https://wa.me/8801788404459" target="_blank"
+                        class="btn-luxury w-full md:w-auto bg-[#25D366] text-white px-12 py-5 uppercase text-[11px] font-bold shadow-2xl flex items-center justify-center gap-4">
+                        <i class="fa-brands fa-whatsapp text-lg"></i> WhatsApp Support
+                    </a>
+                    <a href="https://www.facebook.com/cavarabd" target="_blank"
+                        class="btn-luxury w-full md:w-auto border border-black text-black px-12 py-5 uppercase text-[11px] font-bold hover:bg-black hover:text-white flex items-center justify-center gap-4">
+                        <i class="fa-brands fa-facebook-messenger text-lg"></i> Message on Facebook
+                    </a>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- FOOTER -->
+    <footer class="bg-black text-white pt-24 pb-12 px-6">
+        <div class="container mx-auto max-w-6xl">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-16 mb-24">
+                <div class="space-y-8">
+                    <img src="cavara-logo-black.webp" alt="Cavara Logo" class="h-10" />
+                    <p class="text-gray-400 text-sm leading-relaxed font-light tracking-wide uppercase text-[10px]">
+                        Premium imported home decor for modern Bangladeshi homes.
+                    </p>
+                </div>
+                <div>
+                    <h4 class="text-[10px] font-bold uppercase tracking-[0.4em] text-brand-gold mb-10">Navigation</h4>
+                    <ul class="space-y-5 text-[11px] font-medium uppercase tracking-widest text-gray-400">
+                        <li><a href="#collections" class="hover:text-white transition-colors">Collections</a></li>
+                        <li><a href="#about" class="hover:text-white transition-colors">Our Philosophy</a></li>
+                        <li><a href="#contact" class="hover:text-white transition-colors">Support</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="text-[10px] font-bold uppercase tracking-[0.4em] text-brand-gold mb-10">Visit Us</h4>
+                    <address class="not-italic text-gray-400 text-[11px] uppercase tracking-widest leading-loose">
+                        West Nandipara, South Banasree<br /> Dhaka, Bangladesh
+                    </address>
+                    <div class="mt-8 space-y-3 text-[11px] tracking-widest uppercase">
+                        <p><a href="mailto:forhadmazhar@gmail.com"
+                                class="text-gray-400 hover:text-white transition-colors">info@cavara.com</a></p>
+                        <p><a href="tel:+8801788404459" class="text-gray-400 hover:text-white transition-colors">+880
+                                1788404459</a></p>
+                    </div>
+                </div>
+            </div>
+            <div
+                class="pt-12 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-8 text-[9px] uppercase tracking-[0.4em] text-gray-500 font-bold">
+                <p>&copy; 2025 Cavara. All Rights Reserved.</p>
+                <div class="flex space-x-10">
+                    <a href="https://facebook.com/cavarabd" target="_blank"
+                        class="hover:text-brand-gold transition-colors"><i
+                            class="fa-brands fa-facebook-f text-base"></i></a>
+                    <a href="https://wa.me/8801788404459" target="_blank"
+                        class="hover:text-brand-gold transition-colors"><i
+                            class="fa-brands fa-whatsapp text-base"></i></a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- LUXURY PRODUCT MODAL -->
+    <div id="product-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 md:p-10">
+        <div class="absolute inset-0 bg-black/90 backdrop-blur-md" onclick="closeModal()"></div>
+        <div
+            class="relative bg-white w-full max-w-6xl max-h-[95vh] overflow-y-auto rounded-sm shadow-2xl flex flex-col md:flex-row animate-luxury">
+            <!-- Modal Close -->
+            <button onclick="closeModal()"
+                class="absolute top-6 right-6 z-10 text-black bg-white rounded-full w-10 h-10 flex items-center justify-center hover:text-brand-gold hover:bg-gray-50 transition-all shadow-md">
+                <i class="fa-solid fa-xmark text-xl"></i>
+            </button>
+
+            <!-- Left: Gallery -->
+            <div class="w-full md:w-1/2 bg-[#f9f9f9] p-6 md:p-12">
+                <div class="aspect-square overflow-hidden bg-white mb-6 border border-gray-100">
+                    <img id="modal-main-img" src="" class="w-full h-full object-cover" alt="Selected Product" />
+                </div>
+                <div id="modal-thumbs" class="flex gap-3 overflow-x-auto pb-2">
+                    <!-- Thumbs injected via JS -->
+                </div>
+            </div>
+
+            <!-- Right: Details -->
+            <div class="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
+                <p id="modal-category" class="text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold mb-4">
+                    Category</p>
+                <h2 id="modal-title" class="font-serif text-3xl md:text-4xl font-bold mb-4 text-black">Product Name</h2>
+                <p id="modal-price" class="text-xl font-medium text-gray-800 mb-8 pb-8 border-b border-gray-100">৳ 0,000
+                </p>
+
+                <div id="modal-variants" class="mb-8">
+                    <p class="text-[10px] uppercase tracking-widest font-bold mb-4 text-gray-500">Available Colors</p>
+                    <div id="swatch-container-modal" class="flex flex-wrap gap-4">
+                        <!-- Swatches injected via JS -->
+                    </div>
+                    <p id="modal-color-name" class="text-[11px] text-gray-500 mt-4 uppercase tracking-widest">
+                        Color: Default
+                    </p>
+                </div>
+
+                <div class="space-y-6 mb-10">
+                    <p id="modal-desc" class="text-gray-500 font-light leading-relaxed text-sm">Description goes here.
+                    </p>
+                </div>
+
+                <div class="space-y-3 mt-auto">
+                    <p class="text-[9px] text-gray-400 uppercase tracking-widest font-medium mb-2">Order Options</p>
+
+                    <a id="modal-wa-btn" href="#" target="_blank"
+                        onclick="copyOrderMessage(event, 'https://wa.me/8801788404459?text=')"
+                        class="btn-luxury flex items-center justify-center gap-3 w-full bg-[#25D366] text-white py-4 uppercase text-[11px] font-bold shadow-md">
+                        <i class="fa-brands fa-whatsapp text-lg"></i> Order via WhatsApp
+                    </a>
+
+                    <a id="modal-fb-btn" href="#" target="_blank"
+                        onclick="copyOrderMessage(event, 'https://www.facebook.com/messages/t/cavarabd')"
+                        class="btn-luxury flex items-center justify-center gap-3 w-full border border-gray-200 bg-white text-black hover:bg-gray-50 py-4 uppercase text-[11px] font-bold shadow-sm">
+                        <i class="fa-brands fa-facebook-messenger text-lg"></i> Order via Messenger
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FLOATING WHATSAPP BUTTON -->
+    <a href="https://wa.me/8801788404459" target="_blank"
+        class="fixed bottom-8 right-8 z-[50] group flex items-center float-wa rounded-full">
+        <span
+            class="mr-4 bg-white text-black text-[10px] font-bold uppercase tracking-widest px-5 py-3 shadow-2xl opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all rounded-full hidden md:block">WhatsApp
+            Support</span>
+        <div
+            class="w-14 h-14 md:w-16 md:h-16 bg-[#25D366] rounded-full flex items-center justify-center text-white shadow-2xl hover:scale-110 transition-transform">
+            <i class="fa-brands fa-whatsapp text-2xl md:text-3xl"></i>
+        </div>
+    </a>
+
+    <!-- 
+      DYNAMIC DATA & LOGIC
+      --------------------
+    -->
+    <script>
+        /**
+         * 🎯 EDITABLE PRODUCT DATA
+         * Every product now has color variants as requested.
+         */
+        const PRODUCTS = [
+
+            {
+                id: 2,
+                name: "Red Polka Bow Cup & Bread Plate",
+                category: "Crockery",
+                price: "৳ 1,550",
+                description: `Hand-painted red polka bow cup & bread plate set
+Cup size – 220 ml | Plate size – 16 cm
+Perfect for serving tea, coffee, and light bites in any setting`,
+                variants: [
+                    {
+                        name: "Off-white",
+                        color: "#EDE2C7",
+                        images: [
+                            "product-images/BCC&P/cup-plate-food.webp",
+                            "product-images/BCC&P/cup-plate-stand.webp",
+                            "product-images/BCC&P/cup-plate-hand.webp",
+                            "product-images/BCC&P/cup-plate.webp",
+                        ]
+                    },
+
+                ]
+            },
+            {
+                id: 3,
+                name: "Ceramic Storage Jar With Bamboo Lid (Set)",
+                category: "Kitchenware",
+                price: "৳ 4,800",
+                description: `Ceramic storage jar with bamboo lid (3 pieces)
+Capacity – 800 ml | Material – Ceramic | Lid – Bamboo
+Vacuum-sealed design, perfect for storing coffee, sugar, tea, and spices, while adding a premium touch to your home décor`,
+
+
+                variants: [
+                    {
+                        name: "White",
+                        color: "#F5F5F5",
+                        images: [
+                            "product-images/storage-jar/storage-jar.webp",
+                            "product-images/storage-jar/storage-demo.webp",
+                            "product-images/storage-jar/storage-lid.webp",
+                            "product-images/storage-jar/storage-jar-size.webp",
+                            "product-images/storage-jar/storage-jar1.webp",
+                        ]
+                    },
+
+                ]
+            },
+
+            {
+                id: 4,
+                name: "Jelly Bean Amphora Rectangular Dish",
+                category: "Premium Kitchenware",
+                price: "৳ 1,050",
+                description: `Jelly Bean Amphora dish – 9" (rectangular)
+Material – Ceramic | Available in Custard Yellow, Pink, Green, Purple
+Perfect for luxury home serving with a vibrant, elegant touch`,
+                variants: [
+                    {
+                        name: "Green",
+                        color: "#C2E5D3",
+                        images: [
+                            "product-images/jba-rect/jbar-green2.webp",
+                            "product-images/jba-rect/jbar-green1.webp",
+
+                        ]
+                    },
+
+                    {
+                        name: "Custard-Yellow",
+                        color: "#FFFD78",
+                        images: [
+                            "product-images/jba-rect/jbar-yellow1.webp",
+                            "product-images/jba-rect/jbar-mix1.webp",
+                        ]
+                    },
+
+                    {
+                        name: "Pink",
+                        color: "#FFB6C1",
+                        images: [
+                            "product-images/jba-rect/jbar-pink1.webp",
+                            "product-images/jba-rect/jbar-mix2.webp",
+                        ]
+                    },
+
+                    {
+                        name: "Purple",
+                        color: "#da8ee7",
+                        images: [
+                            "product-images/jba-rect/jbar-purple1.webp",
+                            "product-images/jba-rect/jbar-mix3.webp",
+
+                        ]
+                    }
+                ]
+            },
+
+            {
+                id: 1,
+                name: "Ceramic Storage Jar With Bamboo Lid (Single)",
+                category: "Kitchenware",
+                price: "৳ 1,650",
+                description: `Ceramic storage jar with bamboo lid (1 piece)
+Capacity – 800 ml | Material – Ceramic | Lid – Bamboo
+Vacuum-sealed design, perfect for storing coffee, sugar, tea, and spices, while adding a premium touch to your home décor`,
+
+                variants: [
+                    {
+                        name: "White",
+                        color: "#F5F5F5",
+                        images: [
+                            "product-images/storage-jar/storage-single.webp",
+                            "product-images/storage-jar/storage-demo.webp",
+                            "product-images/storage-jar/storage-lid.webp",
+                            "product-images/storage-jar/storage-jar-size.webp",
+                            "product-images/storage-jar/storage-jar-single.webp",
+                        ]
+                    },
+
+                ]
+            },
+
+
+            {
+                id: 5,
+                name: "Jelly Bean Amphora Octagonal Dish",
+                category: "Designer Serveware",
+                price: "৳ 1,250",
+                description: `Jelly Bean Amphora dish – 9.5" (octagonal)
+Material – Ceramic | Available in Custard Yellow, Pink, Green, Purple
+Perfect for luxury home serving with a vibrant, elegant touch`,
+
+                variants: [
+                    {
+                        name: "Custard-Yellow",
+                        color: "#FFFD78",
+                        images: [
+                            "product-images/jba-oct/jba-yellow1.webp",
+                            "product-images/jba-oct/jba-yellow2.webp",
+                            "product-images/jba-oct/jba-yellow3.webp",
+                        ]
+                    },
+                    {
+                        name: "Pink",
+                        color: "#FFB6C1",
+                        images: [
+                            "product-images/jba-oct/jba-pink1.webp",
+                            "product-images/jba-oct/jba-pink2.webp",
+                        ]
+                    },
+                    {
+                        name: "Purple",
+                        color: "#da8ee7",
+                        images: [
+                            "product-images/jba-oct/jba-purple1.webp",
+                            "product-images/jba-oct/jba-purple2.webp",
+                            "product-images/jba-oct/jba-mix.webp",
+
+                        ]
+                    },
+
+                    {
+                        name: "Green",
+                        color: "#C2E5D3",
+                        images: [
+                            "product-images/jba-oct/jba-green1.webp",
+                            "product-images/jba-oct/jba-green2.webp",
+
+                        ]
+                    },
+                ]
+            }
+        ];
+
+        // System State
+        let productState = {}; // Tracks selected color per product
+        let activeModalId = null;
+
+        // Initialize default colors
+        PRODUCTS.forEach(p => { productState[p.id] = p.variants[0]; });
+
+        // INITIALIZE GRID
+        const grid = document.getElementById('product-grid');
+        PRODUCTS.forEach(p => {
+            const defaultVar = p.variants[0];
+            const card = document.createElement('article');
+            card.className = "product-card group bg-white border border-gray-100 overflow-hidden rounded-sm shadow-sm";
+            card.addEventListener('click', (e) => {
+                if (e.target.closest('a') || e.target.closest('.swatch')) return;
+                openModal(p.id);
+            });
+
+            card.innerHTML = `
+                <div class="relative overflow-hidden aspect-[4/5] bg-[#fafafa]">
+                    <img id="grid-img-${p.id}" src="${defaultVar.images[0]}" alt="${p.name}" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
+                    <div class="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </div>
+                <div class="p-8 flex flex-col h-full">
+                    <div class="flex justify-between items-start mb-2">
+                        <h3 class="font-serif text-xl font-bold tracking-tight text-black">${p.name}</h3>
+                        <p class="text-brand-gold font-semibold whitespace-nowrap ml-4">${p.price}</p>
+                    </div>
+                    
+                    <div class="mt-4">
+                        <p class="text-[9px] uppercase tracking-[0.2em] text-gray-400 font-bold mb-3">Available Colors</p>
+                        <p id="selected-color-${p.id}" class="text-[10px] text-gray-500 mt-2 uppercase tracking-widest mb-2">
+    Color: ${p.variants[0].name}
+</p>
+
+<div class="flex flex-wrap gap-2 mb-6" id="grid-swatches-${p.id}">
+                            ${p.variants.map((v, i) => `
+                                <div onclick="updateGridImage(${p.id}, ${i})" class="w-5 h-5 rounded-full border border-gray-300 swatch transition-all ${i === 0 ? 'swatch-active' : ''}" style="background-color: ${v.color};" title="${v.name}"></div>
+                            `).join('')}
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-2 mt-auto">
+                        <a href="#" target="_blank" onclick="copyOrderMessage(event, 'https://wa.me/8801788404459?text=', ${p.id})" class="btn-luxury block w-full text-center bg-black text-white text-[10px] font-bold uppercase tracking-[0.2em] py-3 hover:bg-brand-gold transition-colors shadow-sm">
+                            <i class="fa-brands fa-whatsapp"></i> WhatsApp
+                        </a>
+                        <a href="#" target="_blank" onclick="copyOrderMessage(event, 'https://www.facebook.com/messages/t/cavarabd', ${p.id})" class="btn-luxury block w-full text-center border border-gray-200 text-gray-600 text-[10px] font-bold uppercase tracking-[0.2em] py-2 hover:bg-gray-50 transition-colors">
+                            <i class="fa-brands fa-facebook-messenger"></i> Messenger
+                        </a>
+                    </div>
+                </div>
+            `;
+            grid.appendChild(card);
+        });
+
+        // UPDATE GRID ON SWATCH CLICK
+        function updateGridImage(productId, variantIndex) {
+            const p = PRODUCTS.find(x => x.id === productId);
+            const variant = p.variants[variantIndex];
+
+            // Update State
+            productState[productId] = variant;
+
+            // Update Image
+            document.getElementById(`grid-img-${productId}`).src = variant.images[0];
+
+            // Update Swatch UI (FIXED)
+            const swatchContainer = document.getElementById(`grid-swatches-${productId}`);
+            const swatches = swatchContainer.querySelectorAll('.swatch');
+
+            swatches.forEach((s, i) => {
+                if (i === variantIndex) {
+                    s.classList.add('swatch-active');
+                } else {
+                    s.classList.remove('swatch-active');
+                }
+            });
+
+            // Update Color Text
+            document.getElementById(`selected-color-${productId}`).innerText =
+                `Color: ${variant.name}`;
+        }
+
+        // AUTO-FILL & COPY MESSAGE LOGIC (Fixed for Canvas blob environments)
+        function copyOrderMessage(event, baseUrl, explicitProductId = null) {
+            const pid = explicitProductId || activeModalId;
+            if (!pid) {
+                event.preventDefault();
+                return;
+            }
+
+            const p = PRODUCTS.find(x => x.id === pid);
+            const variant = productState[pid];
+
+            // Construct the Premium Message
+            const msg = `Hi Cavara, I want to order: ${p.name} - Color: ${variant.name}`;
+
+            // Write to Clipboard for Messenger fallback
+            try {
+                const input = document.createElement('textarea');
+                input.value = msg;
+                document.body.appendChild(input);
+                input.select();
+                document.execCommand('copy');
+                document.body.removeChild(input);
+
+                // Show Luxury Toast
+                const toast = document.getElementById('toast');
+                toast.innerText = "Message copied! Paste in chat.";
+                toast.classList.remove('opacity-0');
+                setTimeout(() => toast.classList.add('opacity-0'), 3000);
+            } catch (e) {
+                console.error("Clipboard copy failed", e);
+            }
+
+            // Update the link's href dynamically BEFORE the browser navigates
+            let finalUrl = baseUrl;
+            if (baseUrl.includes('wa.me')) {
+                finalUrl = baseUrl + encodeURIComponent(msg);
+            }
+
+            event.currentTarget.href = finalUrl;
+            // The browser will natively navigate to finalUrl (we intentionally did NOT call preventDefault)
+        }
+
+        // MODAL SYSTEM
+        function openModal(id) {
+            activeModalId = id;
+            const p = PRODUCTS.find(x => x.id === id);
+            const currentVar = productState[id]; // Load currently selected state
+
+            document.getElementById('modal-color-name').innerText =
+                `Color: ${currentVar.name}`;
+            document.getElementById('modal-title').innerText = p.name;
+            document.getElementById('modal-category').innerText = p.category;
+            document.getElementById('modal-price').innerText = p.price;
+            document.getElementById('modal-desc').innerHTML =
+                p.description.replace(/\n/g, "<br>");
+
+            const mainImg = document.getElementById('modal-main-img');
+            mainImg.src = currentVar.images[0];
+
+            const thumbContainer = document.getElementById('modal-thumbs');
+            thumbContainer.innerHTML = '';
+
+            const swatchContainer = document.getElementById('swatch-container-modal');
+            swatchContainer.innerHTML = '';
+
+            // Generate Modal Swatches & Thumbs mapped to colors
+            // Generate Modal Swatches & Thumbs (SYNCED)
+            p.variants.forEach((v, idx) => {
+
+                // SWATCH
+                const sw = document.createElement('div');
+                sw.className = `w-8 h-8 rounded-full border border-gray-300 swatch cursor-pointer`;
+                sw.style.backgroundColor = v.color;
+                sw.title = v.name;
+
+                if (v.name === currentVar.name) {
+                    sw.classList.add('swatch-active');
+                }
+
+                sw.onclick = () => {
+                    updateGridImage(id, idx);     // updates grid + state
+                    updateModalImage(id, idx);    // updates modal UI properly
+                };
+
+                swatchContainer.appendChild(sw);
+
+                // THUMB
+                // Thumbnails per color (MULTIPLE IMAGES)
+                v.images.forEach((imgSrc, imgIndex) => {
+                    const img = document.createElement('img');
+                    img.src = imgSrc;
+                    img.className = "h-20 w-20 object-cover cursor-pointer border-2 thumb rounded-sm";
+
+                    if (imgIndex === 0 && v.name === currentVar.name) {
+                        img.classList.add('active-thumb');
+                    }
+
+                    img.onclick = () => {
+                        document.getElementById('modal-main-img').src = imgSrc;
+
+                        // remove active from all
+                        const thumbs = document.getElementById('modal-thumbs').children;
+                        Array.from(thumbs).forEach(t => t.classList.remove('active-thumb'));
+
+                        // add active to clicked
+                        img.classList.add('active-thumb');
+                    };
+
+                    thumbContainer.appendChild(img);
+                });
+            });
+
+            const modal = document.getElementById('product-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function updateModalImage(id, variantIndex) {
+            const p = PRODUCTS.find(x => x.id === id);
+            const variant = p.variants[variantIndex];
+
+            // Update state
+            productState[id] = variant;
+
+            // Update color name
+            document.getElementById('modal-color-name').innerText =
+                `Color: ${variant.name}`;
+
+            // Update main image
+            const mainImg = document.getElementById('modal-main-img');
+            mainImg.src = variant.images[0];
+
+            // Sync swatches
+            const swatches = document.querySelectorAll('#swatch-container-modal .swatch');
+            swatches.forEach((s, i) => {
+                s.classList.toggle('swatch-active', i === variantIndex);
+            });
+
+            // REBUILD thumbnails (clean + correct)
+            const thumbContainer = document.getElementById('modal-thumbs');
+            thumbContainer.innerHTML = '';
+
+            variant.images.forEach((imgSrc, i) => {
+                const img = document.createElement('img');
+                img.src = imgSrc;
+                img.className = "h-20 w-20 object-cover cursor-pointer border-2 rounded-sm";
+
+                if (i === 0) img.classList.add('active-thumb');
+
+                img.onclick = () => {
+                    mainImg.src = imgSrc;
+
+                    Array.from(thumbContainer.children).forEach(t =>
+                        t.classList.remove('active-thumb')
+                    );
+
+                    img.classList.add('active-thumb');
+                };
+
+                thumbContainer.appendChild(img);
+            });
+        }
+
+        function closeModal() {
+            const modal = document.getElementById('product-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = 'auto';
+            activeModalId = null;
+        }
+
+        // MOBILE MENU SCRIPTS
+        const menuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        menuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
+        document.querySelectorAll('.mobile-link').forEach(link => {
+            link.addEventListener('click', () => mobileMenu.classList.add('hidden'));
+        });
+    </script>
+
+</body>
+
+</html>
