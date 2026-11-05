@@ -2,21 +2,23 @@ node_modules/
 dist/
 build/
 .cache/
-.env*
 .vite/
+.wrangler/
+.tanstack/
+.env*
+.dev.vars*
+worker-configuration.d.ts.bak
 vite.config.*.timestamp-*
 *.tsbuildinfo
 *-debug.log*
 logs/
 *.log
-.claude-replay.*
 .tmp-*
+.claude-replay.*
 /.figma/design-context/
 
-# Platform-managed agentplat state, not project source. In the
-# client-initiated single-repo workspace layout (make's `Path: "."` spec) the
-# repo root IS the workspace root, so these land inside this repo rather than
-# beside it.
+# Platform-managed agent state, not project source.
 /.plugins/
 /.opencode-skills/
+# Product photos are kept out of git (moving to R2)
 product-images/
