@@ -13,6 +13,8 @@
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css") layer(vendor);
 @import "tailwindcss" source(none);
 @source "../components/ui";
+@source "../components/admin";
+@source "../routes/admin.tsx";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 

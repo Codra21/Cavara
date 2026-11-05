@@ -1,6 +1,6 @@
 /// <reference types="vite/client" />
 import type { QueryClient } from "@tanstack/react-query";
-import { HeadContent, Link, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
+import { HeadContent, Link, Outlet, Scripts, createRootRouteWithContext, useLocation } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import appCss from "@/styles/app.css?url";
 import siteCss from "@/styles/site.css?url";
@@ -105,6 +105,9 @@ function RootDocument({ children }: { children: ReactNode }) {
 }
 
 function RootLayout() {
+  // The admin has its own layout: no storefront header, footer, bag or page effects.
+  const isAdmin = useLocation({ select: (location) => location.pathname === "/admin" || location.pathname.startsWith("/admin/") });
+  if (isAdmin) return <Outlet />;
   return (
     <StoreProvider>
       <a className="skip-link" href="#shop">

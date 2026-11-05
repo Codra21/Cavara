@@ -34,4 +34,8 @@ export interface D1Database {
 /** Bindings declared in wrangler.jsonc. */
 export interface CloudflareEnv {
   DB: D1Database;
+  /** Owner sign-in name (Worker var). Defaults to "owner". */
+  ADMIN_USERNAME?: string;
+  /** Owner password (Worker secret; .dev.vars locally). Blank disables the admin. */
+  ADMIN_SECRET?: string;
 }

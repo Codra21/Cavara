@@ -6,7 +6,7 @@ import { createTestD1, migrationFiles } from "./helpers/d1";
 
 describe("migrations", () => {
   test("apply cleanly to an empty database", () => {
-    expect(migrationFiles()).toEqual(["0001_catalog.sql", "0002_seed_catalog.sql"]);
+    expect(migrationFiles()).toEqual(["0001_catalog.sql", "0002_seed_catalog.sql", "0003_admin_auth.sql"]);
     const db = createTestD1();
     const count = (table: string) => (db.sqlite.query(`SELECT count(*) AS n FROM ${table}`).get() as { n: number }).n;
     expect(count("categories")).toBe(CATEGORIES.length);
