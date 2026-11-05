@@ -1,0 +1,9 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cavara-web",
+  "compatibility_date": "2026-11-05",
+  "compatibility_flags": ["nodejs_compat"],
+  "main": "@tanstack/react-start/server-entry",
+  "observability": { "enabled": true }
+  // Bindings (D1 database, R2 bucket) are added in the backend phase.
+}

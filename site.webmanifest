@@ -1,6 +1,9 @@
 {
     "name": "Cavara",
     "short_name": "Cavara",
+    "description": "Curated ceramics, serveware and home accessories for modern Bangladeshi homes.",
+    "start_url": "/",
+    "scope": "/",
     "icons": [
         {
             "src": "/android-chrome-192x192.png",
@@ -13,7 +16,7 @@
             "type": "image/png"
         }
     ],
-    "theme_color": "#ffffff",
-    "background_color": "#ffffff",
+    "theme_color": "#f7f4ef",
+    "background_color": "#f7f4ef",
     "display": "standalone"
 }

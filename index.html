@@ -1,48 +1,50 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-palette="teal">
 
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <!-- 
-      PRIMARY SEO & BRANDING
-      ----------------------
-    -->
-    <title>Cavara — Premium Home Decor & Artistry</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Cavara — Premium Home Decor & Accessories</title>
     <meta name="description"
-        content="Discover Cavara — Bangladesh's premier destination for curated, premium home decor. Explore our exclusive collections of imported ceramics, luxury crockery, and designer kitchenware.">
+        content="Shop Cavara for curated premium home decor in Bangladesh: hand-painted ceramic cups, sculptural serveware, kitchen storage and thoughtful home accessories." />
     <link rel="canonical" href="https://cavarabd.com/" />
     <meta name="robots" content="index, follow" />
     <meta name="keywords"
-        content="premium home decor Bangladesh, ceramic kitchenware BD, luxury crockery Bangladesh, Cavara">
-    <!-- Open Graph (Facebook, WhatsApp) -->
+        content="premium home decor Bangladesh, ceramic cups Bangladesh, serveware Dhaka, kitchen storage jars, home accessories, Cavara" />
+    <meta name="theme-color" content="#FFFFFF" />
+
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Cavara" />
-    <meta property="og:title" content="Cavara — Premium Home Decor & Artistry" />
+    <meta property="og:title" content="Cavara — Premium Home Decor & Accessories" />
     <meta property="og:description"
-        content="Curated imports and premium home décor from around the world. Elevate your living space with Cavara." />
+        content="Curated ceramics, serveware and home accessories for modern Bangladeshi homes." />
     <meta property="og:url" content="https://cavarabd.com/" />
     <meta property="og:image" content="https://cavarabd.com/og-image.jpg" />
-    <meta property="og:image:alt" content="Cavara Luxury Home Decor" />
-
-    <!-- Twitter Card -->
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Cavara logo beside hand-painted ceramic cups and a yellow serving dish" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Cavara — Premium Home Decor & Artistry" />
-    <meta name="twitter:description" content="Curated imports and premium home décor from around the world." />
+    <meta name="twitter:title" content="Cavara — Premium Home Decor & Accessories" />
+    <meta name="twitter:description" content="Curated ceramics, serveware and home accessories for modern Bangladeshi homes." />
     <meta name="twitter:image" content="https://cavarabd.com/og-image.jpg" />
+    <meta name="twitter:image:alt" content="Cavara logo beside hand-painted ceramic cups and a yellow serving dish" />
 
-    <!-- Favicons -->
-    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png" />
+    <link rel="icon" href="favicon.ico" sizes="any" />
+    <link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png" />
+    <link rel="manifest" href="site.webmanifest" />
 
-    <link rel="icon" href="/favicon.ico" type="image/x-icon" />
+    <script>
+        (function () {
+            var palettes = ["teal", "terracotta", "sage", "blush", "indigo", "midnight"];
+            try {
+                var saved = localStorage.getItem("cavara-palette");
+                if (palettes.indexOf(saved) > -1) document.documentElement.dataset.palette = saved;
+            } catch (error) { }
+        })();
+    </script>
 
-    <link rel="manifest" href="/site.webmanifest">
-
-
-    <!-- Valid JSON-LD Schema (Organization) -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -50,10 +52,8 @@
       "name": "Cavara",
       "alternateName": "Cavarabd",
       "url": "https://cavarabd.com/",
-      "logo": "https://cavarabd.com/cavara%20final%201.1.webp",
-      "sameAs": [
-        "https://www.facebook.com/cavarabd"
-      ],
+      "logo": "https://cavarabd.com/assets/brand/cavara-logo.png",
+      "sameAs": ["https://www.facebook.com/cavarabd"],
       "contactPoint": [{
         "@type": "ContactPoint",
         "telephone": "+8801789080885",
@@ -64,1501 +64,442 @@
     }
     </script>
 
-    <script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "ItemList",
-  "name": "Cavara Premium Collection",
-  "url": "https://cavarabd.com/",
-  "itemListElement": [
-    {
-      "@type": "Product",
-      "position": 1,
-      "name": "Red Polka Bow Cup & Bread Plate",
-      "image": [
-        "https://cavarabd.com/product-images/BCC&P/cup-plate.webp"
-      ],
-      "description": "Hand-painted red polka bow cup & bread plate set. Cup size 220 ml, plate size 16 cm.",
-      "brand": {
-        "@type": "Brand",
-        "name": "Cavara"
-      },
-      "offers": {
-        "@type": "Offer",
-        "priceCurrency": "BDT",
-        "price": "1550",
-        "availability": "https://schema.org/InStock",
-        "url": "https://cavarabd.com/"
-      }
-    },
-    {
-      "@type": "Product",
-      "position": 2,
-      "name": "Jelly Bean Amphora Rectangular Dish",
-      "image": [
-        "https://cavarabd.com/product-images/jba-rect/jbar-green1.webp"
-      ],
-      "description": "9-inch rectangular ceramic dish available in multiple colors.",
-      "brand": {
-        "@type": "Brand",
-        "name": "Cavara"
-      },
-      "offers": {
-        "@type": "Offer",
-        "priceCurrency": "BDT",
-        "price": "1050",
-        "availability": "https://schema.org/InStock",
-        "url": "https://cavarabd.com/"
-      }
-    }
-  ]
-}
-</script>
-
-    <!-- Tailwind CSS & Fonts -->
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-        href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@500;600&text=%E0%A7%B3&display=swap"
         rel="stylesheet" />
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
-
-    <style>
-        :root {
-            --brand-gold: #B9976A;
-        }
-
-        .font-serif {
-            font-family: 'Playfair Display', serif;
-        }
-
-        .font-sans {
-            font-family: 'Montserrat', sans-serif;
-        }
-
-        .text-brand-gold {
-            color: var(--brand-gold);
-        }
-
-        .bg-brand-gold {
-            background-color: var(--brand-gold);
-        }
-
-        .border-brand-gold {
-            border-color: var(--brand-gold);
-        }
-
-        .swatch-active {
-            transform: scale(1.2);
-        }
-
-        body {
-            font-family: 'Montserrat', sans-serif;
-            color: #1a1a1a;
-            background-color: #fff;
-            overflow-x: hidden;
-        }
-
-        html {
-            scroll-behavior: smooth;
-        }
-
-        /* Luxury Transitions */
-        .premium-shadow {
-            box-shadow: 0 10px 30px -15px rgba(0, 0, 0, 0.1);
-        }
-
-        .product-card {
-            transition: transform 0.5s cubic-bezier(0.165, 0.84, 0.44, 1), box-shadow 0.5s ease;
-            cursor: pointer;
-        }
-
-        .product-card:hover {
-            transform: translateY(-8px);
-            box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.1);
-        }
-
-        .btn-luxury {
-            transition: all 0.3s ease;
-            letter-spacing: 0.15em;
-        }
-
-        .btn-luxury:hover {
-            letter-spacing: 0.2em;
-            opacity: 0.9;
-        }
-
-        /* Custom Scrollbar for Luxury Look */
-        ::-webkit-scrollbar {
-            width: 6px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--brand-gold);
-        }
-
-        /* UI States */
-        #product-modal {
-            transition: opacity 0.3s ease;
-        }
-
-        .active-thumb {
-            border-color: var(--brand-gold) !important;
-            opacity: 1 !important;
-        }
-
-        .swatch-active {
-            box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--brand-gold);
-        }
-
-        .swatch {
-            transition: transform 0.2s ease;
-            cursor: pointer;
-        }
-
-        .swatch:hover {
-            transform: scale(1.15);
-        }
-
-        /* Floating WhatsApp Button Animation */
-        @keyframes pulse-gold {
-            0% {
-                box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.55);
-            }
-
-            70% {
-                box-shadow: 0 0 0 16px rgba(37, 211, 102, 0);
-            }
-
-            100% {
-                box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
-            }
-        }
-
-        .float-wa {
-            animation: pulse-gold 2s infinite;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .animate-luxury {
-            animation: fadeIn 1s ease-out forwards;
-        }
-    </style>
+    <link rel="stylesheet" href="assets/css/site.css" />
+    <script type="module" src="assets/js/app.js"></script>
 </head>
 
-<body class="antialiased">
+<body>
+    <a class="skip-link" href="#shop">Skip to products</a>
 
-    <!-- NOTIFICATION TOAST (Used for copying messages) -->
-    <div id="toast"
-        class="fixed top-24 left-1/2 transform -translate-x-1/2 bg-black text-white px-8 py-4 rounded-md text-xs tracking-widest uppercase font-bold shadow-2xl opacity-0 pointer-events-none transition-opacity duration-300 z-[200]">
-        Message Copied!
+    <div class="announce" aria-label="Announcements">
+        <div class="announce-track">
+            <ul class="announce-list">
+                <li>Curated ceramics &amp; home accessories for modern Bangladeshi homes</li>
+                <li><a href="https://wa.me/8801788404459" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Order on WhatsApp · +880 1788-404459</a></li>
+                <li>Hand-selected from international artisans</li>
+                <li>Based in South Banasree, Dhaka</li>
+            </ul>
+            <ul class="announce-list" aria-hidden="true">
+                <li>Curated ceramics &amp; home accessories for modern Bangladeshi homes</li>
+                <li><a href="https://wa.me/8801788404459" target="_blank" rel="noopener" tabindex="-1"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Order on WhatsApp · +880 1788-404459</a></li>
+                <li>Hand-selected from international artisans</li>
+                <li>Based in South Banasree, Dhaka</li>
+            </ul>
+        </div>
     </div>
 
-    <!-- NAVIGATION -->
-    <nav class="sticky top-0 z-[60] w-full bg-white/90 backdrop-blur-lg border-b border-gray-100 relative">
-        <div class="container mx-auto px-6 py-4 flex justify-between items-center">
-            <a href="#" class="transition-transform hover:scale-105">
-                <img src="cavara-logo-black.webp" alt="Cavara Logo" class="h-10 md:h-14" />
-            </a>
-
-            <div class="hidden md:flex space-x-12 uppercase tracking-[0.25em] text-[10px] font-bold">
-                <a href="#collections" class="text-gray-500 hover:text-brand-gold transition-colors">Collections</a>
-                <a href="#about" class="text-gray-500 hover:text-brand-gold transition-colors">Philosophy</a>
-                <a href="#contact" class="text-gray-500 hover:text-brand-gold transition-colors">Contact</a>
-            </div>
-
-            <button id="mobile-menu-button" class="md:hidden p-2 text-black" aria-label="Open Menu">
-                <i class="fa-solid fa-bars-staggered text-xl"></i>
-            </button>
-        </div>
-
-        <!-- MOBILE MENU -->
-        <div id="mobile-menu"
-            class="hidden md:hidden bg-white border-t border-gray-100 absolute w-full left-0 top-full shadow-2xl">
-            <div class="flex flex-col space-y-6 p-10 uppercase tracking-widest text-xs font-bold text-center">
-                <a href="#collections" class="mobile-link py-2">Collections</a>
-                <a href="#about" class="mobile-link py-2">Philosophy</a>
-                <a href="#contact" class="mobile-link py-2">Contact</a>
-            </div>
-        </div>
-    </nav>
-
-    <main>
-        <!-- HERO SECTION -->
-        <header
-            class="relative h-[90vh] w-full flex items-center justify-center text-center text-white overflow-hidden bg-black">
-            <div class="absolute inset-0 z-0">
-                <picture class="w-full h-full">
-                    <source srcset="mobile_background.webp" media="(max-width: 767px)" />
-                    <img src="main-background.webp" alt="Luxury Home Decor"
-                        class="w-full h-full object-cover opacity-60" />
-                </picture>
-            </div>
-
-            <div class="relative z-10 px-6 animate-luxury">
-                <p class="text-[10px] md:text-xs uppercase tracking-[0.4em] mb-6 opacity-90 text-brand-gold font-bold">
-                    Premium Home Decor</p>
-                <h1 class="font-serif text-5xl md:text-8xl font-bold tracking-tight mb-8 leading-tight">
-                    A world where artistry<br class="hidden md:block" /> meets elegance
-                </h1>
-                <a href="#collections"
-                    class="btn-luxury inline-block px-12 py-5 border border-white text-white hover:bg-white hover:text-black uppercase tracking-widest text-[11px] font-bold">
-                    Explore Collections
+    <header class="site-header" id="top" data-site-header>
+        <div class="container-wide header-inner">
+            <div class="header-start">
+                <button class="icon-button menu-toggle" type="button" aria-expanded="false" aria-controls="mobile-nav"
+                    data-menu-toggle>
+                    <i class="fa-solid fa-bars" aria-hidden="true"></i>
+                    <span class="sr-only">Open menu</span>
+                </button>
+                <button class="icon-button header-search-mobile" type="button" data-focus-search>
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    <span class="sr-only">Search products</span>
+                </button>
+                <a class="brand" href="#top" aria-label="Cavara home">
+                    <span class="brand-logo" aria-hidden="true">
+                        <span class="brand-mark"></span>
+                        <span class="brand-word"></span>
+                    </span>
                 </a>
             </div>
-        </header>
 
-        <!-- PHILOSOPHY SECTION -->
-        <section id="about" class="py-32 px-6 bg-white">
-            <div class="container mx-auto max-w-6xl">
-                <div class="text-center max-w-4xl mx-auto mb-20">
-                    <h2 class="font-serif text-3xl md:text-5xl font-bold mb-10">Our Philosophy</h2>
-                    <div class="w-24 h-px bg-brand-gold mx-auto mb-12"></div>
-                    <p class="text-lg md:text-xl text-gray-500 leading-[2] font-light italic">
-                        "Your home is a sanctuary, a personal gallery of your journey. We explore the globe to bring you
-                        inspiring home decor, exquisite ceramics, and premium kitchenware."
-                    </p>
+            <nav class="primary-nav" aria-label="Primary">
+                <a href="#shop">Shop</a>
+                <a href="#collections">Collections</a>
+                <a href="#story">Our story</a>
+                <a href="#ordering">How to order</a>
+                <a href="#contact">Contact</a>
+            </nav>
+
+            <div class="header-actions">
+                <button class="icon-button header-search" type="button" data-focus-search>
+                    <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                    <span class="sr-only">Search products</span>
+                </button>
+
+                <div class="palette-picker" data-palette-picker>
+                    <button class="palette-trigger" type="button" aria-expanded="false" aria-controls="palette-menu"
+                        data-palette-trigger>
+                        <span class="palette-dots" data-palette-dots aria-hidden="true"></span>
+                        <span class="palette-trigger-text">
+                            <span class="palette-trigger-label">Palette</span>
+                            <span class="palette-trigger-name" data-palette-name>Cavara Teal</span>
+                        </span>
+                        <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                    </button>
+                    <div class="palette-menu" id="palette-menu" hidden>
+                        <fieldset>
+                            <legend>Color palette</legend>
+                            <div class="palette-options" data-palette-options></div>
+                        </fieldset>
+                    </div>
                 </div>
 
-                <!-- Visual Value Propositions -->
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-16">
-                    <div class="flex flex-col items-center text-center group">
-                        <div
-                            class="w-20 h-20 mb-8 border border-gray-100 rounded-full flex items-center justify-center bg-[#fafafa] group-hover:bg-brand-gold transition-all duration-500">
-                            <i
-                                class="fa-solid fa-earth-africa text-2xl text-brand-gold group-hover:text-white transition-colors"></i>
-                        </div>
-                        <h3 class="font-serif text-xl font-bold mb-4 uppercase tracking-widest">Global Selection</h3>
-                        <p class="text-gray-400 text-[10px] leading-loose tracking-widest uppercase font-bold">Artistry
-                            sourced from the world's most talented international artisans.</p>
-                    </div>
+                <button class="bag-button" type="button" data-open-bag aria-label="Open bag, 0 items">
+                    <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
+                    <span class="bag-count" data-bag-count>0</span>
+                </button>
+            </div>
+        </div>
 
-                    <div class="flex flex-col items-center text-center group">
-                        <div
-                            class="w-20 h-20 mb-8 border border-gray-100 rounded-full flex items-center justify-center bg-[#fafafa] group-hover:bg-brand-gold transition-all duration-500">
-                            <i
-                                class="fa-solid fa-gem text-2xl text-brand-gold group-hover:text-white transition-colors"></i>
-                        </div>
-                        <h3 class="font-serif text-xl font-bold mb-4 uppercase tracking-widest">Premium Quality</h3>
-                        <p class="text-gray-400 text-[10px] leading-loose tracking-widest uppercase font-bold">Each item
-                            is hand-selected for its craftsmanship and material excellence.</p>
-                    </div>
+        <nav class="mobile-nav" id="mobile-nav" aria-label="Mobile" hidden>
+            <div class="container">
+                <a href="#shop">Shop</a>
+                <a href="#collections">Collections</a>
+                <a href="#story">Our story</a>
+                <a href="#ordering">How to order</a>
+                <a href="#contact">Contact</a>
+            </div>
+        </nav>
+    </header>
 
-                    <div class="flex flex-col items-center text-center group">
-                        <div
-                            class="w-20 h-20 mb-8 border border-gray-100 rounded-full flex items-center justify-center bg-[#fafafa] group-hover:bg-brand-gold transition-all duration-500">
-                            <i
-                                class="fa-solid fa-infinity text-2xl text-brand-gold group-hover:text-white transition-colors"></i>
+    <main>
+        <section class="pdp" aria-labelledby="pdp-title" data-pdp hidden></section>
+
+        <section class="studio-hero" aria-roledescription="carousel" aria-labelledby="studio-hero-title" data-studio-hero>
+            <h1 class="sr-only" id="studio-hero-title">Cavara — curated ceramics and home accessories</h1>
+            <div class="container-wide">
+                <div class="studio-hero-frame">
+                    <div class="studio-slides" data-studio-slides></div>
+                    <div class="studio-hero-controls">
+                        <div class="studio-dots" data-studio-dots></div>
+                        <div class="studio-hero-buttons">
+                            <button class="studio-arrow" type="button" data-studio-step="-1" aria-label="Previous slide">
+                                <i class="fa-solid fa-arrow-left-long" aria-hidden="true"></i></button>
+                            <button class="studio-arrow" type="button" data-studio-pause aria-label="Pause slideshow">
+                                <i class="fa-solid fa-pause" aria-hidden="true"></i></button>
+                            <button class="studio-arrow" type="button" data-studio-step="1" aria-label="Next slide">
+                                <i class="fa-solid fa-arrow-right-long" aria-hidden="true"></i></button>
                         </div>
-                        <h3 class="font-serif text-xl font-bold mb-4 uppercase tracking-widest">Classic Design</h3>
-                        <p class="text-gray-400 text-[10px] leading-loose tracking-widest uppercase font-bold">Curated
-                            pieces that transcend seasonal trends to last a lifetime.</p>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- PRODUCT COLLECTION GRID -->
-        <section id="collections" class="py-24 px-6 bg-[#fafafa]">
-            <div class="container mx-auto max-w-7xl">
-                <div class="flex flex-col md:flex-row justify-between items-end mb-20 gap-8">
-                    <div class="max-w-xl">
-                        <h2 class="font-serif text-4xl md:text-6xl font-bold">The Collection</h2>
-                        <p class="text-brand-gold mt-6 uppercase tracking-[0.3em] text-[10px] font-bold">Premium Imports
-                            • Available Now</p>
-                    </div>
-                    <div
-                        class="text-[11px] text-gray-500 uppercase tracking-widest leading-loose text-right border-r-2 border-brand-gold pr-6 font-medium">
-                        Select a color to preview<br>Direct inquiries via WhatsApp & Messenger
+        <section class="section collections" id="collections" aria-labelledby="collections-title">
+            <div class="container-wide">
+                <div class="section-head">
+                    <p class="sub-heading">Shop by categories</p>
+                    <h2 id="collections-title">Our collections</h2>
+                </div>
+                <ul class="studio-category-row" data-studio-categories aria-label="Collections"></ul>
+            </div>
+        </section>
+
+        <section class="section shop" id="shop" aria-labelledby="shop-title" tabindex="-1">
+            <div class="container-wide">
+                <div class="section-head">
+                    <p class="sub-heading">Trending pieces</p>
+                    <h2 id="shop-title">The collection</h2>
+                    <p class="section-note" data-result-count aria-live="polite">Showing 24 pieces</p>
+                </div>
+
+                <div class="shop-toolbar">
+                    <div class="filter-chips" role="group" aria-label="Filter by collection" data-filter-chips></div>
+                    <div class="shop-controls">
+                        <label class="search-field">
+                            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                            <span class="sr-only">Search products</span>
+                            <input type="search" id="product-search" placeholder="Search cups, dishes, jars…"
+                                autocomplete="off" data-product-search />
+                        </label>
+                        <label class="sort-field">
+                            <span>Sort</span>
+                            <select data-product-sort>
+                                <option value="featured">Featured</option>
+                                <option value="price-asc">Price: low to high</option>
+                                <option value="price-desc">Price: high to low</option>
+                                <option value="name">Name: A–Z</option>
+                            </select>
+                        </label>
                     </div>
                 </div>
 
-                <!-- Product Grid Architecture (Injected via JS) -->
-                <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10">
-                    <!-- Products rendered dynamically -->
+                <ul class="product-grid" data-product-grid aria-label="Products"></ul>
+
+                <div class="studio-load-more" data-load-more-wrap hidden>
+                    <p data-load-more-status></p>
+                    <button class="button button-outline" type="button" data-load-more>Load more pieces</button>
+                </div>
+
+                <div class="empty-state" data-empty-state hidden>
+                    <i class="fa-regular fa-face-meh" aria-hidden="true"></i>
+                    <h3 data-empty-title>No pieces match your search</h3>
+                    <p>Try a different word, or browse every collection.</p>
+                    <button class="button button-outline" type="button" data-clear-filters>Clear filters</button>
                 </div>
             </div>
         </section>
 
-        <!-- CONTACT & SUPPORT SECTION -->
-        <section id="contact" class="py-32 px-6 bg-white border-t border-gray-50">
-            <div class="container mx-auto max-w-4xl text-center">
-                <h2 class="font-serif text-4xl md:text-6xl font-bold mb-10 text-black">Order & Support</h2>
-                <p class="text-gray-500 mb-16 text-lg font-light tracking-wide">
-                    Our team is here to help you with orders, details, and personalized consultation.
-                </p>
+        <section class="studio-lookbook" aria-labelledby="studio-lookbook-title" data-studio-lookbook></section>
 
-                <div class="flex flex-col md:flex-row justify-center items-center gap-6">
-                    <a href="https://wa.me/8801788404459" target="_blank"
-                        class="btn-luxury w-full md:w-auto bg-[#25D366] text-white px-12 py-5 uppercase text-[11px] font-bold shadow-2xl flex items-center justify-center gap-4">
-                        <i class="fa-brands fa-whatsapp text-lg"></i> WhatsApp Support
-                    </a>
-                    <a href="https://www.facebook.com/cavarabd" target="_blank"
-                        class="btn-luxury w-full md:w-auto border border-black text-black px-12 py-5 uppercase text-[11px] font-bold hover:bg-black hover:text-white flex items-center justify-center gap-4">
-                        <i class="fa-brands fa-facebook-messenger text-lg"></i> Message on Facebook
-                    </a>
+        <section class="section studio-carousel-section" aria-labelledby="studio-carousel-title" data-studio-carousel></section>
+
+        <section class="studio-promo" aria-labelledby="studio-promo-title" data-studio-promo></section>
+
+        <section class="section story" id="story" aria-labelledby="story-title">
+            <div class="container story-grid">
+                <div class="story-media">
+                    <img src="product-images/Ceramic-Seasoning-Bottle-21/Ceramic-Seasoning-Bottle1.webp"
+                        alt="Hand-decorated ceramic seasoning bottles on a kitchen counter" loading="lazy" width="800"
+                        height="1000" />
+                    <img src="product-images/vintage-Ceramic-Oil-Pot-22/vintage-Ceramic-Oil-Pot1.webp"
+                        alt="Two vintage ceramic oil pots on a wooden tray" loading="lazy" width="800" height="800" />
+                </div>
+                <div class="story-copy">
+                    <p class="sub-heading">Our philosophy</p>
+                    <h2 id="story-title">Your home is a personal gallery of your journey.</h2>
+                    <p class="story-lede">We explore the globe to bring you inspiring home decor, exquisite ceramics, and
+                        premium kitchenware — pieces that turn ordinary moments into small rituals.</p>
+                    <ul class="principles">
+                        <li>
+                            <h3>Global selection</h3>
+                            <p>Artistry sourced from the world's most talented international artisans.</p>
+                        </li>
+                        <li>
+                            <h3>Premium quality</h3>
+                            <p>Each item is hand-selected for its craftsmanship and material excellence.</p>
+                        </li>
+                        <li>
+                            <h3>Classic design</h3>
+                            <p>Curated pieces that transcend seasonal trends to last a lifetime.</p>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </section>
+
+        <section class="ordering" id="ordering" aria-labelledby="ordering-title">
+            <div class="container-wide">
+                <div class="ordering-panel">
+                    <div class="ordering-head">
+                        <h2 id="ordering-title">How ordering works</h2>
+                        <p>Build your bag here, then finish your order in a conversation with our team.</p>
+                    </div>
+                    <ol class="steps">
+                        <li>
+                            <span class="step-number" aria-hidden="true">01</span>
+                            <h3>Build your bag</h3>
+                            <p>Choose your pieces, colours and quantities. Your bag is saved on this device.</p>
+                        </li>
+                        <li>
+                            <span class="step-number" aria-hidden="true">02</span>
+                            <h3>Send your order</h3>
+                            <p>Checkout opens WhatsApp with your order written out, or copies it for Messenger.</p>
+                        </li>
+                        <li>
+                            <span class="step-number" aria-hidden="true">03</span>
+                            <h3>Confirm the details</h3>
+                            <p>Our team confirms availability, delivery and payment with you directly in chat.</p>
+                        </li>
+                    </ol>
+                    <div class="studio-fancy" aria-hidden="true">
+                        <p class="studio-fancy-text" data-studio-fancy>everyday rituals</p>
+                    </div>
                 </div>
             </div>
         </section>
     </main>
 
-    <!-- FOOTER -->
-    <footer class="bg-black text-white pt-24 pb-12 px-6">
-        <div class="container mx-auto max-w-6xl">
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-16 mb-24">
-                <div class="space-y-8">
-                    <img src="cavara-logo-black.webp" alt="Cavara Logo" class="h-10" />
-                    <p class="text-gray-400 text-sm leading-relaxed font-light tracking-wide uppercase text-[10px]">
-                        Premium imported home decor for modern Bangladeshi homes.
-                    </p>
-                </div>
-                <div>
-                    <h4 class="text-[10px] font-bold uppercase tracking-[0.4em] text-brand-gold mb-10">Navigation</h4>
-                    <ul class="space-y-5 text-[11px] font-medium uppercase tracking-widest text-gray-400">
-                        <li><a href="#collections" class="hover:text-white transition-colors">Collections</a></li>
-                        <li><a href="#about" class="hover:text-white transition-colors">Our Philosophy</a></li>
-                        <li><a href="#contact" class="hover:text-white transition-colors">Support</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 class="text-[10px] font-bold uppercase tracking-[0.4em] text-brand-gold mb-10">Visit Us</h4>
-                    <address class="not-italic text-gray-400 text-[11px] uppercase tracking-widest leading-loose">
-                        West Nandipara, South Banasree<br /> Dhaka, Bangladesh
-                    </address>
-                    <div class="mt-8 space-y-3 text-[11px] tracking-widest uppercase">
-                        <p><a href="mailto:forhadmazhar@gmail.com"
-                                class="text-gray-400 hover:text-white transition-colors">info@cavara.com</a></p>
-                        <p><a href="tel:+8801788404459" class="text-gray-400 hover:text-white transition-colors">+880
-                                1788404459</a></p>
+    <footer class="site-footer" id="contact">
+        <div class="container-wide">
+            <div class="footer-panel">
+                <div class="footer-grid">
+                    <div class="footer-cta">
+                        <h2>Need help choosing?</h2>
+                        <p>Our team is here to help with orders, product details and personalized consultation.</p>
+                        <div class="footer-cta-links">
+                            <a class="link-arrow" href="https://wa.me/8801788404459" target="_blank" rel="noopener">
+                                <i class="fa-brands fa-whatsapp" aria-hidden="true"></i> WhatsApp support
+                                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                            <a class="link-arrow" href="https://m.me/cavarabd" target="_blank" rel="noopener">
+                                <i class="fa-brands fa-facebook-messenger" aria-hidden="true"></i> Message on Messenger
+                                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                        </div>
+                    </div>
+                    <div>
+                        <h2 class="footer-title">Shop</h2>
+                        <ul class="footer-links" data-footer-collections></ul>
+                    </div>
+                    <div>
+                        <h2 class="footer-title">Help</h2>
+                        <ul class="footer-links">
+                            <li><a href="#ordering">How to order</a></li>
+                            <li><a href="https://wa.me/8801788404459" target="_blank" rel="noopener">WhatsApp support</a></li>
+                            <li><a href="https://m.me/cavarabd" target="_blank" rel="noopener">Messenger</a></li>
+                        </ul>
+                    </div>
+                    <div>
+                        <h2 class="footer-title">Visit us</h2>
+                        <address>
+                            West Nandipara, South Banasree<br />Dhaka, Bangladesh
+                        </address>
+                        <ul class="footer-links footer-contact">
+                            <li><a href="tel:+8801788404459">+880 1788-404459</a></li>
+                            <li><a href="mailto:forhadmazhar@gmail.com">Email us</a></li>
+                        </ul>
                     </div>
                 </div>
-            </div>
-            <div
-                class="pt-12 border-t border-white/10 flex flex-col md:flex-row justify-between items-center gap-8 text-[9px] uppercase tracking-[0.4em] text-gray-500 font-bold">
-                <p>&copy; 2025 Cavara. All Rights Reserved.</p>
-                <div class="flex space-x-10">
-                    <a href="https://facebook.com/cavarabd" target="_blank"
-                        class="hover:text-brand-gold transition-colors"><i
-                            class="fa-brands fa-facebook-f text-base"></i></a>
-                    <a href="https://wa.me/8801788404459" target="_blank"
-                        class="hover:text-brand-gold transition-colors"><i
-                            class="fa-brands fa-whatsapp text-base"></i></a>
+                <div class="footer-bottom">
+                    <span class="brand-logo footer-logo" aria-hidden="true">
+                        <span class="brand-mark"></span>
+                        <span class="brand-word"></span>
+                    </span>
+                    <p>&copy; <span data-year>2026</span> Cavara. All rights reserved.</p>
+                    <div class="social-links">
+                        <a href="https://www.facebook.com/cavarabd" target="_blank" rel="noopener" aria-label="Cavara on Facebook"><i
+                                class="fa-brands fa-facebook-f" aria-hidden="true"></i></a>
+                        <a href="https://wa.me/8801788404459" target="_blank" rel="noopener" aria-label="Cavara on WhatsApp"><i
+                                class="fa-brands fa-whatsapp" aria-hidden="true"></i></a>
+                    </div>
                 </div>
             </div>
         </div>
     </footer>
 
-    <!-- LUXURY PRODUCT MODAL -->
-    <div id="product-modal" class="fixed inset-0 z-[100] hidden items-center justify-center p-4 md:p-10">
-        <div class="absolute inset-0 bg-black/90 backdrop-blur-md" onclick="closeModal()"></div>
-        <div
-            class="relative bg-white w-full max-w-6xl max-h-[95vh] overflow-y-auto rounded-sm shadow-2xl flex flex-col md:flex-row animate-luxury">
-            <!-- Modal Close -->
-            <button onclick="closeModal()"
-                class="absolute top-6 right-6 z-10 text-black bg-white rounded-full w-10 h-10 flex items-center justify-center hover:text-brand-gold hover:bg-gray-50 transition-all shadow-md">
-                <i class="fa-solid fa-xmark text-xl"></i>
-            </button>
-
-            <!-- Left: Gallery -->
-            <div class="w-full md:w-1/2 bg-[#f9f9f9] p-6 md:p-12">
-                <div class="aspect-square overflow-hidden bg-white mb-6 border border-gray-100">
-                    <img id="modal-main-img" src="" class="w-full h-full object-cover" alt="Selected Product" />
-                </div>
-                <div id="modal-thumbs" class="flex gap-3 overflow-x-auto pb-2">
-                    <!-- Thumbs injected via JS -->
-                </div>
-            </div>
-
-            <!-- Right: Details -->
-            <div class="w-full md:w-1/2 p-8 md:p-12 flex flex-col justify-center">
-                <p id="modal-category" class="text-[10px] uppercase tracking-[0.4em] text-brand-gold font-bold mb-4">
-                    Category</p>
-                <h2 id="modal-title" class="font-serif text-3xl md:text-4xl font-bold mb-4 text-black">Product Name</h2>
-                <p id="modal-price" class="text-xl font-medium text-gray-800 mb-8 pb-8 border-b border-gray-100">৳ 0,000
-                </p>
-
-                <div id="modal-variants" class="mb-8">
-                    <p class="text-[10px] uppercase tracking-widest font-bold mb-4 text-gray-500">Available Colors</p>
-                    <div id="swatch-container-modal" class="flex flex-wrap gap-4">
-                        <!-- Swatches injected via JS -->
-                    </div>
-                    <p id="modal-color-name" class="text-[11px] text-gray-500 mt-4 uppercase tracking-widest">
-                        Color: Default
-                    </p>
-                </div>
-
-                <div class="space-y-6 mb-10">
-                    <p id="modal-desc" class="text-gray-500 font-light leading-relaxed text-sm">Description goes here.
-                    </p>
-                </div>
-
-                <div class="space-y-3 mt-auto">
-                    <p class="text-[9px] text-gray-400 uppercase tracking-widest font-medium mb-2">Order Options</p>
-
-                    <a id="modal-wa-btn" href="#" target="_blank"
-                        onclick="copyOrderMessage(event, 'https://wa.me/8801788404459?text=')"
-                        class="btn-luxury flex items-center justify-center gap-3 w-full bg-[#25D366] text-white py-4 uppercase text-[11px] font-bold shadow-md">
-                        <i class="fa-brands fa-whatsapp text-lg"></i> Order via WhatsApp
-                    </a>
-
-                    <a id="modal-fb-btn" href="#" target="_blank"
-                        onclick="copyOrderMessage(event, 'https://m.me/cavarabd')"
-                        class="btn-luxury flex items-center justify-center gap-3 w-full border border-gray-200 bg-white text-black hover:bg-gray-50 py-4 uppercase text-[11px] font-bold shadow-sm">
-                        <i class="fa-brands fa-facebook-messenger text-lg"></i> Order via Messenger
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- FLOATING WHATSAPP BUTTON -->
-    <a href="https://wa.me/8801788404459" target="_blank"
-        class="fixed bottom-8 right-8 z-[50] group flex items-center rounded-full">
-
-        <span
-            class="mr-4 bg-white text-black text-[10px] font-bold uppercase tracking-widest px-5 py-3 shadow-2xl opacity-0 translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all rounded-full hidden md:block">
-            WhatsApp Support
-        </span>
-
-        <div
-            class="float-wa w-14 h-14 md:w-16 md:h-16 bg-[#25D366] rounded-full flex items-center justify-center text-white shadow-2xl hover:scale-110 transition-transform">
-            <i class="fa-brands fa-whatsapp text-2xl md:text-3xl"></i>
-        </div>
+    <a class="floating-chat" href="https://wa.me/8801788404459" target="_blank" rel="noopener">
+        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i>
+        <span>Chat with us</span>
     </a>
 
-    <!-- 
-      DYNAMIC DATA & LOGIC
-      --------------------
-    -->
-    <script>
-        /**
-         * 🎯 EDITABLE PRODUCT DATA
-         * Every product now has color variants as requested.
-         */
-        const PRODUCTS = [
-
-            {
-                id: 2,
-                name: "Red Polka Bow Cup & Bread Plate",
-                category: "Crockery",
-                price: "৳ 1,550",
-                description: `Hand-painted red polka bow cup & bread plate set
-Cup size – 220 ml | Plate size – 16 cm
-Perfect for serving tea, coffee, and light bites in any setting`,
-                variants: [
-                    {
-                        name: "Off-white",
-                        color: "#EDE2C7",
-                        images: [
-                            "product-images/BCC&P/cup-plate-food.webp",
-                            "product-images/BCC&P/cup-plate-stand.webp",
-                            "product-images/BCC&P/cup-plate-hand.webp",
-                            "product-images/BCC&P/cup-plate.webp",
-                        ]
-                    },
-
-                ]
-            },
-            {
-                id: 3,
-                name: "Ceramic Storage Jar With Bamboo Lid (Set)",
-                category: "Kitchenware",
-                price: "৳ 4,800",
-                description: `Ceramic storage jar with bamboo lid (3 pieces)
-Capacity – 800 ml | Material – Ceramic | Lid – Bamboo
-Vacuum-sealed design, perfect for storing coffee, sugar, tea, and spices, while adding a premium touch to your home décor`,
-
-
-                variants: [
-                    {
-                        name: "White",
-                        color: "#F5F5F5",
-                        images: [
-                            "product-images/storage-jar/storage-jar.webp",
-                            "product-images/storage-jar/storage-demo.webp",
-                            "product-images/storage-jar/storage-lid.webp",
-                            "product-images/storage-jar/storage-jar-size.webp",
-                            "product-images/storage-jar/storage-jar1.webp",
-                        ]
-                    },
-
-                ]
-            },
-
-            {
-                id: 4,
-                name: "Jelly Bean Amphora Rectangular Dish",
-                category: "Premium Kitchenware",
-                price: "৳ 1,050",
-                description: `Jelly Bean Amphora dish – 9" (rectangular)
-Material – Ceramic | Available in Custard Yellow, Pink, Green, Purple
-Perfect for luxury home serving with a vibrant, elegant touch`,
-                variants: [
-                    {
-                        name: "Green",
-                        color: "#C2E5D3",
-                        images: [
-                            "product-images/jba-rect/jbar-green2.webp",
-                            "product-images/jba-rect/jbar-green1.webp",
-
-                        ]
-                    },
-
-                    {
-                        name: "Custard-Yellow",
-                        color: "#FFFD78",
-                        images: [
-                            "product-images/jba-rect/jbar-yellow1.webp",
-                            "product-images/jba-rect/jbar-mix1.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Pink",
-                        color: "#FFB6C1",
-                        images: [
-                            "product-images/jba-rect/jbar-pink1.webp",
-                            "product-images/jba-rect/jbar-mix2.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Purple",
-                        color: "#da8ee7",
-                        images: [
-                            "product-images/jba-rect/jbar-purple1.webp",
-                            "product-images/jba-rect/jbar-mix3.webp",
-
-                        ]
-                    }
-                ]
-            },
-
-            {
-                id: 1,
-                name: "Ceramic Storage Jar With Bamboo Lid (Single)",
-                category: "Kitchenware",
-                price: "৳ 1,650",
-                description: `Ceramic storage jar with bamboo lid (1 piece)
-Capacity – 800 ml | Material – Ceramic | Lid – Bamboo
-Vacuum-sealed design, perfect for storing coffee, sugar, tea, and spices, while adding a premium touch to your home décor`,
-
-                variants: [
-                    {
-                        name: "White",
-                        color: "#F5F5F5",
-                        images: [
-                            "product-images/storage-jar/storage-single.webp",
-                            "product-images/storage-jar/storage-demo.webp",
-                            "product-images/storage-jar/storage-lid.webp",
-                            "product-images/storage-jar/storage-jar-size.webp",
-                            "product-images/storage-jar/storage-jar-single.webp",
-                        ]
-                    },
-
-                ]
-            },
-
-
-            {
-                id: 5,
-                name: "Jelly Bean Amphora Octagonal Dish",
-                category: "Designer Serveware",
-                price: "৳ 1,250",
-                description: `Jelly Bean Amphora dish – 9.5" (octagonal)
-Material – Ceramic | Available in Custard Yellow, Pink, Green, Purple
-Perfect for luxury home serving with a vibrant, elegant touch`,
-
-                variants: [
-                    {
-                        name: "Custard-Yellow",
-                        color: "#FFFD78",
-                        images: [
-                            "product-images/jba-oct/jba-yellow1.webp",
-                            "product-images/jba-oct/jba-yellow2.webp",
-                            "product-images/jba-oct/jba-yellow3.webp",
-                        ]
-                    },
-                    {
-                        name: "Pink",
-                        color: "#FFB6C1",
-                        images: [
-                            "product-images/jba-oct/jba-pink1.webp",
-                            "product-images/jba-oct/jba-pink2.webp",
-                        ]
-                    },
-                    {
-                        name: "Purple",
-                        color: "#da8ee7",
-                        images: [
-                            "product-images/jba-oct/jba-purple1.webp",
-                            "product-images/jba-oct/jba-purple2.webp",
-                            "product-images/jba-oct/jba-mix.webp",
-
-                        ]
-                    },
-
-                    {
-                        name: "Green",
-                        color: "#C2E5D3",
-                        images: [
-                            "product-images/jba-oct/jba-green1.webp",
-                            "product-images/jba-oct/jba-green2.webp",
-
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 6,
-                name: "Leaf Hand Towel",
-                category: "Designer Serveware",
-                price: "৳ 200",
-                description: `Color- 1. Pink leaves ; size- 25*17 cm; 
-2. Green leaves 30*17 cm
-Material	- Coral fleece
-Yarn Specification- 150 d`,
-
-                variants: [
-                    {
-                        name: "Pink leaves",
-                        color: "#FFC0CB",
-                        images: [
-                            "product-images/leaf-hand-towel-6/leaf-hand-towel-pink1.webp",
-                            "product-images/leaf-hand-towel-6/leaf-hand-towel-pink2.webp",
-                        ]
-                    },
-                    {
-                        name: "Green leaves",
-                        color: "#C2E5D3",
-                        images: [
-                            "product-images/leaf-hand-towel-6/leaf-hand-towel-green1.webp",
-                            "product-images/leaf-hand-towel-6/leaf-hand-towel-green2.webp",
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 7,
-                name: "Coffee Themed Hand Towel",
-                category: "Designer Serveware",
-                price: "৳ 200",
-                description: `Design- 1. Charity coffee beans ; size- 21*20 cm; 
-2. Baguette 23*18 cm
-Material	- Coral fleece
-Yarn Specification- 150 d`,
-
-                variants: [
-                    {
-                        name: "Charity coffee beans",
-                        color: "#6F4E37",
-                        images: [
-                            "product-images/coffee-hand-towel-7/coffee-hand-towel-bean.webp",
-                            "product-images/coffee-hand-towel-7/coffee-hand-towel-all.webp",
-                        ]
-                    },
-                    {
-                        name: "Baguette",
-                        color: "#DEB887",
-                        images: [
-                            "product-images/coffee-hand-towel-7/coffee-hand-towel-baguette.webp",
-                            "product-images/coffee-hand-towel-7/coffee-hand-towel-all2.webp",
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 8,
-                name: "Cocktail Tower glass",
-                category: "Designer Serveware",
-                price: "৳ 700",
-                description: `Material- Glass
-Frosted Coating
-Capacity- 200-300 ml`,
-
-                variants: [
-                    {
-                        name: "Vibrant Pink",
-                        color: "#E0799C",
-                        images: [
-                            "product-images/cocktail-tower-glass-8/cocktail-tower-glass.webp",
-                            "product-images/cocktail-tower-glass-8/cocktail-tower-glass2.webp",
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 9,
-                name: "Persimmon Harvest tissue Purse",
-                category: "Designer Serveware",
-                price: "৳ 2,950",
-                description: `Material- Ceramic
-Handcrafted
-Size- 20*15*13 cm`,
-
-                variants: [
-                    {
-                        name: "Cream",
-                        color: "#EDE6DF",
-                        images: [
-                            "product-images/persimmon-tissue-purse-9/persimmon-tissue-purse.webp",
-                            "product-images/persimmon-tissue-purse-9/persimmon-tissue-purse-1.webp",
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 11,
-                name: "Embossed Ceramic Cup",
-                category: "Designer Serveware",
-                price: "৳ 1,350",
-                description: `Material- Ceramic
-Capacity- 400 ml`,
-
-                variants: [
-                    {
-                        name: "Multi-color",
-                        color: "#EDE6DF",
-                        images: [
-                            "product-images/Embossed-Ceramic-Cup-11/Embossed-Ceramic-Cup.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Embossed peony flower-pink",
-                        color: "#D14786",
-                        images: [
-                            "product-images/Embossed-Ceramic-Cup-11/Embossed-peony-flower-pink.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Embossed peony flower-pink",
-                        color: "#D14786",
-                        images: [
-                            "product-images/Embossed-Ceramic-Cup-11/Embossed-peony-flower-pink.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Embossed begonia flower-yellow",
-                        color: "#E7EB42",
-                        images: [
-                            "product-images/Embossed-Ceramic-Cup-11/Embossed-begonia-flower-yellow.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Embossed rose flower-blue",
-                        color: "#CCBF52",
-                        images: [
-                            "product-images/Embossed-Ceramic-Cup-11/Embossed-rose-flower-blue.webp",
-                        ]
-                    },
-
-                ]
-            },
-
-            {
-                id: 10,
-                name: "Hand Painted Ceramic Breakfast Cup",
-                category: "Designer Serveware",
-                price: "৳ 1,350",
-                description: `Material - Ceramic
-Capacity- 400ml`,
-
-                variants: [
-                    {
-                        name: "Multi-color",
-                        color: "#EDE6DF",
-                        images: [
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/hand-painted-cup1.webp",
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/hand-painted-cup2.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Princess bear red handle",
-                        color: "#C70606",
-                        images: [
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/princess-bear-red-handle.webp",
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/princess-bear-red-handle1.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Green Tulip",
-                        color: "#0A621D",
-                        images: [
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/green-tulip.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Strawberry checkerboard",
-                        color: "#C70606",
-                        images: [
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/strawberry-checkerboard.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Two-color flower",
-                        color: "#AC60B3",
-                        images: [
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/two-color-flower.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Four color tulips",
-                        color: "#CCBF52",
-                        images: [
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/four-color-tulips.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Rice grain Flower",
-                        color: "#E36DAC",
-                        images: [
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/rice-grain-flower.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Starry sky",
-                        color: "#C77856",
-                        images: [
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/starry-sky.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Sugar Grain Cream",
-                        color: "#56D651",
-                        images: [
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/sugar-grain-cream.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Brown orange plaid-orange handle",
-                        color: "#E36217",
-                        images: [
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/brown-orange-plaid-orange-handle.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Orange pink plaid-pink handle",
-                        color: "#F09A56",
-                        images: [
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/orange-pink-plaid-pink-handle.webp",
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/orange-pink-plaid-pink-handle2.webp",
-                        ]
-                    },
-
-                    {
-                        name: "Red and green plaid-red handle",
-                        color: "#DE1818",
-                        images: [
-                            "product-images/Hand-Painted-Ceramic-Breakfast-Cup-10/red-green-plaid-red-handle.webp",
-                        ]
-                    },
-
-                ]
-            },
-
-            {
-                id: 12,
-                name: "Ceramic Long-Handled Twist Spoon",
-                category: "Designer Serveware",
-                price: "৳ 250",
-                description: `Size- 15 * 4cm
-Material- ceramic`,
-
-                variants: [
-                    {
-                        name: "Cream",
-                        color: "#EDE6DF",
-                        images: [
-                            "product-images/Ceramic-Long-Handled-Twist-Spoon-12/Ceramic-Long-Handled-Twist-Spoon1.webp",
-                            "product-images/Ceramic-Long-Handled-Twist-Spoon-12/Ceramic-Long-Handled-Twist-Spoon2.webp",
-                            "product-images/Ceramic-Long-Handled-Twist-Spoon-12/Ceramic-Long-Handled-Twist-Spoon3.webp",
-                            "product-images/Ceramic-Long-Handled-Twist-Spoon-12/Ceramic-Long-Handled-Twist-Spoon4.webp",
-                            "product-images/Ceramic-Long-Handled-Twist-Spoon-12/Ceramic-Long-Handled-Twist-Spoon5.webp",
-                            "product-images/Ceramic-Long-Handled-Twist-Spoon-12/Ceramic-Long-Handled-Twist-Spoon6.webp",
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 13,
-                name: "Unicorn Threaded Cup",
-                category: "Designer Serveware",
-                price: "৳ 1,650",
-                description: `Product dimensions: cup mouth 9CM, height 15CM
-
-Product material: ceramic
-Product accessories: Includes cup lid + complimentary steel spoon. The steel spoon is a random gift and may not be shown in the detailed pictures
-
-Product Description: The cup lid is just a dustproof cup lid. There is no sealing or tightness; the actual product prevails!!`,
-
-                variants: [
-                    {
-                        name: "Cream",
-                        color: "#EDE6DF",
-                        images: [
-                            "product-images/Unicorn-Threaded-Cup-13/Unicorn-Threaded-Cup1.webp",
-                            "product-images/Unicorn-Threaded-Cup-13/Unicorn-Threaded-Cup2.webp",
-                            "product-images/Unicorn-Threaded-Cup-13/Unicorn-Threaded-Cup3.webp",
-                            "product-images/Unicorn-Threaded-Cup-13/Unicorn-Threaded-Cup4.webp",
-                            "product-images/Unicorn-Threaded-Cup-13/Unicorn-Threaded-Cup5.webp",
-                            "product-images/Unicorn-Threaded-Cup-13/Unicorn-Threaded-Cup6.webp",
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 14,
-                name: "Rainbow Unicorn Spiral Cup",
-                category: "Designer Serveware",
-                price: "৳ 1,400",
-                description: `Product dimensions: Mouth 8, height about 9.6 cm without lid
-
-Product material: ceramic
-
-Product packaging: paper box
-
-Product accessories: Unicorn cup lid + steel spoon (the steel spoon is a random gift and may not be shown in the detailed pictures)`,
-
-                variants: [
-                    {
-                        name: "Cream",
-                        color: "#EDE6DF",
-                        images: [
-                            "product-images/Rainbow-Unicorn-Spiral-Cup-14/Rainbow-Unicorn-Spiral-Cup1.webp",
-                            "product-images/Rainbow-Unicorn-Spiral-Cup-14/Rainbow-Unicorn-Spiral-Cup2.webp",
-                            "product-images/Rainbow-Unicorn-Spiral-Cup-14/Rainbow-Unicorn-Spiral-Cup3.webp",
-                            
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 15,
-                name: "Red Flower Straw Cup",
-                category: "Designer Serveware",
-                price: "৳ 1,750",
-                description: `Product accessories: Silicon Lid + Glass Straw
-Material- Ceramic 
-Capacity- 400ML
-Size- 12*17*5.5 cm`,
-
-                variants: [
-                    {
-                        name: "Orange",
-                        color: "#D67918",
-                        images: [
-                            "product-images/Red-Flower-Straw-Cup-15/Red-Flower-Straw-Cup3.webp",
-                            "product-images/Red-Flower-Straw-Cup-15/Red-Flower-Straw-Cup2.webp",
-                            "product-images/Red-Flower-Straw-Cup-15/Red-Flower-Straw-Cup1.webp",
-                            "product-images/Red-Flower-Straw-Cup-15/Red-Flower-Straw-Cup4.webp",
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 16,
-                name: "Souvenir Tea Set",
-                category: "Designer Serveware",
-                price: "৳ 3,450",
-                description: `Color- Gold and silver 
-Material- Ceramic`,
-
-                variants: [
-                    {
-                        name: "Gold-Silver",
-                        color: "#6BD2F1",
-                        images: [
-                            "product-images/Souvenir-Tea-Set-16/Souvenir-Tea-Set.webp",
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 17,
-                name: "Tulip Flower Shaped Dipping Plate",
-                category: "Designer Serveware",
-                price: "৳ 390",
-                description: `Material- Ceramic
-Size- 7.5*11.5*2.4 cm`,
-
-                variants: [
-                    {
-                        name: "Cream",
-                        color: "#F1CF6B",
-                        images: [
-                            "product-images/Tulip-Flower-Shaped-Dipping-Plate-17/Tulip-Flower-Shaped-Dipping-Plate1.webp",
-                            "product-images/Tulip-Flower-Shaped-Dipping-Plate-17/Tulip-Flower-Shaped-Dipping-Plate2.webp",
-                            "product-images/Tulip-Flower-Shaped-Dipping-Plate-17/Tulip-Flower-Shaped-Dipping-Plate3.webp",
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 18,
-                name: "Ceramic Cheese-Shaped Dipping Plate",
-                category: "Designer Serveware",
-                price: "৳ 390",
-                description: `Material- Ceramic
-Size- 8*7.5*1.7cm`,
-
-                variants: [
-                    {
-                        name: "Yellow",
-                        color: "#E6DF27",
-                        images: [
-                            "product-images/Ceramic-Cheese-Shaped-Dipping-Plate-18/Ceramic-Cheese-Shaped-Dipping-Plate-1.webp",
-                            "product-images/Ceramic-Cheese-Shaped-Dipping-Plate-18/Ceramic-Cheese-Shaped-Dipping-Plate-2.webp",
-                            "product-images/Ceramic-Cheese-Shaped-Dipping-Plate-18/Ceramic-Cheese-Shaped-Dipping-Plate-3.webp",
-                        ]
-                    },
-                ]
-            },
-
-             {
-                id: 19,
-                name: "Ceramic Duck Dipping Sauce Dish",
-                category: "Designer Serveware",
-                price: "৳ 400",
-                description: `Size- 11*5.5*5.7 cm
-Material- Ceramic`,
-
-                variants: [
-                    {
-                        name: "White",
-                        color: "#E6E6DA",
-                        images: [
-                            "product-images/Ceramic-Duck-Dipping-Sauce-Dish-19/Ceramic-Duck-Dipping-Sauce-Dish1.webp",
-                            "product-images/Ceramic-Duck-Dipping-Sauce-Dish-19/Ceramic-Duck-Dipping-Sauce-Dish2.webp",
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 20,
-                name: "Ceramic foaming bottle",
-                category: "Designer Serveware",
-                price: "৳ 1,680",
-                description: `Size- 12.8*8.5 cm
-Material- Ceramic`,
-
-                variants: [
-                    {
-                        name: "White",
-                        color: "#E6E6DA",
-                        images: [
-                            "product-images/Ceramic-foaming-bottle-20/Ceramic-foaming-bottle1.webp",
-                            "product-images/Ceramic-foaming-bottle-20/Ceramic-foaming-bottle2.webp",
-                            "product-images/Ceramic-foaming-bottle-20/Ceramic-foaming-bottle3.webp",
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 21,
-                name: "Ceramic Seasoning Bottle",
-                category: "Designer Serveware",
-                price: "৳ 1,850",
-                description: `Material- Ceramic
-Capacity- 600 ML
-Measurement- 25*12.5 cm`,
-
-                variants: [
-                    {
-                        name: "White",
-                        color: "#E6E6DA",
-                        images: [
-                            "product-images/Ceramic-Seasoning-Bottle-21/Ceramic-Seasoning-Bottle1.webp",
-                            "product-images/Ceramic-Seasoning-Bottle-21/Ceramic-Seasoning-Bottle2.webp",
-                            "product-images/Ceramic-Seasoning-Bottle-21/Ceramic-Seasoning-Bottle3.webp",
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 22,
-                name: "Vintage Ceramic Oil Pot",
-                category: "Designer Serveware",
-                price: "৳ 1,100",
-                description: `Capacity- 350 ML
-Dimension- 12.8*7.5 cm`,
-
-                variants: [
-                    {
-                        name: "White",
-                        color: "#E6E6DA",
-                        images: [
-                            "product-images/vintage-Ceramic-Oil-Pot-22/vintage-Ceramic-Oil-Pot1.webp",
-                            "product-images/vintage-Ceramic-Oil-Pot-22/vintage-Ceramic-Oil-Pot2.webp",
-                            "product-images/vintage-Ceramic-Oil-Pot-22/vintage-Ceramic-Oil-Pot3.webp",
-                            "product-images/vintage-Ceramic-Oil-Pot-22/vintage-Ceramic-Oil-Pot4.webp",
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 23,
-                name: "Retro Ceramic Portable Fruit Basket",
-                category: "Designer Serveware",
-                price: "৳ 1,900",
-                description: `Material- Ceramic
-Dimension- 16.5*7 cm`,
-
-                variants: [
-                    {
-                        name: "White",
-                        color: "#E6E6DA",
-                        images: [
-                            "product-images/Retro-Ceramic-Portable-Fruit-Basket-23/Retro-Ceramic-Portable-Fruit-Basket1.webp",
-                            "product-images/Retro-Ceramic-Portable-Fruit-Basket-23/Retro-Ceramic-Portable-Fruit-Basket2.webp",
-                            "product-images/Retro-Ceramic-Portable-Fruit-Basket-23/Retro-Ceramic-Portable-Fruit-Basket3.webp",
-                            "product-images/Retro-Ceramic-Portable-Fruit-Basket-23/Retro-Ceramic-Portable-Fruit-Basket4.webp",
-                            "product-images/Retro-Ceramic-Portable-Fruit-Basket-23/Retro-Ceramic-Portable-Fruit-Basket5.webp",
-                            "product-images/Retro-Ceramic-Portable-Fruit-Basket-23/Retro-Ceramic-Portable-Fruit-Basket6.webp",
-                        ]
-                    },
-                ]
-            },
-
-            {
-                id: 24,
-                name: "Orange Fruit Fork Bowl ",
-                category: "Designer Serveware",
-                price: "৳ 1,850",
-                description: `Accessories- 6 forks
-Material- Ceramic
-Dimension- 17.5 * 9cm
-Fork Dimension- 8cm`,
-
-                variants: [
-                    {
-                        name: "Orange",
-                        color: "#C97F10",
-                        images: [
-                            "product-images/orange-fruit-fork-bowl-24/orange-fruit-fork-bowl1.webp",
-                            "product-images/orange-fruit-fork-bowl-24/orange-fruit-fork-bowl2.webp",
-                            "product-images/orange-fruit-fork-bowl-24/orange-fruit-fork-bowl3.webp",
-                            "product-images/orange-fruit-fork-bowl-24/orange-fruit-fork-bowl4.webp",
-                            "product-images/orange-fruit-fork-bowl-24/orange-fruit-fork-bowl5.webp",
-                         
-                        ]
-                    },
-                ]
-            },
-
-
-
-
-        ];
-
-        // System State
-        let productState = {}; // Tracks selected color per product
-        let activeModalId = null;
-
-        // Initialize default colors
-        PRODUCTS.forEach(p => { productState[p.id] = p.variants[0]; });
-
-        // INITIALIZE GRID
-        const grid = document.getElementById('product-grid');
-        PRODUCTS.forEach(p => {
-            const defaultVar = p.variants[0];
-            const card = document.createElement('article');
-            card.className = "product-card group bg-white border border-gray-100 overflow-hidden rounded-sm shadow-sm";
-            card.addEventListener('click', (e) => {
-                if (e.target.closest('a') || e.target.closest('.swatch')) return;
-                openModal(p.id);
-            });
-
-            card.innerHTML = `
-                <div class="relative overflow-hidden aspect-[4/5] bg-[#fafafa]">
-                    <img id="grid-img-${p.id}" src="${defaultVar.images[0]}" alt="${p.name}" class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" />
-                    <div class="absolute inset-0 bg-black/5 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+    <div class="studio-cursor" aria-hidden="true" data-studio-cursor><span data-studio-cursor-label></span></div>
+
+    <nav class="studio-dock" aria-label="Quick links">
+        <a href="#top"><i class="fa-solid fa-house" aria-hidden="true"></i><span>Home</span></a>
+        <button type="button" data-focus-search><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i><span>Search</span></button>
+        <a href="#shop"><i class="fa-solid fa-table-cells-large" aria-hidden="true"></i><span>Shop</span></a>
+        <a href="https://wa.me/8801788404459" target="_blank" rel="noopener"><i class="fa-brands fa-whatsapp" aria-hidden="true"></i><span>Chat</span></a>
+        <button type="button" data-open-bag data-bag-mirror aria-label="Open bag, 0 items">
+            <span class="studio-dock-icon"><i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
+                <span class="studio-dock-count" data-bag-count-mirror>0</span></span>
+            <span>Bag</span>
+        </button>
+    </nav>
+
+    <div class="toast" role="status" aria-live="polite" data-toast hidden></div>
+
+    <dialog class="product-dialog" aria-labelledby="product-dialog-title" data-product-dialog>
+        <div class="dialog-surface product-dialog-surface">
+            <button class="icon-button dialog-close" type="button" data-close-product>
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                <span class="sr-only">Close product details</span>
+            </button>
+            <div class="product-dialog-gallery">
+                <div class="product-dialog-media">
+                    <img data-dialog-image src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==" alt="" width="800" height="800" />
+                    <button class="gallery-arrow gallery-prev" type="button" data-gallery-step="-1">
+                        <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+                        <span class="sr-only">Previous image</span>
+                    </button>
+                    <button class="gallery-arrow gallery-next" type="button" data-gallery-step="1">
+                        <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+                        <span class="sr-only">Next image</span>
+                    </button>
+                    <span class="gallery-count" data-gallery-count></span>
                 </div>
-                <div class="p-8 flex flex-col h-full">
-                    <div class="flex justify-between items-start mb-2">
-                        <h3 class="font-serif text-xl font-bold tracking-tight text-black">${p.name}</h3>
-                        <p class="text-brand-gold font-semibold whitespace-nowrap ml-4">${p.price}</p>
-                    </div>
-                    
-                    <div class="mt-4">
-                        <p class="text-[9px] uppercase tracking-[0.2em] text-gray-400 font-bold mb-3">Available Colors</p>
-                        <p id="selected-color-${p.id}" class="text-[10px] text-gray-500 mt-2 uppercase tracking-widest mb-2">
-    Color: ${p.variants[0].name}
-</p>
+                <div class="product-dialog-thumbs" data-dialog-thumbs></div>
+            </div>
+            <div class="product-dialog-info">
+                <p class="product-dialog-category" data-dialog-category></p>
+                <h2 id="product-dialog-title" data-dialog-title></h2>
+                <p class="product-dialog-price" data-dialog-price></p>
+                <p class="product-dialog-summary" data-dialog-summary></p>
 
-<div class="flex flex-wrap gap-2 mb-6" id="grid-swatches-${p.id}">
-                            ${p.variants.map((v, i) => `
-                                <div onclick="updateGridImage(${p.id}, ${i})" class="w-5 h-5 rounded-full border border-gray-300 swatch transition-all ${i === 0 ? 'swatch-active' : ''}" style="background-color: ${v.color};" title="${v.name}"></div>
-                            `).join('')}
-                        </div>
-                    </div>
+                <fieldset class="variant-picker">
+                    <legend>Color: <span data-dialog-variant-name></span></legend>
+                    <div class="variant-swatches" data-dialog-swatches></div>
+                </fieldset>
 
-                    <div class="flex flex-col gap-2 mt-auto">
-                        <a href="#" target="_blank" onclick="copyOrderMessage(event, 'https://wa.me/8801788404459?text=', ${p.id})" class="btn-luxury block w-full text-center bg-black text-white text-[10px] font-bold uppercase tracking-[0.2em] py-3 hover:bg-brand-gold transition-colors shadow-sm">
-                            <i class="fa-brands fa-whatsapp"></i> WhatsApp
-                        </a>
-                        <a href="#" target="_blank" onclick="copyOrderMessage(event, 'https://www.facebook.com/messages/t/cavarabd', ${p.id})" class="btn-luxury block w-full text-center border border-gray-200 text-gray-600 text-[10px] font-bold uppercase tracking-[0.2em] py-2 hover:bg-gray-50 transition-colors">
-                            <i class="fa-brands fa-facebook-messenger"></i> Messenger
-                        </a>
+                <div class="purchase-row">
+                    <div class="quantity" aria-label="Quantity" role="group">
+                        <button type="button" data-dialog-qty="-1"><i class="fa-solid fa-minus" aria-hidden="true"></i><span
+                                class="sr-only">Decrease quantity</span></button>
+                        <output data-dialog-qty-value aria-live="polite">1</output>
+                        <button type="button" data-dialog-qty="1"><i class="fa-solid fa-plus" aria-hidden="true"></i><span
+                                class="sr-only">Increase quantity</span></button>
                     </div>
+                    <button class="button purchase-add" type="button" data-dialog-add>
+                        <i class="fa-solid fa-bag-shopping" aria-hidden="true"></i>
+                        <span data-dialog-add-label>Add to bag</span>
+                    </button>
                 </div>
-            `;
-            grid.appendChild(card);
-        });
+                <p class="dialog-feedback" data-dialog-feedback role="status" aria-live="polite" hidden></p>
 
-        // UPDATE GRID ON SWATCH CLICK
-        function updateGridImage(productId, variantIndex) {
-            const p = PRODUCTS.find(x => x.id === productId);
-            const variant = p.variants[variantIndex];
+                <div class="direct-order">
+                    <a class="button button-outline" href="#" target="_blank" rel="noopener" data-dialog-whatsapp>
+                        <i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Order on WhatsApp</a>
+                    <a class="button button-outline" href="https://m.me/cavarabd" target="_blank" rel="noopener"
+                        data-dialog-messenger>
+                        <i class="fa-brands fa-facebook-messenger" aria-hidden="true"></i> Order on Messenger</a>
+                </div>
+                <button class="text-link dialog-page-link" type="button" data-dialog-page>View full details <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
 
-            // Update State
-            productState[productId] = variant;
+                <div class="product-details">
+                    <h3>Details</h3>
+                    <ul data-dialog-details></ul>
+                    <p class="product-note" data-dialog-note hidden></p>
+                </div>
+            </div>
+        </div>
+    </dialog>
 
-            // Update Image
-            document.getElementById(`grid-img-${productId}`).src = variant.images[0];
+    <dialog class="bag-drawer" aria-labelledby="bag-title" data-bag-dialog>
+        <div class="dialog-surface bag-surface">
+            <div class="bag-header">
+                <div>
+                    <h2 id="bag-title">Your bag</h2>
+                    <p data-bag-summary>0 items</p>
+                </div>
+                <button class="icon-button" type="button" data-close-bag>
+                    <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    <span class="sr-only">Close bag</span>
+                </button>
+            </div>
 
-            // Update Swatch UI (FIXED)
-            const swatchContainer = document.getElementById(`grid-swatches-${productId}`);
-            const swatches = swatchContainer.querySelectorAll('.swatch');
+            <div class="bag-body">
+                <ul class="bag-list" data-bag-list></ul>
+                <div class="bag-empty" data-bag-empty>
+                    <span class="bag-empty-icon" aria-hidden="true"><i class="fa-solid fa-bag-shopping"></i></span>
+                    <h3>Your bag is empty</h3>
+                    <p>Add a few pieces you love, then send the order to our team in one message.</p>
+                    <button class="button" type="button" data-shop-from-bag>Browse the collection</button>
+                </div>
+            </div>
 
-            swatches.forEach((s, i) => {
-                if (i === variantIndex) {
-                    s.classList.add('swatch-active');
-                } else {
-                    s.classList.remove('swatch-active');
-                }
-            });
+            <div class="bag-footer" data-bag-footer hidden>
+                <div class="bag-total">
+                    <span>Subtotal</span>
+                    <strong data-bag-subtotal>৳ 0</strong>
+                </div>
+                <p>Availability, delivery and payment are confirmed with our team in chat.</p>
+                <a class="button" href="#" target="_blank" rel="noopener" data-bag-whatsapp>
+                    <i class="fa-brands fa-whatsapp" aria-hidden="true"></i> Checkout on WhatsApp</a>
+                <a class="button button-outline" href="https://m.me/cavarabd" target="_blank" rel="noopener"
+                    data-bag-messenger>
+                    <i class="fa-brands fa-facebook-messenger" aria-hidden="true"></i> Copy order for Messenger</a>
+                <button class="text-button" type="button" data-clear-bag>Clear bag</button>
+            </div>
+            <div class="toast dialog-toast" role="status" aria-live="polite" data-bag-toast hidden></div>
+        </div>
+    </dialog>
 
-            // Update Color Text
-            document.getElementById(`selected-color-${productId}`).innerText =
-                `Color: ${variant.name}`;
-        }
-
-        // AUTO-FILL & COPY MESSAGE LOGIC (Fixed for Canvas blob environments)
-        function copyOrderMessage(event, baseUrl, explicitProductId = null) {
-            const pid = explicitProductId || activeModalId;
-            if (!pid) {
-                event.preventDefault();
-                return;
-            }
-
-            const p = PRODUCTS.find(x => x.id === pid);
-            const variant = productState[pid];
-
-            // Construct the Premium Message
-            const msg = `Hi Cavara, I want to order: ${p.name} - Color: ${variant.name}`;
-
-            // Write to Clipboard for Messenger fallback
-            try {
-                const input = document.createElement('textarea');
-                input.value = msg;
-                document.body.appendChild(input);
-                input.select();
-                document.execCommand('copy');
-                document.body.removeChild(input);
-
-                // Show Luxury Toast
-                const toast = document.getElementById('toast');
-                toast.innerText = "Message copied! Paste in Messenger.";
-                toast.classList.remove('opacity-0');
-                setTimeout(() => toast.classList.add('opacity-0'), 3000);
-            } catch (e) {
-                console.error("Clipboard copy failed", e);
-            }
-
-            // Update the link's href dynamically BEFORE the browser navigates
-            let finalUrl = baseUrl;
-            if (baseUrl.includes('wa.me')) {
-                finalUrl = baseUrl + encodeURIComponent(msg);
-            }
-
-            event.currentTarget.href = finalUrl;
-            // The browser will natively navigate to finalUrl (we intentionally did NOT call preventDefault)
-        }
-
-        // MODAL SYSTEM
-        function openModal(id) {
-            activeModalId = id;
-            const p = PRODUCTS.find(x => x.id === id);
-            const currentVar = productState[id]; // Load currently selected state
-
-            document.getElementById('modal-color-name').innerText =
-                `Color: ${currentVar.name}`;
-            document.getElementById('modal-title').innerText = p.name;
-            document.getElementById('modal-category').innerText = p.category;
-            document.getElementById('modal-price').innerText = p.price;
-            document.getElementById('modal-desc').innerHTML =
-                p.description.replace(/\n/g, "<br>");
-
-            const mainImg = document.getElementById('modal-main-img');
-            mainImg.src = currentVar.images[0];
-
-            const thumbContainer = document.getElementById('modal-thumbs');
-            thumbContainer.innerHTML = '';
-
-            const swatchContainer = document.getElementById('swatch-container-modal');
-            swatchContainer.innerHTML = '';
-
-            // Generate Modal Swatches & Thumbs mapped to colors
-            // Generate Modal Swatches & Thumbs (SYNCED)
-            p.variants.forEach((v, idx) => {
-
-                // SWATCH
-                const sw = document.createElement('div');
-                sw.className = `w-8 h-8 rounded-full border border-gray-300 swatch cursor-pointer`;
-                sw.style.backgroundColor = v.color;
-                sw.title = v.name;
-
-                if (v.name === currentVar.name) {
-                    sw.classList.add('swatch-active');
-                }
-
-                sw.onclick = () => {
-                    updateGridImage(id, idx);     // updates grid + state
-                    updateModalImage(id, idx);    // updates modal UI properly
-                };
-
-                swatchContainer.appendChild(sw);
-
-                // THUMB
-                // Thumbnails per color (MULTIPLE IMAGES)
-                v.images.forEach((imgSrc, imgIndex) => {
-                    const img = document.createElement('img');
-                    img.src = imgSrc;
-                    img.className = "h-20 w-20 object-cover cursor-pointer border-2 thumb rounded-sm";
-
-                    if (imgIndex === 0 && v.name === currentVar.name) {
-                        img.classList.add('active-thumb');
-                    }
-
-                    img.onclick = () => {
-                        document.getElementById('modal-main-img').src = imgSrc;
-
-                        // remove active from all
-                        const thumbs = document.getElementById('modal-thumbs').children;
-                        Array.from(thumbs).forEach(t => t.classList.remove('active-thumb'));
-
-                        // add active to clicked
-                        img.classList.add('active-thumb');
-                    };
-
-                    thumbContainer.appendChild(img);
-                });
-            });
-
-            const modal = document.getElementById('product-modal');
-            modal.classList.remove('hidden');
-            modal.classList.add('flex');
-            document.body.style.overflow = 'hidden';
-        }
-
-        function updateModalImage(id, variantIndex) {
-            const p = PRODUCTS.find(x => x.id === id);
-            const variant = p.variants[variantIndex];
-
-            // Update state
-            productState[id] = variant;
-
-            // Update color name
-            document.getElementById('modal-color-name').innerText =
-                `Color: ${variant.name}`;
-
-            // Update main image
-            const mainImg = document.getElementById('modal-main-img');
-            mainImg.src = variant.images[0];
-
-            // Sync swatches
-            const swatches = document.querySelectorAll('#swatch-container-modal .swatch');
-            swatches.forEach((s, i) => {
-                s.classList.toggle('swatch-active', i === variantIndex);
-            });
-
-            // REBUILD thumbnails (clean + correct)
-            const thumbContainer = document.getElementById('modal-thumbs');
-            thumbContainer.innerHTML = '';
-
-            variant.images.forEach((imgSrc, i) => {
-                const img = document.createElement('img');
-                img.src = imgSrc;
-                img.className = "h-20 w-20 object-cover cursor-pointer border-2 rounded-sm";
-
-                if (i === 0) img.classList.add('active-thumb');
-
-                img.onclick = () => {
-                    mainImg.src = imgSrc;
-
-                    Array.from(thumbContainer.children).forEach(t =>
-                        t.classList.remove('active-thumb')
-                    );
-
-                    img.classList.add('active-thumb');
-                };
-
-                thumbContainer.appendChild(img);
-            });
-        }
-
-        function closeModal() {
-            const modal = document.getElementById('product-modal');
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
-            document.body.style.overflow = 'auto';
-            activeModalId = null;
-        }
-
-        // MOBILE MENU SCRIPTS
-        const menuButton = document.getElementById('mobile-menu-button');
-        const mobileMenu = document.getElementById('mobile-menu');
-        menuButton.addEventListener('click', () => mobileMenu.classList.toggle('hidden'));
-        document.querySelectorAll('.mobile-link').forEach(link => {
-            link.addEventListener('click', () => mobileMenu.classList.add('hidden'));
-        });
-    </script>
-
+    <noscript>
+        <p class="noscript">Please enable JavaScript to browse and order from the Cavara collection, or contact us on
+            WhatsApp at +880 1788-404459.</p>
+    </noscript>
 </body>
 
 </html>
