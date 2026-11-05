@@ -1,96 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { PALETTES, NAV_LINKS } from "~/lib/config";
-import { pluralize } from "~/lib/catalog";
-import { useStore } from "~/components/store/StoreProvider";
-import { BrandLogo, Icon, SrOnly } from "~/components/ui/primitives";
+import { NAV_LINKS } from "@/lib/config";
+import { pluralize } from "@/lib/catalog";
+import { useStore } from "@/components/store/StoreProvider";
+import { BrandLogo, Icon, SrOnly } from "@/components/ui/primitives";
 import { useShopNavigation } from "./useShopNavigation";
 
-function PaletteDots({ colors }: { colors: readonly string[] }) {
+function ThemeToggle() {
+  const { theme, toggleTheme } = useStore();
+  const label = theme === "dark" ? "Switch to light theme" : "Switch to dark theme";
   return (
-    <>
-      {colors.map((color) => (
-        <i key={color} style={{ background: color }} />
-      ))}
-    </>
-  );
-}
-
-function PalettePicker({ open, setOpen }: { open: boolean; setOpen: (open: boolean) => void }) {
-  const { palette, setPalette } = useStore();
-  const current = PALETTES.find((item) => item.id === palette) ?? PALETTES[0];
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    menuRef.current?.querySelector<HTMLInputElement>('input[name="palette"]:checked')?.focus();
-    const onClick = (event: MouseEvent) => {
-      if (!(event.target as Element).closest?.("[data-palette-picker]")) setOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setOpen(false);
-        triggerRef.current?.focus();
-      }
-    };
-    document.addEventListener("click", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("click", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [open, setOpen]);
-
-  return (
-    <div className="palette-picker" data-palette-picker>
-      <button
-        ref={triggerRef}
-        className="palette-trigger"
-        type="button"
-        aria-expanded={open}
-        aria-controls="palette-menu"
-        aria-label={`Color palette: ${current.name}`}
-        onClick={() => setOpen(!open)}
-      >
-        <span className="palette-dots" aria-hidden="true">
-          <PaletteDots colors={current.colors} />
-        </span>
-        <span className="palette-trigger-text">
-          <span className="palette-trigger-label">Palette</span>
-          <span className="palette-trigger-name">{current.name}</span>
-        </span>
-        <Icon name="fa-solid fa-chevron-down" />
-      </button>
-      <div className="palette-menu" id="palette-menu" hidden={!open} ref={menuRef}>
-        <fieldset>
-          <legend>Color palette</legend>
-          <div
-            className="palette-options"
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                setOpen(false);
-                triggerRef.current?.focus();
-              }
-            }}
-          >
-            {PALETTES.map((item) => (
-              <label className="palette-option" key={item.id}>
-                <input type="radio" name="palette" value={item.id} checked={item.id === palette} onChange={() => setPalette(item.id)} />
-                <span className="palette-option-dots" aria-hidden="true">
-                  <PaletteDots colors={item.colors} />
-                </span>
-                <span className="palette-option-text">
-                  <span className="palette-option-name">{item.name}</span>
-                  <span className="palette-option-note">{item.note}</span>
-                </span>
-                <Icon name="fa-solid fa-check" className="palette-option-check" />
-              </label>
-            ))}
-          </div>
-        </fieldset>
-      </div>
-    </div>
+    <button className="icon-button theme-toggle" type="button" onClick={toggleTheme} aria-label={label} title={label}>
+      <Icon name={`fa-solid ${theme === "dark" ? "fa-sun" : "fa-moon"}`} />
+    </button>
   );
 }
 
@@ -98,14 +20,13 @@ export function SiteHeader() {
   const { bagCount, bagBump, openBag } = useStore();
   const goToShop = useShopNavigation();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [paletteOpen, setPaletteOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [tucked, setTucked] = useState(false);
   const headerRef = useRef<HTMLElement>(null);
   const menuToggleRef = useRef<HTMLButtonElement>(null);
   const countRef = useRef<HTMLSpanElement>(null);
   const menusOpen = useRef(false);
-  menusOpen.current = menuOpen || paletteOpen;
+  menusOpen.current = menuOpen;
 
   // Shadow once scrolled; tuck away while scrolling down past the hero.
   useEffect(() => {
@@ -159,7 +80,7 @@ export function SiteHeader() {
   }, [bagBump]);
 
   const bagLabel = `Open bag, ${pluralize(bagCount, "item")}`;
-  const classes = ["site-header", scrolled && "is-scrolled", tucked && !menuOpen && !paletteOpen && "is-tucked"].filter(Boolean).join(" ");
+  const classes = ["site-header", scrolled && "is-scrolled", tucked && !menuOpen && "is-tucked"].filter(Boolean).join(" ");
 
   return (
     <header className={classes} id="top" ref={headerRef}>
@@ -198,7 +119,7 @@ export function SiteHeader() {
             <Icon name="fa-solid fa-magnifying-glass" />
             <SrOnly>Search products</SrOnly>
           </button>
-          <PalettePicker open={paletteOpen} setOpen={setPaletteOpen} />
+          <ThemeToggle />
           <button className="bag-button" type="button" aria-label={bagLabel} onClick={openBag}>
             <Icon name="fa-solid fa-bag-shopping" />
             <span className="bag-count" ref={countRef}>

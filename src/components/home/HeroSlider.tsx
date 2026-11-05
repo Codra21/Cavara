@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { formatPrice, getCategory, getVariant, productById } from "~/lib/catalog";
-import { HERO_SLIDES, SLIDE_INTERVAL } from "~/lib/config";
-import { prefersReducedMotion } from "~/lib/dom";
-import { useShopNavigation } from "~/components/layout/useShopNavigation";
-import { useOpenProduct } from "~/components/store/useOpenProduct";
-import { Icon, RoundBadge } from "~/components/ui/primitives";
+import { formatPrice, getCategory, getVariant, productById } from "@/lib/catalog";
+import { HERO_SLIDES, SLIDE_INTERVAL } from "@/lib/config";
+import { prefersReducedMotion } from "@/lib/dom";
+import { useShopNavigation } from "@/components/layout/useShopNavigation";
+import { useOpenProduct } from "@/components/store/useOpenProduct";
+import { Icon, RoundBadge } from "@/components/ui/primitives";
 
 const slides = HERO_SLIDES.flatMap((slide) => {
   const product = productById.get(slide.id);

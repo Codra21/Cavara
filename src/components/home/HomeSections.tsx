@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { CATEGORIES, PRODUCTS, categoryById, countInCategory, formatPrice, getVariant, pluralize, productById } from "~/lib/catalog";
-import { CAROUSEL_CATEGORY, LOOKBOOK, PROMO_PRODUCT_ID } from "~/lib/config";
-import { scrollBehavior } from "~/lib/dom";
-import { useShopNavigation } from "~/components/layout/useShopNavigation";
-import { useOpenProduct } from "~/components/store/useOpenProduct";
-import { Icon, RoundBadge } from "~/components/ui/primitives";
+import { CATEGORIES, PRODUCTS, categoryById, countInCategory, formatPrice, getVariant, pluralize, productById } from "@/lib/catalog";
+import { CAROUSEL_CATEGORY, LOOKBOOK, PROMO_PRODUCT_ID } from "@/lib/config";
+import { scrollBehavior } from "@/lib/dom";
+import { useShopNavigation } from "@/components/layout/useShopNavigation";
+import { useOpenProduct } from "@/components/store/useOpenProduct";
+import { Icon, RoundBadge } from "@/components/ui/primitives";
 
 const delay = (ms: number) => ({ "--reveal-delay": `${ms}ms` }) as React.CSSProperties;
 

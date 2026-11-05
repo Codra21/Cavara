@@ -1,0 +1,110 @@
+/*
+  Tailwind + shadcn entry. Loaded before site.css (see __root.tsx).
+
+  Cascade layers: vendor (Font Awesome) → theme → base (preflight) → components → utilities. site.css is a separate stylesheet whose
+  whole body sits in `@layer components`, so it overrides preflight and Tailwind utilities still override it.
+  It is linked separately, not @imported, because Tailwind scans imported CSS for class names and words in
+  site.css (container, hidden, table…) would generate colliding utilities.
+
+  Utilities are generated only for the folders listed with @source. Add a folder when it adopts Tailwind.
+  shadcn variables are aliases of Cavara's tokens (defined in site.css), so both themes flow through one set.
+*/
+@layer vendor, theme, base, components, utilities;
+@import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css") layer(vendor);
+@import "tailwindcss" source(none);
+@source "../components/ui";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+@theme inline {
+  --font-sans: var(--font);
+  --font-heading: var(--font);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  /* Cavara tokens, for utilities such as bg-brand or text-body. */
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+  --color-ink: var(--ink);
+  --color-body: var(--body);
+  --color-line: var(--line);
+  --color-surface-alt: var(--surface-alt);
+  /* --radius is Cavara's 6px from site.css. */
+  --radius-sm: var(--radius-sm);
+  --radius-md: calc(var(--radius) * 0.85);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --background: var(--bg);
+  --foreground: var(--ink);
+  --card: var(--surface);
+  --card-foreground: var(--ink);
+  --popover: var(--surface);
+  --popover-foreground: var(--ink);
+  --primary: var(--brand);
+  --primary-foreground: var(--on-brand);
+  --secondary: var(--surface-alt);
+  --secondary-foreground: var(--ink);
+  --muted: var(--surface-alt);
+  --muted-foreground: var(--body);
+  --accent: var(--brand-soft);
+  --accent-foreground: var(--ink);
+  --destructive: var(--danger);
+  --border: var(--line);
+  --input: var(--line-strong);
+  --ring: var(--brand);
+  --chart-1: var(--brand);
+  --chart-2: var(--brand-hover);
+  --chart-3: var(--body);
+  --chart-4: var(--line-strong);
+  --chart-5: var(--brand-soft);
+  --sidebar: var(--surface-alt);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--brand);
+  --sidebar-primary-foreground: var(--on-brand);
+  --sidebar-accent: var(--brand-soft);
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: var(--line);
+  --sidebar-ring: var(--brand);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+}

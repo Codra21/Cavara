@@ -1,20 +1,19 @@
 /// <reference types="vite/client" />
 import { HeadContent, Link, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import siteCss from "~/styles/site.css?url";
-import { CONTACT_EMAIL, FACEBOOK_URL, PALETTES, SHARE_DESCRIPTION, SITE_DESCRIPTION, SITE_TITLE, SITE_URL, STORAGE_KEYS, WHATSAPP_NUMBER } from "~/lib/config";
-import { GlobalEffects } from "~/components/layout/GlobalEffects";
-import { SiteHeader } from "~/components/layout/SiteHeader";
-import { Announcement, FloatingChat, QuickDock, SiteFooter, Toast } from "~/components/layout/SiteChrome";
-import { BagDrawer } from "~/components/store/BagDrawer";
-import { ProductDialog } from "~/components/store/ProductDialog";
-import { StoreProvider } from "~/components/store/StoreProvider";
+import appCss from "@/styles/app.css?url";
+import siteCss from "@/styles/site.css?url";
+import { CONTACT_EMAIL, FACEBOOK_URL, SHARE_DESCRIPTION, SITE_DESCRIPTION, SITE_TITLE, SITE_URL, WHATSAPP_NUMBER } from "@/lib/config";
+import { GlobalEffects } from "@/components/layout/GlobalEffects";
+import { SiteHeader } from "@/components/layout/SiteHeader";
+import { Announcement, FloatingChat, QuickDock, SiteFooter, Toast } from "@/components/layout/SiteChrome";
+import { BagDrawer } from "@/components/store/BagDrawer";
+import { ProductDialog } from "@/components/store/ProductDialog";
+import { StoreProvider } from "@/components/store/StoreProvider";
+import { THEME_BOOT, THEME_COLORS } from "@/lib/theme";
 
 const OG_IMAGE = `${SITE_URL}/og-image.jpg`;
 const OG_ALT = "Cavara logo beside hand-painted ceramic cups and a yellow serving dish";
-
-// Applies the saved palette before first paint so there is no colour flash.
-const PALETTE_BOOT = `(function(){try{var p=${JSON.stringify(PALETTES.map((item) => item.id))};var s=localStorage.getItem(${JSON.stringify(STORAGE_KEYS.palette)});if(p.indexOf(s)>-1)document.documentElement.dataset.palette=s;}catch(e){}})();`;
 
 export const Route = createRootRoute({
   head: () => ({
@@ -28,7 +27,7 @@ export const Route = createRootRoute({
         name: "keywords",
         content: "premium home decor Bangladesh, ceramic cups Bangladesh, serveware Dhaka, kitchen storage jars, home accessories, Cavara",
       },
-      { name: "theme-color", content: "#FFFFFF" },
+      { name: "theme-color", content: THEME_COLORS.light },
       { property: "og:type", content: "website" },
       { property: "og:site_name", content: "Cavara" },
       { property: "og:title", content: SITE_TITLE },
@@ -73,7 +72,8 @@ export const Route = createRootRoute({
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" },
       { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@500;600&text=%E0%A7%B3&display=swap" },
-      { rel: "stylesheet", href: "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" },
+      { rel: "preconnect", href: "https://cdnjs.cloudflare.com", crossOrigin: "anonymous" },
+      { rel: "stylesheet", href: appCss },
       { rel: "stylesheet", href: siteCss },
     ],
   }),
@@ -84,10 +84,10 @@ export const Route = createRootRoute({
 
 function RootDocument({ children }: { children: ReactNode }) {
   return (
-    // The palette boot script edits data-palette before hydration.
-    <html lang="en" data-palette="teal" suppressHydrationWarning>
+    // THEME_BOOT sets data-theme (light/dark) before hydration, so the attribute may differ from the server render.
+    <html lang="en" data-theme="light" suppressHydrationWarning>
       <head>
-        <script dangerouslySetInnerHTML={{ __html: PALETTE_BOOT }} />
+        <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
         <HeadContent />
       </head>
       <body>

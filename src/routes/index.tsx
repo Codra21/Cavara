@@ -1,9 +1,9 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
-import { isCategoryId, productBySlug } from "~/lib/catalog";
-import { SITE_URL } from "~/lib/config";
-import { HeroSlider } from "~/components/home/HeroSlider";
-import { CarouselSection, CollectionsSection, LookbookSection, OrderingSection, PromoSection, StorySection } from "~/components/home/HomeSections";
-import { ShopSection } from "~/components/home/ShopSection";
+import { isCategoryId, productBySlug } from "@/lib/catalog";
+import { SITE_URL } from "@/lib/config";
+import { HeroSlider } from "@/components/home/HeroSlider";
+import { CarouselSection, CollectionsSection, LookbookSection, OrderingSection, PromoSection, StorySection } from "@/components/home/HomeSections";
+import { ShopSection } from "@/components/home/ShopSection";
 
 interface HomeSearch {
   category?: string;

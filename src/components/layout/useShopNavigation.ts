@@ -1,6 +1,6 @@
 import { useNavigate, useRouterState } from "@tanstack/react-router";
 import { useCallback } from "react";
-import { scrollToShop } from "~/lib/dom";
+import { scrollToShop } from "@/lib/dom";
 
 /**
  * Jumps to the shop section (optionally with a collection filter or focused search),

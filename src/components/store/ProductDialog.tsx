@@ -1,10 +1,10 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { formatPrice, getCategory, getVariant, pluralize, productById } from "~/lib/catalog";
-import { MAX_QTY, MESSENGER_URL } from "~/lib/config";
-import { copyText, singleOrderMessage, whatsappUrl } from "~/lib/order";
-import { ModalDialog } from "~/components/ui/ModalDialog";
-import { Icon, Quantity, SrOnly, Swatch } from "~/components/ui/primitives";
+import { formatPrice, getCategory, getVariant, pluralize, productById } from "@/lib/catalog";
+import { MAX_QTY, MESSENGER_URL } from "@/lib/config";
+import { copyText, singleOrderMessage, whatsappUrl } from "@/lib/order";
+import { ModalDialog } from "@/components/ui/ModalDialog";
+import { Icon, Quantity, SrOnly, Swatch } from "@/components/ui/primitives";
 import { useStore } from "./StoreProvider";
 
 const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";

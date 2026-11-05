@@ -1,7 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { getVariant, productBySlug } from "~/lib/catalog";
-import { SITE_URL } from "~/lib/config";
-import { ProductPage } from "~/components/product/ProductPage";
+import { getVariant, productBySlug } from "@/lib/catalog";
+import { SITE_URL } from "@/lib/config";
+import { ProductPage } from "@/components/product/ProductPage";
 
 interface ProductSearch {
   variant?: number;

@@ -1,14 +1,14 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { formatPrice, getCategory, getVariant, pluralize, productById, relatedProducts } from "~/lib/catalog";
-import { MAX_QTY, MESSENGER_URL, SITE_URL, WHATSAPP_URL } from "~/lib/config";
-import { finePointer } from "~/lib/dom";
-import { copyText, singleOrderMessage, whatsappUrl } from "~/lib/order";
-import type { Product } from "~/lib/types";
-import { useShopNavigation } from "~/components/layout/useShopNavigation";
-import { useStore } from "~/components/store/StoreProvider";
-import { useOpenProduct } from "~/components/store/useOpenProduct";
-import { Icon, Quantity, Swatch } from "~/components/ui/primitives";
+import { formatPrice, getCategory, getVariant, pluralize, productById, relatedProducts } from "@/lib/catalog";
+import { MAX_QTY, MESSENGER_URL, SITE_URL, WHATSAPP_URL } from "@/lib/config";
+import { finePointer } from "@/lib/dom";
+import { copyText, singleOrderMessage, whatsappUrl } from "@/lib/order";
+import type { Product } from "@/lib/types";
+import { useShopNavigation } from "@/components/layout/useShopNavigation";
+import { useStore } from "@/components/store/StoreProvider";
+import { useOpenProduct } from "@/components/store/useOpenProduct";
+import { Icon, Quantity, Swatch } from "@/components/ui/primitives";
 
 const TABS = [
   { id: "description", label: "Description" },

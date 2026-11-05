@@ -31,11 +31,3 @@ export interface BagItem {
   variant: number;
   qty: number;
 }
-
-export interface Palette {
-  id: string;
-  name: string;
-  note: string;
-  colors: [string, string, string];
-  theme: string;
-}

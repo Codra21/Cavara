@@ -1,12 +1,12 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import { formatPrice, getVariant, pluralize, productById } from "~/lib/catalog";
-import { MAX_QTY, MESSENGER_URL } from "~/lib/config";
-import { bagSubtotal, copyText, orderMessage, whatsappUrl } from "~/lib/order";
-import { Toast } from "~/components/layout/SiteChrome";
-import { useShopNavigation } from "~/components/layout/useShopNavigation";
-import { ModalDialog } from "~/components/ui/ModalDialog";
-import { Icon, Quantity, SrOnly } from "~/components/ui/primitives";
+import { formatPrice, getVariant, pluralize, productById } from "@/lib/catalog";
+import { MAX_QTY, MESSENGER_URL } from "@/lib/config";
+import { bagSubtotal, copyText, orderMessage, whatsappUrl } from "@/lib/order";
+import { Toast } from "@/components/layout/SiteChrome";
+import { useShopNavigation } from "@/components/layout/useShopNavigation";
+import { ModalDialog } from "@/components/ui/ModalDialog";
+import { Icon, Quantity, SrOnly } from "@/components/ui/primitives";
 import { useStore } from "./StoreProvider";
 
 export function BagDrawer() {

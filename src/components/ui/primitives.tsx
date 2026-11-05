@@ -1,5 +1,5 @@
 import { useId, type ReactNode } from "react";
-import type { Variant } from "~/lib/types";
+import type { Variant } from "@/lib/types";
 
 /** Font Awesome icon. `name` is the full class list, e.g. "fa-solid fa-bag-shopping". */
 export function Icon({ name, className }: { name: string; className?: string }) {

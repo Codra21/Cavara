@@ -1,5 +1,3 @@
-import type { Palette } from "./types";
-
 export const SITE_URL = "https://cavarabd.com";
 export const SITE_TITLE = "Cavara — Premium Home Decor & Accessories";
 export const SITE_DESCRIPTION =
@@ -15,7 +13,7 @@ export const CONTACT_EMAIL = "forhadmazhar@gmail.com";
 
 export const STORAGE_KEYS = {
   bag: "cavara-bag-v1",
-  palette: "cavara-palette",
+  theme: "cavara-theme",
   recent: "cavara-recent-v1",
 } as const;
 
@@ -43,15 +41,6 @@ export const LOOKBOOK = {
     { variant: 0, x: 79, y: 63 },
   ],
 };
-
-export const PALETTES: [Palette, ...Palette[]] = [
-  { id: "teal", name: "Cavara Teal", note: "Porcelain and logo teal", colors: ["#F7F4EF", "#224D4B", "#454547"], theme: "#F7F4EF" },
-  { id: "terracotta", name: "Terracotta", note: "Fired clay and warm linen", colors: ["#F6EFE7", "#9B472A", "#3B2F2A"], theme: "#F6EFE7" },
-  { id: "sage", name: "Sage", note: "Soft botanical greens", colors: ["#F0F2EA", "#4B6845", "#394038"], theme: "#F0F2EA" },
-  { id: "blush", name: "Blush", note: "Rose porcelain and plum", colors: ["#F9F1F0", "#8A4155", "#4A3D42"], theme: "#F9F1F0" },
-  { id: "indigo", name: "Indigo Glaze", note: "Blue-and-white ceramic", colors: ["#F2F4F7", "#2B4A85", "#3D4352"], theme: "#F2F4F7" },
-  { id: "midnight", name: "Midnight", note: "Dark, low-light evenings", colors: ["#101716", "#8FCDB9", "#EEF1EC"], theme: "#101716" },
-];
 
 export const NAV_LINKS = [
   { hash: "shop", label: "Shop" },

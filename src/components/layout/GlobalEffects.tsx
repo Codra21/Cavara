@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
-import { finePointer, prefersReducedMotion } from "~/lib/dom";
-import { useStore } from "~/components/store/StoreProvider";
+import { finePointer, prefersReducedMotion } from "@/lib/dom";
+import { useStore } from "@/components/store/StoreProvider";
 import { useShopNavigation } from "./useShopNavigation";
 
 const MEDIA_WRAPPERS =

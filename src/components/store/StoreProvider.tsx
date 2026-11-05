@@ -1,8 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { productById } from "~/lib/catalog";
-import { MAX_QTY, PALETTES, RECENT_LIMIT, STORAGE_KEYS } from "~/lib/config";
-import { storageGet, storageSet } from "~/lib/dom";
-import type { BagItem } from "~/lib/types";
+import { productById } from "@/lib/catalog";
+import { MAX_QTY, RECENT_LIMIT, STORAGE_KEYS } from "@/lib/config";
+import { storageGet, storageSet } from "@/lib/dom";
+import type { BagItem } from "@/lib/types";
+import { applyTheme, isTheme, onSystemThemeChange, saveTheme, storedTheme, systemTheme, type Theme } from "@/lib/theme";
 
 export interface ToastState {
   id: number;
@@ -24,8 +25,8 @@ interface StoreValue {
   selectedVariant: (productId: number) => number;
   selectVariant: (productId: number, variant: number) => void;
 
-  palette: string;
-  setPalette: (id: string) => void;
+  theme: Theme;
+  toggleTheme: () => void;
 
   toast: ToastState | null;
   showToast: (message: string, options?: Omit<ToastState, "id" | "message">) => void;
@@ -74,19 +75,12 @@ function loadRecent(): number[] {
   }
 }
 
-export function applyPaletteToDocument(id: string) {
-  const palette = PALETTES.find((item) => item.id === id) ?? PALETTES[0];
-  document.documentElement.dataset.palette = palette.id;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", palette.theme);
-  return palette.id;
-}
-
 export function StoreProvider({ children }: { children: ReactNode }) {
   // Browser-only state starts empty so server and first client render match; it loads after hydration.
   const [bag, setBag] = useState<BagItem[]>([]);
   const [bagBump, setBagBump] = useState(0);
   const [selectedVariants, setSelectedVariants] = useState<Record<number, number>>({});
-  const [palette, setPaletteState] = useState(PALETTES[0].id);
+  const [theme, setTheme] = useState<Theme>("light");
   const [toast, setToast] = useState<ToastState | null>(null);
   const [quickView, setQuickView] = useState<number | null>(null);
   const [bagOpen, setBagOpen] = useState(false);
@@ -97,15 +91,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     setBag(loadBag());
     setRecent(loadRecent());
-    setPaletteState(applyPaletteToDocument(document.documentElement.dataset.palette || storageGet(STORAGE_KEYS.palette) || "teal"));
+    // THEME_BOOT already applied the theme; read it back. Follow the system until the visitor chooses.
+    const booted = document.documentElement.dataset.theme;
+    setTheme(isTheme(booted) ? booted : systemTheme());
+    const stopFollowingSystem = onSystemThemeChange((next) => {
+      if (storedTheme()) return;
+      applyTheme(next);
+      setTheme(next);
+    });
     setHydrated(true);
 
     const onStorage = (event: StorageEvent) => {
       if (event.key === STORAGE_KEYS.bag) setBag(loadBag());
-      if (event.key === STORAGE_KEYS.palette && event.newValue) setPaletteState(applyPaletteToDocument(event.newValue));
+      if (event.key === STORAGE_KEYS.theme) {
+        const next = isTheme(event.newValue) ? event.newValue : systemTheme();
+        applyTheme(next);
+        setTheme(next);
+      }
     };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      stopFollowingSystem();
+    };
   }, []);
 
   useEffect(() => {
@@ -138,11 +146,12 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setSelectedVariants((current) => ({ ...current, [productId]: variant }));
   }, []);
 
-  const setPalette = useCallback((id: string) => {
-    const applied = applyPaletteToDocument(id);
-    setPaletteState(applied);
-    storageSet(STORAGE_KEYS.palette, applied);
-  }, []);
+  const toggleTheme = useCallback(() => {
+    const next: Theme = theme === "dark" ? "light" : "dark";
+    applyTheme(next);
+    saveTheme(next);
+    setTheme(next);
+  }, [theme]);
 
   const hideToast = useCallback(() => setToast(null), []);
   const showToast = useCallback((message: string, options: Omit<ToastState, "id" | "message"> = {}) => {
@@ -188,8 +197,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       selectedVariants,
       selectedVariant,
       selectVariant,
-      palette,
-      setPalette,
+      theme,
+      toggleTheme,
       toast,
       showToast,
       hideToast,
@@ -202,7 +211,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       recent,
       rememberViewed,
     }),
-    [bag, bagBump, addToBag, updateBagItem, clearBag, selectedVariants, selectedVariant, selectVariant, palette, setPalette, toast, showToast, hideToast, quickView, openQuickView, closeQuickView, bagOpen, openBag, closeBag, recent, rememberViewed]
+    [bag, bagBump, addToBag, updateBagItem, clearBag, selectedVariants, selectedVariant, selectVariant, theme, toggleTheme, toast, showToast, hideToast, quickView, openQuickView, closeQuickView, bagOpen, openBag, closeBag, recent, rememberViewed]
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

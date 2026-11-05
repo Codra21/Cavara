@@ -1,8 +1,8 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CATEGORIES, PRODUCTS, SORT_OPTIONS, categoryById, countInCategory, filterProducts, pluralize, type SortKey } from "~/lib/catalog";
-import { SHOP_PAGE_SIZE } from "~/lib/config";
-import { Icon } from "~/components/ui/primitives";
+import { CATEGORIES, PRODUCTS, SORT_OPTIONS, categoryById, countInCategory, filterProducts, pluralize, type SortKey } from "@/lib/catalog";
+import { SHOP_PAGE_SIZE } from "@/lib/config";
+import { Icon } from "@/components/ui/primitives";
 import { ProductCard } from "./ProductCard";
 
 const FILTERS = [

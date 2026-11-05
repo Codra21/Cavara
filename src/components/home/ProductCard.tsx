@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
-import { formatPrice, getCategory, getVariant, pluralize } from "~/lib/catalog";
-import type { Product } from "~/lib/types";
-import { useStore } from "~/components/store/StoreProvider";
-import { useOpenProduct } from "~/components/store/useOpenProduct";
-import { Icon, Swatch } from "~/components/ui/primitives";
+import { formatPrice, getCategory, getVariant, pluralize } from "@/lib/catalog";
+import type { Product } from "@/lib/types";
+import { useStore } from "@/components/store/StoreProvider";
+import { useOpenProduct } from "@/components/store/useOpenProduct";
+import { Icon, Swatch } from "@/components/ui/primitives";
 
 export function ProductCard({ product, index }: { product: Product; index: number }) {
   const { selectedVariant, selectVariant, addToBag, showToast, openBag, openQuickView } = useStore();

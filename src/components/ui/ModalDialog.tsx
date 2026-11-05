@@ -1,5 +1,5 @@
 import { useEffect, useRef, type ReactNode } from "react";
-import { prefersReducedMotion } from "~/lib/dom";
+import { prefersReducedMotion } from "@/lib/dom";
 
 /**
  * Native <dialog> driven by an `open` prop. Plays the `.is-closing` exit animation from site.css

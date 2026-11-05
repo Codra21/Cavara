@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { CATEGORIES, pluralize } from "~/lib/catalog";
-import { CONTACT_EMAIL, FACEBOOK_URL, MESSENGER_URL, WHATSAPP_DISPLAY, WHATSAPP_NUMBER, WHATSAPP_URL } from "~/lib/config";
-import { useStore } from "~/components/store/StoreProvider";
-import { BrandLogo, Icon } from "~/components/ui/primitives";
+import { CATEGORIES, pluralize } from "@/lib/catalog";
+import { CONTACT_EMAIL, FACEBOOK_URL, MESSENGER_URL, WHATSAPP_DISPLAY, WHATSAPP_NUMBER, WHATSAPP_URL } from "@/lib/config";
+import { useStore } from "@/components/store/StoreProvider";
+import { BrandLogo, Icon } from "@/components/ui/primitives";
 import { useShopNavigation } from "./useShopNavigation";
 
 const ANNOUNCEMENTS = (hidden: boolean) => (

@@ -16,6 +16,6 @@
     "isolatedModules": true,
     "noEmit": true,
     "types": ["vite/client", "bun"],
-    "paths": { "~/*": ["./src/*"] }
+    "paths": { "@/*": ["./src/*"] }
   }
 }
