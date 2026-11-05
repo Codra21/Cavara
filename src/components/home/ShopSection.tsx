@@ -1,17 +1,23 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CATEGORIES, PRODUCTS, SORT_OPTIONS, categoryById, countInCategory, filterProducts, pluralize, type SortKey } from "@/lib/catalog";
+import { SORT_OPTIONS, countInCategory, filterProducts, pluralize, type SortKey } from "@/domain/catalog";
+import { useCatalog } from "@/lib/query";
 import { SHOP_PAGE_SIZE } from "@/lib/config";
 import { Icon } from "@/components/ui/primitives";
 import { ProductCard } from "./ProductCard";
 
-const FILTERS = [
-  { id: "all", name: "All pieces", count: PRODUCTS.length },
-  ...CATEGORIES.map((category) => ({ id: category.id as string, name: category.name, count: countInCategory(category.id) })),
-];
-
 /** Product listing: collection chips (synced to `?category=`), search, sort and "load more". */
-export function ShopSection({ category }: { category: string }) {
+export function ShopSection({ category: requested }: { category: string }) {
+  const catalog = useCatalog();
+  // ?category= is only shape-checked in the route; an id that is not in the catalogue shows everything.
+  const category = requested === "all" || catalog.categoryById.has(requested) ? requested : "all";
+  const filters = useMemo(
+    () => [
+      { id: "all", name: "All pieces", count: catalog.products.length },
+      ...catalog.categories.map((item) => ({ id: item.id, name: item.name, count: countInCategory(catalog, item.id) })),
+    ],
+    [catalog],
+  );
   const navigate = useNavigate();
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState<SortKey>("featured");
@@ -20,9 +26,9 @@ export function ShopSection({ category }: { category: string }) {
   const gridRef = useRef<HTMLUListElement>(null);
   const focusAfterExpand = useRef(false);
 
-  const products = useMemo(() => filterProducts({ category, query, sort }), [category, query, sort]);
+  const products = useMemo(() => filterProducts(catalog, { category, query, sort }), [catalog, category, query, sort]);
   const collapsed = !expanded && products.length > SHOP_PAGE_SIZE;
-  const scope = category === "all" ? "" : ` in ${categoryById.get(category)?.name ?? ""}`;
+  const scope = category === "all" ? "" : ` in ${catalog.categoryById.get(category)?.name ?? ""}`;
   const trimmed = query.trim();
 
   useEffect(() => {
@@ -47,7 +53,7 @@ export function ShopSection({ category }: { category: string }) {
 
         <div className="shop-toolbar" data-reveal="">
           <div className="filter-chips" role="group" aria-label="Filter by collection">
-            {FILTERS.map((filter) => (
+            {filters.map((filter) => (
               <button key={filter.id} className="filter-chip" type="button" aria-pressed={filter.id === category} onClick={() => setCategory(filter.id)}>
                 {filter.name} <span className="filter-chip-count">{filter.count}</span>
               </button>

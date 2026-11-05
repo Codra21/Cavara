@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
-import { CATEGORIES, PRODUCTS, categoryById, countInCategory, formatPrice, getVariant, pluralize, productById } from "@/lib/catalog";
+import { countInCategory, formatPrice, getVariant, pluralize } from "@/domain/catalog";
+import { useCatalog } from "@/lib/query";
 import { CAROUSEL_CATEGORY, LOOKBOOK, PROMO_PRODUCT_ID } from "@/lib/config";
 import { scrollBehavior } from "@/lib/dom";
 import { useShopNavigation } from "@/components/layout/useShopNavigation";
@@ -9,6 +10,7 @@ import { Icon, RoundBadge } from "@/components/ui/primitives";
 const delay = (ms: number) => ({ "--reveal-delay": `${ms}ms` }) as React.CSSProperties;
 
 export function CollectionsSection() {
+  const catalog = useCatalog();
   const goToShop = useShopNavigation();
   return (
     <section className="section collections" id="collections" aria-labelledby="collections-title">
@@ -18,7 +20,7 @@ export function CollectionsSection() {
           <h2 id="collections-title">Our collections</h2>
         </div>
         <ul className="studio-category-row" aria-label="Collections">
-          {CATEGORIES.map((category, index) => (
+          {catalog.categories.map((category, index) => (
             <li key={category.id} data-reveal="" style={delay(index * 90)}>
               <button className="studio-category" type="button" onClick={() => goToShop({ category: category.id })}>
                 <span className="studio-category-media">
@@ -26,7 +28,7 @@ export function CollectionsSection() {
                 </span>
                 <span className="studio-category-label">
                   <span className="studio-category-name">{category.name}</span>
-                  <span className="studio-category-count">{pluralize(countInCategory(category.id), "piece")}</span>
+                  <span className="studio-category-count">{pluralize(countInCategory(catalog, category.id), "piece")}</span>
                 </span>
               </button>
             </li>
@@ -41,7 +43,7 @@ export function LookbookSection() {
   const openProduct = useOpenProduct();
   const [openSpot, setOpenSpot] = useState<number | null>(null);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const product = productById.get(LOOKBOOK.productId);
+  const product = useCatalog().productById.get(LOOKBOOK.productId);
 
   useEffect(() => {
     if (openSpot === null) return;
@@ -133,8 +135,9 @@ export function CarouselSection() {
   const openProduct = useOpenProduct();
   const trackRef = useRef<HTMLUListElement>(null);
   const [edges, setEdges] = useState({ start: true, end: false });
-  const category = categoryById.get(CAROUSEL_CATEGORY);
-  const products = PRODUCTS.filter((product) => product.category === CAROUSEL_CATEGORY);
+  const catalog = useCatalog();
+  const category = catalog.categoryById.get(CAROUSEL_CATEGORY);
+  const products = catalog.products.filter((product) => product.category === CAROUSEL_CATEGORY);
 
   const updateEdges = () => {
     const track = trackRef.current;
@@ -238,7 +241,7 @@ export function CarouselSection() {
 
 export function PromoSection() {
   const openProduct = useOpenProduct();
-  const promo = productById.get(PROMO_PRODUCT_ID);
+  const promo = useCatalog().productById.get(PROMO_PRODUCT_ID);
   if (!promo) return null;
   const images = promo.variants.flatMap((variant) => variant.images);
   return (

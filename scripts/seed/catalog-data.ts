@@ -1,6 +1,6 @@
-// Catalogue data ported from the static site (Cavara/assets/js/products.js).
-// This is the UI-phase source of truth; it moves to the Cloudflare D1 database in the backend phase.
-import type { Category, Product } from "./types";
+// Original catalogue, ported from the static site. Source for migrations/0002_seed_catalog.sql only
+// (bun run seed:generate). D1 is the live source of truth; editing this file changes nothing at runtime.
+import type { Category, Product } from "../../src/lib/types";
 
 export const CATEGORIES: Category[] = [
   {

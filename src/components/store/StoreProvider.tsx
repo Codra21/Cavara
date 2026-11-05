@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { productById } from "@/lib/catalog";
 import { MAX_QTY, RECENT_LIMIT, STORAGE_KEYS } from "@/lib/config";
 import { storageGet, storageSet } from "@/lib/dom";
+import { useCatalog } from "@/lib/query";
+import type { CatalogIndex } from "@/domain/catalog";
 import type { BagItem } from "@/lib/types";
 import { applyTheme, isTheme, onSystemThemeChange, saveTheme, storedTheme, systemTheme, type Theme } from "@/lib/theme";
 
@@ -50,7 +51,7 @@ function clampQty(value: number) {
   return Math.min(MAX_QTY, Math.max(1, value));
 }
 
-function loadBag(): BagItem[] {
+function loadBag(catalog: CatalogIndex): BagItem[] {
   try {
     const parsed: unknown = JSON.parse(storageGet(STORAGE_KEYS.bag) || "[]");
     if (!Array.isArray(parsed)) return [];
@@ -60,22 +61,26 @@ function loadBag(): BagItem[] {
         variant: Number(item.variant),
         qty: clampQty(Number(item.qty) || 1),
       }))
-      .filter((item) => productById.get(item.id)?.variants[item.variant]);
+      .filter((item) => catalog.productById.get(item.id)?.variants[item.variant]);
   } catch {
     return [];
   }
 }
 
-function loadRecent(): number[] {
+function loadRecent(catalog: CatalogIndex): number[] {
   try {
     const parsed: unknown = JSON.parse(storageGet(STORAGE_KEYS.recent) || "[]");
-    return Array.isArray(parsed) ? parsed.map(Number).filter((id) => productById.has(id)).slice(0, RECENT_LIMIT) : [];
+    return Array.isArray(parsed) ? parsed.map(Number).filter((id) => catalog.productById.has(id)).slice(0, RECENT_LIMIT) : [];
   } catch {
     return [];
   }
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
+  const catalog = useCatalog();
+  // Storage listeners outlive renders; read the latest catalogue through a ref.
+  const catalogRef = useRef(catalog);
+  catalogRef.current = catalog;
   // Browser-only state starts empty so server and first client render match; it loads after hydration.
   const [bag, setBag] = useState<BagItem[]>([]);
   const [bagBump, setBagBump] = useState(0);
@@ -89,8 +94,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const toastTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    setBag(loadBag());
-    setRecent(loadRecent());
+    setBag(loadBag(catalogRef.current));
+    setRecent(loadRecent(catalogRef.current));
     // THEME_BOOT already applied the theme; read it back. Follow the system until the visitor chooses.
     const booted = document.documentElement.dataset.theme;
     setTheme(isTheme(booted) ? booted : systemTheme());
@@ -102,7 +107,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setHydrated(true);
 
     const onStorage = (event: StorageEvent) => {
-      if (event.key === STORAGE_KEYS.bag) setBag(loadBag());
+      if (event.key === STORAGE_KEYS.bag) setBag(loadBag(catalogRef.current));
       if (event.key === STORAGE_KEYS.theme) {
         const next = isTheme(event.newValue) ? event.newValue : systemTheme();
         applyTheme(next);
@@ -142,7 +147,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const selectedVariant = useCallback((productId: number) => selectedVariants[productId] ?? 0, [selectedVariants]);
   const selectVariant = useCallback((productId: number, variant: number) => {
-    if (!productById.get(productId)?.variants[variant]) return;
+    if (!catalogRef.current.productById.get(productId)?.variants[variant]) return;
     setSelectedVariants((current) => ({ ...current, [productId]: variant }));
   }, []);
 

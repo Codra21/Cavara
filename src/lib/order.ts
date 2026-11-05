@@ -1,4 +1,4 @@
-import { formatPrice, getVariant, productById } from "./catalog";
+import { formatPrice, getVariant, type CatalogIndex } from "@/domain/catalog";
 import { WHATSAPP_NUMBER } from "./config";
 import type { BagItem, Product, Variant } from "./types";
 
@@ -10,18 +10,18 @@ export function singleOrderMessage(product: Product, variant: Variant, qty: numb
   return `Hi Cavara, I want to order: ${product.name} - Color: ${variant.name} - Qty: ${qty} (${formatPrice(product.price * qty)})`;
 }
 
-export function bagSubtotal(items: BagItem[]) {
-  return items.reduce((sum, item) => sum + (productById.get(item.id)?.price ?? 0) * item.qty, 0);
+export function bagSubtotal(catalog: CatalogIndex, items: BagItem[]) {
+  return items.reduce((sum, item) => sum + (catalog.productById.get(item.id)?.price ?? 0) * item.qty, 0);
 }
 
-export function orderMessage(items: BagItem[]) {
+export function orderMessage(catalog: CatalogIndex, items: BagItem[]) {
   const lines = items.flatMap((item, index) => {
-    const product = productById.get(item.id);
+    const product = catalog.productById.get(item.id);
     if (!product) return [];
     const variant = getVariant(product, item.variant);
     return [`${index + 1}. ${product.name} — Color: ${variant.name} — Qty: ${item.qty} — ${formatPrice(product.price * item.qty)}`];
   });
-  return [`Hi Cavara, I'd like to order:`, ...lines, `Subtotal: ${formatPrice(bagSubtotal(items))}`].join("\n");
+  return [`Hi Cavara, I'd like to order:`, ...lines, `Subtotal: ${formatPrice(bagSubtotal(catalog, items))}`].join("\n");
 }
 
 export async function copyText(text: string) {

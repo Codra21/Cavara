@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
-import { HeadContent, Link, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
+import type { QueryClient } from "@tanstack/react-query";
+import { HeadContent, Link, Outlet, Scripts, createRootRouteWithContext } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import appCss from "@/styles/app.css?url";
 import siteCss from "@/styles/site.css?url";
@@ -11,11 +12,16 @@ import { BagDrawer } from "@/components/store/BagDrawer";
 import { ProductDialog } from "@/components/store/ProductDialog";
 import { StoreProvider } from "@/components/store/StoreProvider";
 import { THEME_BOOT, THEME_COLORS } from "@/lib/theme";
+import { catalogQueryOptions } from "@/lib/query";
 
 const OG_IMAGE = `${SITE_URL}/og-image.jpg`;
 const OG_ALT = "Cavara logo beside hand-painted ceramic cups and a yellow serving dish";
 
-export const Route = createRootRoute({
+export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  // Every page needs the catalogue (header bag, footer collections, product lookups); load it once here.
+  loader: async ({ context }) => {
+    await context.queryClient.query(catalogQueryOptions());
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },

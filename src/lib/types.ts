@@ -1,4 +1,7 @@
-export type CategoryId = "drinkware" | "serveware" | "kitchen-storage" | "home-accessories";
+/** Category ids come from D1 (e.g. "drinkware"). */
+export type CategoryId = string;
+
+export type Availability = "in_stock" | "out_of_stock" | "preorder";
 
 export interface Category {
   id: CategoryId;
@@ -12,6 +15,8 @@ export interface Variant {
   /** Any CSS background value: a colour, gradient or conic gradient. */
   swatch: string;
   images: string[];
+  /** Stock state for this colour. Optional so the seed source can omit it (defaults to in_stock). */
+  availability?: Availability;
 }
 
 export interface Product {
@@ -24,6 +29,12 @@ export interface Product {
   details?: string[];
   note?: string;
   variants: [Variant, ...Variant[]];
+}
+
+/** Published catalogue as read from D1, in display order. */
+export interface Catalog {
+  categories: Category[];
+  products: Product[];
 }
 
 export interface BagItem {

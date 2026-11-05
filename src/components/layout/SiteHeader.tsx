@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { NAV_LINKS } from "@/lib/config";
-import { pluralize } from "@/lib/catalog";
+import { pluralize } from "@/domain/catalog";
 import { useStore } from "@/components/store/StoreProvider";
 import { BrandLogo, Icon, SrOnly } from "@/components/ui/primitives";
 import { useShopNavigation } from "./useShopNavigation";

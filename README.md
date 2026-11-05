@@ -16,16 +16,25 @@ Bun 1.4.4 (pinned in `package.json` and `.mise.toml`).
 | `bun run typecheck`  | Type check with Bun's native checker                 |
 | `bun test`           | Unit tests in `src/test/`                            |
 | `bun run check`      | Type check and tests in parallel                     |
-| `bun run build`      | Client bundle and Worker build in `dist/`            |
+| `bun run build`      | Build for development (D1 `cavara-dev`)              |
+| `bun run build:prod` | Build for production (D1 `cavara-prod`)              |
 | `bun run preview`    | Serve the built Worker locally                       |
 | `bun run format`     | Format with oxfmt                                    |
-| `bun run deploy`     | Check, build and deploy with Wrangler                |
+| `bun run deploy`     | Check, production build, deploy Worker `cavara-web`  |
+| `bun run deploy:dev` | Check, dev build, deploy Worker `cavara-web-dev`     |
+| `bun run seed:generate` | Regenerate `migrations/0002_seed_catalog.sql`     |
+| `bun run db:migrate:dev`  | Apply pending migrations to `cavara-dev`        |
+| `bun run db:migrate:prod` | Apply pending migrations to `cavara-prod`       |
 
 ## Layout
 
 - `src/routes/` — pages (`/`, `/products/$slug`)
 - `src/components/` — home, layout, product, store and UI components
-- `src/lib/` — catalogue data and helpers, config, bag/order helpers
+- `src/domain/` — pure catalogue helpers
+- `src/lib/` — query options (`useCatalog`), config, theme, bag/order helpers
+- `src/server/` — server functions, D1 repositories, bindings
+- `migrations/` — D1 schema and seed (`wrangler d1 migrations`)
+- `scripts/seed/` — original catalogue and the seed generator
 - `src/styles/site.css` — all styles and theme tokens
 - `src/test/` — `bun test` suites
 - `public/` — icons, brand assets and `product-images/`

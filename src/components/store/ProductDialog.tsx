@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { formatPrice, getCategory, getVariant, pluralize, productById } from "@/lib/catalog";
+import { formatPrice, getCategory, getVariant, pluralize } from "@/domain/catalog";
+import { useCatalog } from "@/lib/query";
 import { MAX_QTY, MESSENGER_URL } from "@/lib/config";
 import { copyText, singleOrderMessage, whatsappUrl } from "@/lib/order";
 import { ModalDialog } from "@/components/ui/ModalDialog";
@@ -11,6 +12,7 @@ const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAACH5BAEAAAAALAAAAAABAAE
 
 export function ProductDialog() {
   const { quickView, closeQuickView, selectedVariant, selectVariant, addToBag, openBag } = useStore();
+  const catalog = useCatalog();
   const navigate = useNavigate();
   // Keep the last product rendered while the close animation plays.
   const [productId, setProductId] = useState<number | null>(null);
@@ -30,7 +32,7 @@ export function ProductDialog() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when a product is opened
   }, [quickView]);
 
-  const product = productId === null ? undefined : productById.get(productId);
+  const product = productId === null ? undefined : catalog.productById.get(productId);
   const variantIndex = product ? selectedVariant(product.id) : 0;
   const variant = product ? getVariant(product, variantIndex) : undefined;
   const images = variant?.images ?? [];
@@ -107,7 +109,7 @@ export function ProductDialog() {
 
         {product && variant ? (
           <div className="product-dialog-info">
-            <p className="product-dialog-category">{getCategory(product).name}</p>
+            <p className="product-dialog-category">{getCategory(catalog, product).name}</p>
             <h2 id="product-dialog-title">{product.name}</h2>
             <p className="product-dialog-price">{formatPrice(product.price)}</p>
             <p className="product-dialog-summary">{product.summary}</p>

@@ -1,17 +1,22 @@
-import { useEffect, useRef, useState } from "react";
-import { formatPrice, getCategory, getVariant, productById } from "@/lib/catalog";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { formatPrice, getCategory, getVariant } from "@/domain/catalog";
+import { useCatalog } from "@/lib/query";
 import { HERO_SLIDES, SLIDE_INTERVAL } from "@/lib/config";
 import { prefersReducedMotion } from "@/lib/dom";
 import { useShopNavigation } from "@/components/layout/useShopNavigation";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
 import { Icon, RoundBadge } from "@/components/ui/primitives";
 
-const slides = HERO_SLIDES.flatMap((slide) => {
-  const product = productById.get(slide.id);
-  return product ? [{ ...slide, product, category: getCategory(product) }] : [];
-});
-
 export function HeroSlider() {
+  const catalog = useCatalog();
+  const slides = useMemo(
+    () =>
+      HERO_SLIDES.flatMap((slide) => {
+        const product = catalog.productById.get(slide.id);
+        return product ? [{ ...slide, product, category: getCategory(catalog, product) }] : [];
+      }),
+    [catalog],
+  );
   const openProduct = useOpenProduct();
   const goToShop = useShopNavigation();
   const [index, setIndex] = useState(0);

@@ -1,5 +1,6 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { getVariant, productBySlug } from "@/lib/catalog";
+import { getVariant, indexCatalog } from "@/domain/catalog";
+import { catalogQueryOptions } from "@/lib/query";
 import { SITE_URL } from "@/lib/config";
 import { ProductPage } from "@/components/product/ProductPage";
 
@@ -12,8 +13,9 @@ export const Route = createFileRoute("/products/$slug")({
     const variant = Number(search.variant);
     return Number.isInteger(variant) && variant >= 0 ? { variant } : {};
   },
-  loader: ({ params }) => {
-    const product = productBySlug.get(params.slug);
+  loader: async ({ context, params }) => {
+    const catalog = indexCatalog(await context.queryClient.query(catalogQueryOptions()));
+    const product = catalog.productBySlug.get(params.slug);
     if (!product) throw notFound();
     return { product };
   },

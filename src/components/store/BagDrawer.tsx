@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
-import { formatPrice, getVariant, pluralize, productById } from "@/lib/catalog";
+import { formatPrice, getVariant, pluralize } from "@/domain/catalog";
+import { useCatalog } from "@/lib/query";
 import { MAX_QTY, MESSENGER_URL } from "@/lib/config";
 import { bagSubtotal, copyText, orderMessage, whatsappUrl } from "@/lib/order";
 import { Toast } from "@/components/layout/SiteChrome";
@@ -11,11 +12,12 @@ import { useStore } from "./StoreProvider";
 
 export function BagDrawer() {
   const { bag, bagCount, bagOpen, closeBag, updateBagItem, clearBag, showToast } = useStore();
+  const catalog = useCatalog();
   const navigate = useNavigate();
   const goToShop = useShopNavigation();
   const closeRef = useRef<HTMLButtonElement>(null);
   const browseRef = useRef<HTMLButtonElement>(null);
-  const subtotal = bagSubtotal(bag);
+  const subtotal = bagSubtotal(catalog, bag);
 
   useEffect(() => {
     if (bagOpen) window.requestAnimationFrame(() => closeRef.current?.focus());
@@ -38,7 +40,7 @@ export function BagDrawer() {
         <div className="bag-body">
           <ul className="bag-list" hidden={bagCount === 0}>
             {bag.map((item) => {
-              const product = productById.get(item.id);
+              const product = catalog.productById.get(item.id);
               if (!product) return null;
               const variant = getVariant(product, item.variant);
               return (
@@ -106,7 +108,7 @@ export function BagDrawer() {
             <strong>{formatPrice(subtotal)}</strong>
           </div>
           <p>Availability, delivery and payment are confirmed with our team in chat.</p>
-          <a className="button" href={bagCount ? whatsappUrl(orderMessage(bag)) : "#"} target="_blank" rel="noopener">
+          <a className="button" href={bagCount ? whatsappUrl(orderMessage(catalog, bag)) : "#"} target="_blank" rel="noopener">
             <Icon name="fa-brands fa-whatsapp" /> Checkout on WhatsApp
           </a>
           <a
@@ -115,7 +117,7 @@ export function BagDrawer() {
             target="_blank"
             rel="noopener"
             onClick={async () => {
-              const copied = await copyText(orderMessage(bag));
+              const copied = await copyText(orderMessage(catalog, bag));
               showToast(copied ? "Order copied. Paste it into Messenger." : "Messenger opened. Please list your pieces there.", { inBag: true });
             }}
           >

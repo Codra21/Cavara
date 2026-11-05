@@ -1,9 +1,34 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "cavara-web",
+  // Top level = development: Worker cavara-web-dev, D1 cavara-dev.
+  // `bun run dev` uses this config. The DB binding is remote, so local dev reads and writes the real cavara-dev.
+  "name": "cavara-web-dev",
+  "account_id": "7b55798e5a2b91035dece6c8411564e4",
   "compatibility_date": "2026-11-05",
   "compatibility_flags": ["nodejs_compat"],
   "main": "@tanstack/react-start/server-entry",
-  "observability": { "enabled": true }
-  // Bindings (D1 database, R2 bucket) are added in the backend phase.
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "cavara-dev",
+      "database_id": "ad9a1584-6a86-4b2f-bad6-752dd0b3944a",
+      "migrations_dir": "migrations",
+      "remote": true
+    }
+  ],
+  "env": {
+    // Selected with CLOUDFLARE_ENV=production at build time (Cloudflare Vite plugin) or --env production (wrangler).
+    "production": {
+      "name": "cavara-web",
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "cavara-prod",
+          "database_id": "67ebf200-8a0d-4a00-b932-0ced126e9856",
+          "migrations_dir": "migrations"
+        }
+      ]
+    }
+  }
 }

@@ -1,6 +1,7 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { formatPrice, getCategory, getVariant, pluralize, productById, relatedProducts } from "@/lib/catalog";
+import { formatPrice, getCategory, getVariant, pluralize, relatedProducts } from "@/domain/catalog";
+import { useCatalog } from "@/lib/query";
 import { MAX_QTY, MESSENGER_URL, SITE_URL, WHATSAPP_URL } from "@/lib/config";
 import { finePointer } from "@/lib/dom";
 import { copyText, singleOrderMessage, whatsappUrl } from "@/lib/order";
@@ -20,6 +21,7 @@ type TabId = (typeof TABS)[number]["id"];
 const FEATURE_ICONS = ["fa-ruler-combined", "fa-circle-half-stroke", "fa-palette", "fa-images"];
 
 function PageCard({ product }: { product: Product }) {
+  const catalog = useCatalog();
   const openProduct = useOpenProduct();
   return (
     <li className="pdp-card">
@@ -27,7 +29,7 @@ function PageCard({ product }: { product: Product }) {
         <span className="studio-carousel-media">
           <img src={getVariant(product).images[0]} alt="" loading="lazy" width={800} height={800} />
         </span>
-        <span className="eyebrow">{getCategory(product).name}</span>
+        <span className="eyebrow">{getCategory(catalog, product).name}</span>
         <span className="studio-carousel-name">{product.name}</span>
         <span className="studio-carousel-price">{formatPrice(product.price)}</span>
       </button>
@@ -93,6 +95,7 @@ function useFinePointer() {
 
 export function ProductPage({ product, initialVariant }: { product: Product; initialVariant?: number }) {
   const { selectedVariant, selectVariant, addToBag, showToast, openBag, recent, rememberViewed } = useStore();
+  const catalog = useCatalog();
   const navigate = useNavigate();
   const goToShop = useShopNavigation();
   const [quantity, setQuantity] = useState(1);
@@ -102,12 +105,12 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
   const titleRef = useRef<HTMLHeadingElement>(null);
   const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  const category = getCategory(product);
+  const category = getCategory(catalog, product);
   const variantIndex = selectedVariant(product.id);
   const variant = getVariant(product, variantIndex);
   const pageUrl = `${SITE_URL}/products/${product.slug}`;
   const colours = product.variants.map((item) => item.name).join(", ");
-  const recentProducts = recent.filter((id) => id !== product.id).slice(0, 4).flatMap((id) => productById.get(id) ?? []);
+  const recentProducts = recent.filter((id) => id !== product.id).slice(0, 4).flatMap((id) => catalog.productById.get(id) ?? []);
   const bannerImage =
     product.variants.flatMap((item) => item.images).find((image) => !variant.images.includes(image)) ?? variant.images[variant.images.length - 1];
   const features = [
@@ -377,7 +380,7 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
             Related pieces
           </h2>
           <ul className="pdp-grid">
-            {relatedProducts(product).map((item) => (
+            {relatedProducts(catalog, product).map((item) => (
               <PageCard key={item.id} product={item} />
             ))}
           </ul>

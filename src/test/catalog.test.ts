@@ -1,10 +1,13 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { CATEGORIES, PRODUCTS, filterProducts, formatPrice, getVariant } from "../lib/catalog";
-import { bagSubtotal } from "../lib/order";
+import { filterProducts, formatPrice, getVariant, indexCatalog } from "@/domain/catalog";
+import { bagSubtotal } from "@/lib/order";
+import { CATEGORIES, PRODUCTS } from "../../scripts/seed/catalog-data";
 
-// This data seeds D1 in a later unit, so its invariants are checked here first.
+const catalog = indexCatalog({ categories: CATEGORIES, products: PRODUCTS });
+
+// The seed source for migrations/0002_seed_catalog.sql; checked before it reaches D1.
 describe("catalogue data", () => {
   test("product ids and slugs are unique", () => {
     expect(new Set(PRODUCTS.map((p) => p.id)).size).toBe(PRODUCTS.length);
@@ -44,7 +47,7 @@ describe("catalogue helpers", () => {
 
   test("filterProducts narrows by category", () => {
     const category = CATEGORIES[0]!.id;
-    const result = filterProducts({ category, query: "", sort: "featured" });
+    const result = filterProducts(catalog, { category, query: "", sort: "featured" });
     expect(result.length).toBeGreaterThan(0);
     expect(result.every((p) => p.category === category)).toBe(true);
   });
@@ -55,7 +58,7 @@ describe("catalogue helpers", () => {
 
   test("bagSubtotal multiplies price by quantity and ignores unknown ids", () => {
     const product = PRODUCTS[0]!;
-    expect(bagSubtotal([{ id: product.id, variant: 0, qty: 3 }, { id: -1, variant: 0, qty: 5 }])).toBe(
+    expect(bagSubtotal(catalog, [{ id: product.id, variant: 0, qty: 3 }, { id: -1, variant: 0, qty: 5 }])).toBe(
       product.price * 3,
     );
   });

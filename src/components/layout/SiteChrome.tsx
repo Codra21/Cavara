@@ -1,6 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { CATEGORIES, pluralize } from "@/lib/catalog";
+import { pluralize } from "@/domain/catalog";
+import { useCatalog } from "@/lib/query";
 import { CONTACT_EMAIL, FACEBOOK_URL, MESSENGER_URL, WHATSAPP_DISPLAY, WHATSAPP_NUMBER, WHATSAPP_URL } from "@/lib/config";
 import { useStore } from "@/components/store/StoreProvider";
 import { BrandLogo, Icon } from "@/components/ui/primitives";
@@ -31,6 +32,7 @@ export function Announcement() {
 }
 
 export function SiteFooter() {
+  const catalog = useCatalog();
   const goToShop = useShopNavigation();
   const [year, setYear] = useState(2026);
   useEffect(() => setYear(new Date().getFullYear()), []);
@@ -55,7 +57,7 @@ export function SiteFooter() {
             <div>
               <h2 className="footer-title">Shop</h2>
               <ul className="footer-links">
-                {CATEGORIES.map((category) => (
+                {catalog.categories.map((category) => (
                   <li key={category.id}>
                     <button type="button" onClick={() => goToShop({ category: category.id })}>
                       {category.name}

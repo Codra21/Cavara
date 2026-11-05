@@ -1,11 +1,13 @@
 import { useEffect, useState } from "react";
-import { formatPrice, getCategory, getVariant, pluralize } from "@/lib/catalog";
+import { formatPrice, getCategory, getVariant, pluralize } from "@/domain/catalog";
+import { useCatalog } from "@/lib/query";
 import type { Product } from "@/lib/types";
 import { useStore } from "@/components/store/StoreProvider";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
 import { Icon, Swatch } from "@/components/ui/primitives";
 
 export function ProductCard({ product, index }: { product: Product; index: number }) {
+  const catalog = useCatalog();
   const { selectedVariant, selectVariant, addToBag, showToast, openBag, openQuickView } = useStore();
   const openProduct = useOpenProduct();
   const [added, setAdded] = useState(false);
@@ -57,7 +59,7 @@ export function ProductCard({ product, index }: { product: Product; index: numbe
         </div>
       </div>
       <div className="product-info">
-        <p className="product-meta">{getCategory(product).name}</p>
+        <p className="product-meta">{getCategory(catalog, product).name}</p>
         <h3 className="product-name">
           <button type="button" onClick={() => openProduct(product)}>
             {product.name}
