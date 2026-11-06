@@ -413,7 +413,7 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
         setProblems([result.error]);
         return;
       }
-      setProblems([]);
+      setProblems(result.warning ? [result.warning] : []);
       setSaved(true);
       await queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEY });
       if (!product)

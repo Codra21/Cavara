@@ -142,7 +142,7 @@ export interface AdminCategory {
 }
 
 export type SaveProductResult =
-  | { ok: true; id: number; revision: string }
+  | { ok: true; id: number; revision: string; warning?: string }
   | { ok: false; error: string; conflict?: boolean };
 
 /** Turns a product name into a URL name: "Red Polka Bow Cup & Plate" → "red-polka-bow-cup-plate". */

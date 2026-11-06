@@ -58,6 +58,17 @@ export interface R2Object {
 
 export interface R2ObjectBody extends R2Object {
   get body(): ReadableStream;
+  text(): Promise<string>;
+}
+
+// Cron triggers: the subset of the generated ScheduledController and ExecutionContext that Cavara uses.
+export interface ScheduledController {
+  readonly scheduledTime: number;
+  readonly cron: string;
+}
+
+export interface ExecutionContext {
+  waitUntil(promise: Promise<unknown>): void;
 }
 
 export interface R2Bucket {
@@ -81,4 +92,14 @@ export interface CloudflareEnv {
   ADMIN_USERNAME?: string;
   /** Owner password (Worker secret; .dev.vars locally). Blank disables the admin. */
   ADMIN_SECRET?: string;
+  /** R2 key (in IMAGES) of the public catalogue snapshot. Blank turns snapshots off (local dev on a local D1). */
+  CATALOG_SNAPSHOT_KEY?: string;
+  /** Cloudflare account the usage alert reads analytics for (var). */
+  USAGE_ACCOUNT_ID?: string;
+  /** API token with Account Analytics Read (secret). */
+  CF_ANALYTICS_TOKEN?: string;
+  /** Telegram bot token (secret). Shared by usage alerts now and order alerts in unit 8. */
+  TELEGRAM_BOT_TOKEN?: string;
+  /** Telegram chat for usage alerts (secret). Order alerts use TELEGRAM_CHAT_ID. */
+  TELEGRAM_USAGE_CHAT_ID?: string;
 }

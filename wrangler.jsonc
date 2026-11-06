@@ -1,12 +1,15 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   // Top level = development: Worker cavara-web-dev, D1 cavara-dev.
-  // `bun run dev` uses this config. The DB binding is remote, so local dev reads and writes the real cavara-dev.
+  // `bun run dev` uses a local D1 (Miniflare; `bun run db:migrate:local` applies migrations and the seed), so dev
+  // never spends the account's daily D1 limits. `bun run dev:remote` switches DB to the real cavara-dev and turns
+  // the catalogue snapshot on (vite.config.ts). R2 stays remote in both, so pictures load.
   "name": "cavara-web-dev",
   "account_id": "7b55798e5a2b91035dece6c8411564e4",
   "compatibility_date": "2026-11-05",
   "compatibility_flags": ["nodejs_compat"],
-  "main": "@tanstack/react-start/server-entry",
+  // Custom entry: Start's fetch handler plus the scheduled() cron handler (src/server.ts).
+  "main": "src/server.ts",
   "observability": { "enabled": true },
   "d1_databases": [
     {
@@ -14,7 +17,6 @@
       "database_name": "cavara-dev",
       "database_id": "ad9a1584-6a86-4b2f-bad6-752dd0b3944a",
       "migrations_dir": "migrations",
-      "remote": true,
     },
   ],
   // Product images. Served by the Worker at /media/<key> unless the IMAGE_BASE_URL var points at the bucket's
@@ -39,6 +41,15 @@
       // The shop is served only on cavarabd.com; no *.workers.dev address or preview URLs for production.
       "workers_dev": false,
       "preview_urls": false,
+      "vars": {
+        // R2 key (in IMAGES) of the public catalogue JSON. Change it together with SNAPSHOT_OBJECT in
+        // scripts/db/migrate-prod.ts and the v1 cache path in src/server/catalog-cache.server.ts.
+        "CATALOG_SNAPSHOT_KEY": "snapshots/catalog-v1.json",
+        "USAGE_ACCOUNT_ID": "7b55798e5a2b91035dece6c8411564e4",
+      },
+      // Hourly usage alert (src/server/usage-alert.server.ts). Minute 10 gives the analytics for the hour that just
+      // ended time to arrive. Free allows 5 cron triggers per account.
+      "triggers": { "crons": ["10 * * * *"] },
       "d1_databases": [
         {
           "binding": "DB",

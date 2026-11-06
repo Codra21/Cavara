@@ -8,7 +8,8 @@ import {
   listAdminProducts,
   saveProduct,
 } from "@/server/db/admin-catalog.repository";
-import { invalidateCatalogCache } from "@/server/catalog-cache.server";
+import { refreshCatalog } from "@/server/catalog-cache.server";
+import { catalogSources } from "@/server/catalog-sources.server";
 import { getDb, getImageBase } from "@/server/env";
 import { ownerAuthMiddleware } from "@/server/middleware/auth";
 
@@ -35,6 +36,13 @@ export const saveProductFn = createServerFn({ method: "POST" })
       revision: data.revision,
       input: data.product,
     });
-    if (result.ok) await invalidateCatalogCache(getImageBase());
-    return result;
+    if (!result.ok) return result;
+    const refreshed = await refreshCatalog(catalogSources());
+    return refreshed
+      ? result
+      : {
+          ...result,
+          warning:
+            "Saved, but the shop's copy of the catalogue could not be updated. Visitors will see the change once the shop reloads it from the database, within a few minutes.",
+        };
   });

@@ -13,6 +13,11 @@ export function getImageBase(): string {
   return (env.IMAGE_BASE_URL ?? "").trim().replace(/\/+$/, "");
 }
 
+/** R2 key of the catalogue snapshot, or "" when snapshots are off. */
+export function getSnapshotKey(): string {
+  return (env.CATALOG_SNAPSHOT_KEY ?? "").trim();
+}
+
 export function getDb(): D1Database {
   // A missing binding is a deployment error; fail loudly rather than render an empty catalogue.
   if (!env.DB) throw new Error("D1 binding DB is not configured for this Worker");

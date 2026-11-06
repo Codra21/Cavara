@@ -9,6 +9,9 @@ export const catalogQueryOptions = () =>
     queryFn: () => getCatalogFn(),
     // The SSR result is reused after hydration instead of being refetched immediately.
     staleTime: 5 * 60 * 1000,
+    // Coming back to a tab would otherwise refetch (one Worker request each). Navigation still refetches once stale,
+    // and checkout re-prices on the server (invariant 3).
+    refetchOnWindowFocus: false,
   });
 
 /** The published catalogue with lookup maps. The root loader prefetches it, so this never suspends after SSR. */
