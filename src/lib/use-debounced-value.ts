@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-export const SEARCH_DEBOUNCE_MS = 200;
+export const SEARCH_DEBOUNCE_MS = 500;
 
 /**
  * `value`, updated only after it has stopped changing for `delayMs`. Search boxes filter with this so typing
