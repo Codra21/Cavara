@@ -41,10 +41,16 @@ Bun 1.4.4 (pinned in `package.json` and `.mise.toml`).
 
 ## Deploying
 
-Pushing to `main` deploys https://cavarabd.com (`.github/workflows/deploy.yml`): checks, production build,
-`wrangler deploy`, smoke test. It needs the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
-The workflow never migrates D1; it stops if `cavara-prod` has unapplied migrations, so back up and run
-`bun run db:migrate:prod` first, then re-run it.
+Pushing to `main` releases https://cavarabd.com (`.github/workflows/deploy.yml`): checks, production build,
+`bun run db:release:prod`, `wrangler deploy`, smoke test. The database step applies pending migrations only if
+they are already on `cavara-dev`, after recording a Time Travel bookmark and storing a SQL export in the R2 bucket
+`cavara-backups`. `.github/workflows/backup.yml` exports `cavara-prod` there every night (kept 90 days).
+Both need the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+
+| Command                   | What it does                                                |
+| ------------------------- | ----------------------------------------------------------- |
+| `bun run db:release:prod` | Back up `cavara-prod`, then apply migrations already on dev |
+| `bun run db:backup:prod`  | Time Travel bookmark and SQL export to R2, no migration     |
 
 ## Images
 

@@ -1,12 +1,15 @@
 # Deploys the production Worker (cavara-web → cavarabd.com) on every push to main.
 #
 # Needs two repository secrets (Settings → Secrets and variables → Actions):
-#   CLOUDFLARE_API_TOKEN   token on Hridoyn02's Cloudflare account: "Edit Cloudflare Workers" template plus D1 Read
+#   CLOUDFLARE_API_TOKEN   token on Hridoyn02's Cloudflare account: "Edit Cloudflare Workers" template plus D1 Edit
 #   CLOUDFLARE_ACCOUNT_ID  7b55798e5a2b91035dece6c8411564e4
 #
-# D1 migrations are NOT applied here: they need a backup first (wrangler d1 export) and a deliberate go-ahead.
-# The job stops before deploying if cavara-prod has unapplied migrations, so code never ships ahead of its schema.
-# Docs: https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/
+# Order: checks and build → database release → deploy → smoke test. Nothing touches production unless every check
+# passes. The database release (scripts/db/migrate-prod.ts) is a no-op when cavara-prod is up to date; otherwise it
+# requires the migrations to be on cavara-dev already, records a Time Travel bookmark, stores a SQL export in R2
+# (cavara-backups), then migrates. Migrations must work with the code already live (it is replaced moments later).
+# Docs: https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/,
+#       https://developers.cloudflare.com/d1/reference/time-travel/
 
 name: Deploy production
 
@@ -51,14 +54,8 @@ jobs:
       - name: Build for production
         run: bun run build:prod
 
-      - name: Stop if cavara-prod has unapplied migrations
-        run: |
-          status="$(bunx wrangler d1 migrations list cavara-prod --remote --env production 2>&1)"
-          echo "$status"
-          if ! grep -q "No migrations to apply" <<<"$status"; then
-            echo "::error::cavara-prod has unapplied migrations. Back it up and run 'bun run db:migrate:prod', then re-run this workflow."
-            exit 1
-          fi
+      - name: Back up and migrate cavara-prod (if needed)
+        run: bun run db:release:prod
 
       - name: Deploy
         id: deploy

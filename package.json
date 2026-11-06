@@ -16,6 +16,8 @@
     "seed:generate": "bun scripts/seed/generate-catalog-seed.ts",
     "db:migrate:dev": "wrangler d1 migrations apply cavara-dev --remote",
     "db:migrate:prod": "wrangler d1 migrations apply cavara-prod --remote --env production",
+    "db:release:prod": "bun scripts/db/migrate-prod.ts",
+    "db:backup:prod": "bun scripts/db/migrate-prod.ts --backup-only",
     "build:prod": "CLOUDFLARE_ENV=production vite build",
     "deploy:dev": "bun run check && bun run build && wrangler deploy"
   },

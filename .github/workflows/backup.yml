@@ -1,0 +1,40 @@
+# Nightly SQL export of cavara-prod to the private R2 bucket cavara-backups (kept 90 days by a lifecycle rule).
+# Complements D1 Time Travel, which restores to any minute but only within 7 days on Workers Free.
+# The export pauses database queries for a few seconds, so it runs at 02:00 Bangladesh time (20:00 UTC).
+# Uses the same secrets as deploy.yml. GitHub pauses scheduled workflows after 60 days without repository activity.
+
+name: Back up production database
+
+on:
+  schedule:
+    - cron: "0 20 * * *"
+  workflow_dispatch:
+
+concurrency:
+  # Shares the deploy group so a backup never overlaps a migration.
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: package.json
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Export cavara-prod to R2
+        run: bun run db:backup:prod
