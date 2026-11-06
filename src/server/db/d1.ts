@@ -102,4 +102,6 @@ export interface CloudflareEnv {
   TELEGRAM_BOT_TOKEN?: string;
   /** Telegram chat for usage alerts (secret). Order alerts use TELEGRAM_CHAT_ID. */
   TELEGRAM_USAGE_CHAT_ID?: string;
+  /** HMAC key for order rate-limit rows (secret, 32+ characters). Unset: a fixed fallback key, with a warning. */
+  ORDER_RATE_LIMIT_SECRET?: string;
 }

@@ -1,6 +1,7 @@
 // Catalogue reads from D1. Server-only. Public reads return published products only and never cost_price.
 import type { Availability, Catalog, Category, Product, Variant } from "@/lib/types";
 import { mediaUrl } from "@/domain/media";
+import type { DeliveryZone } from "@/domain/orders";
 import type { D1Database } from "./d1";
 
 interface CategoryRow {
@@ -54,7 +55,7 @@ function parseDetails(raw: string, productId: number): string[] | undefined {
  * Request paths go through getCachedCatalog (src/server/catalog-cache.server.ts), not straight to this function.
  */
 export async function getPublishedCatalog(db: D1Database, imageBase = ""): Promise<Catalog> {
-  const [categoryResult, productResult, variantResult] = await db.batch([
+  const [categoryResult, productResult, variantResult, zoneResult] = await db.batch([
     db.prepare("SELECT id, name, description, image FROM categories ORDER BY sort, id"),
     db.prepare(
       "SELECT id, slug, name, category_id, summary, details, note, price FROM products WHERE status = 'published' ORDER BY sort, id",
@@ -66,6 +67,8 @@ export async function getPublishedCatalog(db: D1Database, imageBase = ""): Promi
        LEFT JOIN product_images i ON i.variant_id = v.id
        WHERE p.status = 'published'`,
     ),
+    // Two rows; sorted in TypeScript so the query needs no index or temp B-tree.
+    db.prepare("SELECT id, name, charge, sort FROM delivery_zones WHERE active = 1"),
   ]);
 
   const rows = [...((variantResult?.results ?? []) as VariantImageRow[])].sort(
@@ -114,5 +117,9 @@ export async function getPublishedCatalog(db: D1Database, imageBase = ""): Promi
     return [product];
   });
 
-  return { categories, products, imageBase };
+  const deliveryZones: DeliveryZone[] = ((zoneResult?.results ?? []) as (DeliveryZone & { sort: number })[])
+    .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
+    .map(({ id, name, charge }) => ({ id, name, charge }));
+
+  return { categories, products, imageBase, deliveryZones };
 }

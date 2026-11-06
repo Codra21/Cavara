@@ -44,6 +44,7 @@ const catalog = (name: string, imageBase = ""): Catalog => ({
   categories: [],
   products: [{ id: 1, slug: name, name, category: "c", price: 1, summary: "", variants: [] as never }],
   imageBase,
+  deliveryZones: [],
 });
 const scope = globalThis as { caches?: unknown };
 let edge: FakeCache;

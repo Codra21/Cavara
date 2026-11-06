@@ -52,7 +52,14 @@ function edgeKey(imageBase: string): string {
 /** Parses a stored catalogue. A snapshot built with another image origin holds the wrong URLs, so it is a miss. */
 function parseCatalog(json: string, imageBase: string): Catalog | undefined {
   const value = JSON.parse(json) as Partial<Catalog>;
-  if (!Array.isArray(value.products) || !Array.isArray(value.categories) || value.imageBase !== imageBase)
+  // A snapshot written before delivery zones joined the catalogue (unit 7) lacks deliveryZones: treat it as a miss
+  // so it is rebuilt from D1 once, instead of bumping the cache and snapshot keys.
+  if (
+    !Array.isArray(value.products) ||
+    !Array.isArray(value.categories) ||
+    !Array.isArray(value.deliveryZones) ||
+    value.imageBase !== imageBase
+  )
     return undefined;
   return value as Catalog;
 }

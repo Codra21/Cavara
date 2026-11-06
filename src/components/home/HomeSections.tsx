@@ -366,12 +366,12 @@ export function StorySection() {
 const STEPS = [
   { title: "Build your bag", body: "Choose your pieces, colours and quantities. Your bag is saved on this device." },
   {
-    title: "Send your order",
-    body: "Checkout opens WhatsApp with your order written out, or copies it for Messenger.",
+    title: "Check out",
+    body: "Enter your name, mobile number and address. Prefer chat? Send the bag on WhatsApp or Messenger instead.",
   },
   {
-    title: "Confirm the details",
-    body: "Our team confirms availability, delivery and payment with you directly in chat.",
+    title: "We call to confirm",
+    body: "Our team calls to confirm delivery. Pay cash on delivery or by mobile banking; nothing is charged online.",
   },
 ];
 
@@ -411,7 +411,7 @@ export function OrderingSection() {
         <div className="ordering-panel">
           <div className="ordering-head" data-reveal="">
             <h2 id="ordering-title">How ordering works</h2>
-            <p>Build your bag here, then finish your order in a conversation with our team.</p>
+            <p>Build your bag here, check out in a minute, and our team calls you to confirm.</p>
           </div>
           <ol className="steps">
             {STEPS.map((item, index) => (

@@ -24,6 +24,17 @@ export function getDb(): D1Database {
   return env.DB;
 }
 
+/**
+ * Key for the HMACs that name order rate-limit rows. The rows expire after 15 minutes and only need to hide the raw
+ * phone and IP, so a missing secret falls back to a fixed key (logged) rather than blocking every order.
+ */
+export function getOrderLimitSecret(): string {
+  const secret = env.ORDER_RATE_LIMIT_SECRET?.trim();
+  if (secret && secret.length >= 32) return secret;
+  console.warn("ORDER_RATE_LIMIT_SECRET is not set (or shorter than 32 characters); using the fallback key");
+  return "cavara-order-limits-fallback-v1";
+}
+
 /** Owner credentials, or null when ADMIN_SECRET is not set (admin disabled). */
 export function getOwnerCredentials() {
   return ownerCredentials(env);

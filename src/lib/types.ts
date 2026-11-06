@@ -1,3 +1,5 @@
+import type { DeliveryZone } from "@/domain/orders";
+
 /** Category ids come from D1 (e.g. "drinkware"). */
 export type CategoryId = string;
 
@@ -38,6 +40,8 @@ export interface Catalog {
   products: Product[];
   /** Image origin for other R2 keys (see mediaUrl in src/domain/media.ts); "" means this Worker's /media route. */
   imageBase: string;
+  /** Active delivery areas and their charges (whole BDT), in display order. */
+  deliveryZones: DeliveryZone[];
 }
 
 export interface BagItem {

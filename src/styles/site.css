@@ -3084,6 +3084,232 @@
     font-size: 14px;
   }
 
+  /* Checkout (inside the bag drawer) */
+  .checkout {
+    display: grid;
+    gap: 16px;
+    padding: 8px 0 24px;
+  }
+
+  .checkout-head h3 {
+    margin-top: 6px;
+    font-size: 20px;
+    letter-spacing: -0.02em;
+  }
+
+  .checkout-head p {
+    margin-top: 4px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+
+  .checkout-back {
+    color: var(--body);
+    font-size: 14px;
+  }
+
+  .checkout-field {
+    display: grid;
+    gap: 6px;
+  }
+
+  .checkout-field label,
+  .checkout-zones legend {
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  .checkout-optional {
+    color: var(--body);
+    font-weight: 400;
+  }
+
+  .checkout-field input,
+  .checkout-field textarea {
+    width: 100%;
+    min-height: 44px;
+    padding: 10px 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+    font-size: 15px;
+    line-height: 1.45;
+    resize: vertical;
+    transition: border-color 0.2s ease;
+  }
+
+  .checkout-field input::placeholder,
+  .checkout-field textarea::placeholder {
+    color: var(--body);
+  }
+
+  .checkout-field input:hover,
+  .checkout-field textarea:hover,
+  .checkout-field input:focus,
+  .checkout-field textarea:focus {
+    border-color: var(--line-strong);
+  }
+
+  .checkout-field input:focus-visible,
+  .checkout-field textarea:focus-visible,
+  .checkout-zone:has(input:focus-visible) {
+    outline: 2px solid var(--brand);
+    outline-offset: 1px;
+  }
+
+  .checkout-field [aria-invalid="true"] {
+    border-color: var(--danger);
+  }
+
+  .checkout-error {
+    color: var(--danger);
+    font-size: 13px;
+  }
+
+  .checkout-zones {
+    display: grid;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  .checkout-zones legend {
+    margin-bottom: 6px;
+    padding: 0;
+  }
+
+  .checkout-zone {
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 10px;
+    min-height: 48px;
+    padding: 0 14px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--ink);
+    font-size: 15px;
+    cursor: pointer;
+  }
+
+  .checkout-zone:has(input:checked) {
+    border-color: var(--brand);
+    background: var(--surface-alt);
+  }
+
+  .checkout-zone input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--brand);
+  }
+
+  .checkout-zone strong {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .checkout-trap {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .checkout-message-slot:focus {
+    outline: none;
+  }
+
+  .checkout-message {
+    padding: 10px 14px;
+    border-radius: var(--radius-sm);
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  .checkout-message.is-error {
+    border: 1px solid var(--danger);
+    color: var(--danger);
+  }
+
+  .checkout-message.is-notice {
+    border: 1px solid var(--brand);
+    background: var(--surface-alt);
+    color: var(--ink);
+  }
+
+  .checkout-summary {
+    display: grid;
+    gap: 6px;
+    margin: 4px 0 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--line);
+    font-size: 15px;
+  }
+
+  .checkout-summary div {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .checkout-summary dd {
+    margin: 0;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+  }
+
+  .checkout-total {
+    padding-top: 6px;
+    color: var(--ink);
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .checkout-submit {
+    width: 100%;
+  }
+
+  .checkout-submit:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+
+  .checkout-help {
+    font-size: 13px;
+    line-height: 1.55;
+    text-align: center;
+  }
+
+  .order-placed {
+    display: grid;
+    justify-items: center;
+    gap: 12px;
+    padding: 32px 0;
+    text-align: center;
+  }
+
+  .order-placed h3:focus {
+    outline: none;
+  }
+
+  .order-placed p {
+    max-width: 34ch;
+    line-height: 1.6;
+  }
+
+  .order-reference {
+    color: var(--ink);
+    font-size: 18px;
+    letter-spacing: 0.04em;
+    font-variant-numeric: tabular-nums;
+  }
+
   .noscript {
     max-width: 640px;
     margin: 24px auto;

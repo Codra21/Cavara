@@ -413,8 +413,8 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
                 <h3>How ordering works</h3>
                 <ol>
                   <li>Choose your colour and quantity, then add the piece to your bag.</li>
-                  <li>Checkout sends your order to us on WhatsApp, or copies it for Messenger.</li>
-                  <li>Our team confirms availability, delivery and payment with you in chat.</li>
+                  <li>Check out with your name, mobile number and address, or send the bag on WhatsApp.</li>
+                  <li>Our team calls to confirm delivery. Pay cash on delivery or by mobile banking.</li>
                 </ol>
               </div>
               <div>
