@@ -24,7 +24,12 @@ export const SLIDE_INTERVAL = 6500;
 
 export const HERO_SLIDES = [
   { id: 2, eyebrow: "Breakfast, slowly", title: "A cup and plate made for one good morning.", word: "morning" },
-  { id: 21, eyebrow: "Hand-decorated kitchen", title: "Bottles that earn their place on the counter.", word: "kitchen" },
+  {
+    id: 21,
+    eyebrow: "Hand-decorated kitchen",
+    title: "Bottles that earn their place on the counter.",
+    word: "kitchen",
+  },
   { id: 5, eyebrow: "Sculptural serveware", title: "Soft-edged dishes in four glazes.", word: "glazes" },
 ];
 

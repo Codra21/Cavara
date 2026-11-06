@@ -4,7 +4,15 @@ import { HeadContent, Link, Outlet, Scripts, createRootRouteWithContext, useLoca
 import type { ReactNode } from "react";
 import appCss from "@/styles/app.css?url";
 import siteCss from "@/styles/site.css?url";
-import { CONTACT_EMAIL, FACEBOOK_URL, SHARE_DESCRIPTION, SITE_DESCRIPTION, SITE_TITLE, SITE_URL, WHATSAPP_NUMBER } from "@/lib/config";
+import {
+  CONTACT_EMAIL,
+  FACEBOOK_URL,
+  SHARE_DESCRIPTION,
+  SITE_DESCRIPTION,
+  SITE_TITLE,
+  SITE_URL,
+  WHATSAPP_NUMBER,
+} from "@/lib/config";
 import { GlobalEffects } from "@/components/layout/GlobalEffects";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Announcement, FloatingChat, QuickDock, SiteFooter, Toast } from "@/components/layout/SiteChrome";
@@ -31,7 +39,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "robots", content: "index, follow" },
       {
         name: "keywords",
-        content: "premium home decor Bangladesh, ceramic cups Bangladesh, serveware Dhaka, kitchen storage jars, home accessories, Cavara",
+        content:
+          "premium home decor Bangladesh, ceramic cups Bangladesh, serveware Dhaka, kitchen storage jars, home accessories, Cavara",
       },
       { name: "theme-color", content: THEME_COLORS.light },
       { property: "og:type", content: "website" },
@@ -76,8 +85,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: "manifest", href: "/site.webmanifest" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" },
-      { rel: "stylesheet", href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@500;600&text=%E0%A7%B3&display=swap" },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
+      },
+      {
+        rel: "stylesheet",
+        href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@500;600&text=%E0%A7%B3&display=swap",
+      },
       { rel: "preconnect", href: "https://cdnjs.cloudflare.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: appCss },
       { rel: "stylesheet", href: siteCss },
@@ -106,7 +121,9 @@ function RootDocument({ children }: { children: ReactNode }) {
 
 function RootLayout() {
   // The admin has its own layout: no storefront header, footer, bag or page effects.
-  const isAdmin = useLocation({ select: (location) => location.pathname === "/admin" || location.pathname.startsWith("/admin/") });
+  const isAdmin = useLocation({
+    select: (location) => location.pathname === "/admin" || location.pathname.startsWith("/admin/"),
+  });
   if (isAdmin) return <Outlet />;
   return (
     <StoreProvider>

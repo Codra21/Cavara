@@ -18,7 +18,7 @@ function useReveals() {
           observer.unobserve(entry.target);
         });
       },
-      { rootMargin: "0px 0px -8% 0px", threshold: 0.08 }
+      { rootMargin: "0px 0px -8% 0px", threshold: 0.08 },
     );
     const scan = (root: ParentNode) => {
       root.querySelectorAll("[data-reveal]:not(.is-revealed)").forEach((element) => observer.observe(element));
@@ -31,7 +31,7 @@ function useReveals() {
           if (!(node instanceof Element)) return;
           if (node.matches("[data-reveal]:not(.is-revealed)")) observer.observe(node);
           scan(node);
-        })
+        }),
       );
     });
     mutations.observe(document.body, { childList: true, subtree: true });
@@ -57,10 +57,17 @@ function StudioCursor() {
       position.x += (position.tx - position.x) * 0.22;
       position.y += (position.ty - position.y) * 0.22;
       cursor.style.transform = `translate3d(${position.x}px, ${position.y}px, 0)`;
-      position.frame = Math.abs(position.tx - position.x) + Math.abs(position.ty - position.y) > 0.4 ? window.requestAnimationFrame(render) : 0;
+      position.frame =
+        Math.abs(position.tx - position.x) + Math.abs(position.ty - position.y) > 0.4
+          ? window.requestAnimationFrame(render)
+          : 0;
     };
     const zones: { selector: string; label: (event: PointerEvent, zone: Element) => string }[] = [
-      { selector: ".studio-slide-media", label: (event, zone) => (event.clientX < zone.getBoundingClientRect().left + zone.clientWidth / 2 ? "Prev" : "Next") },
+      {
+        selector: ".studio-slide-media",
+        label: (event, zone) =>
+          event.clientX < zone.getBoundingClientRect().left + zone.clientWidth / 2 ? "Prev" : "Next",
+      },
       { selector: "[data-carousel-track]", label: () => "Drag" },
       { selector: ".studio-lookbook-media img", label: () => "Explore" },
     ];
@@ -71,7 +78,9 @@ function StudioCursor() {
     const onMove = (event: PointerEvent) => {
       if (event.pointerType !== "mouse") return;
       const target = event.target as Element;
-      const match = zones.map((zone) => ({ zone, element: target.closest?.(zone.selector) })).find((item) => item.element);
+      const match = zones
+        .map((zone) => ({ zone, element: target.closest?.(zone.selector) }))
+        .find((item) => item.element);
       const overControl = target.closest?.("button:not(.studio-carousel-card), a, input, select");
       if (!match?.element || (overControl && !target.closest(".studio-carousel-card"))) {
         hide();

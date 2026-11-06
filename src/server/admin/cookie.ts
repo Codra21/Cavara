@@ -10,5 +10,11 @@ export function isLocalHttpUrl(url: URL): boolean {
 
 /** Session cookie: unreadable by page scripts, never sent cross-site, Secure everywhere except local http. */
 export function sessionCookieOptions(url: URL) {
-  return { httpOnly: true, secure: !isLocalHttpUrl(url), sameSite: "strict" as const, path: "/", maxAge: ADMIN_SESSION_SECONDS };
+  return {
+    httpOnly: true,
+    secure: !isLocalHttpUrl(url),
+    sameSite: "strict" as const,
+    path: "/",
+    maxAge: ADMIN_SESSION_SECONDS,
+  };
 }

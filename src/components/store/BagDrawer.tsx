@@ -45,10 +45,19 @@ export function BagDrawer() {
               const variant = getVariant(product, item.variant);
               return (
                 <li className="bag-item" key={`${item.id}-${item.variant}`}>
-                  <button className="bag-item-image" type="button" aria-label={`View ${product.name}`} onClick={() => {
+                  <button
+                    className="bag-item-image"
+                    type="button"
+                    aria-label={`View ${product.name}`}
+                    onClick={() => {
                       closeBag();
-                      void navigate({ to: "/products/$slug", params: { slug: product.slug }, search: { variant: item.variant } });
-                    }}>
+                      void navigate({
+                        to: "/products/$slug",
+                        params: { slug: product.slug },
+                        search: { variant: item.variant },
+                      });
+                    }}
+                  >
                     <img src={variant.images[0]} alt="" loading="lazy" width={168} height={210} />
                   </button>
                   <div>
@@ -108,7 +117,12 @@ export function BagDrawer() {
             <strong>{formatPrice(subtotal)}</strong>
           </div>
           <p>Availability, delivery and payment are confirmed with our team in chat.</p>
-          <a className="button" href={bagCount ? whatsappUrl(orderMessage(catalog, bag)) : "#"} target="_blank" rel="noopener">
+          <a
+            className="button"
+            href={bagCount ? whatsappUrl(orderMessage(catalog, bag)) : "#"}
+            target="_blank"
+            rel="noopener"
+          >
             <Icon name="fa-brands fa-whatsapp" /> Checkout on WhatsApp
           </a>
           <a
@@ -118,7 +132,10 @@ export function BagDrawer() {
             rel="noopener"
             onClick={async () => {
               const copied = await copyText(orderMessage(catalog, bag));
-              showToast(copied ? "Order copied. Paste it into Messenger." : "Messenger opened. Please list your pieces there.", { inBag: true });
+              showToast(
+                copied ? "Order copied. Paste it into Messenger." : "Messenger opened. Please list your pieces there.",
+                { inBag: true },
+              );
             }}
           >
             <Icon name="fa-brands fa-facebook-messenger" /> Copy order for Messenger

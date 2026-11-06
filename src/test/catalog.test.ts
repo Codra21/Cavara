@@ -24,10 +24,7 @@ describe("catalogue data", () => {
   });
 
   test("every image path points at a file in public/", () => {
-    const paths = [
-      ...CATEGORIES.map((c) => c.image),
-      ...PRODUCTS.flatMap((p) => p.variants.flatMap((v) => v.images)),
-    ];
+    const paths = [...CATEGORIES.map((c) => c.image), ...PRODUCTS.flatMap((p) => p.variants.flatMap((v) => v.images))];
     const missing = paths.filter((path) => !existsSync(join(import.meta.dir, "../../public", path)));
     expect(missing).toEqual([]);
   });
@@ -58,8 +55,11 @@ describe("catalogue helpers", () => {
 
   test("bagSubtotal multiplies price by quantity and ignores unknown ids", () => {
     const product = PRODUCTS[0]!;
-    expect(bagSubtotal(catalog, [{ id: product.id, variant: 0, qty: 3 }, { id: -1, variant: 0, qty: 5 }])).toBe(
-      product.price * 3,
-    );
+    expect(
+      bagSubtotal(catalog, [
+        { id: product.id, variant: 0, qty: 3 },
+        { id: -1, variant: 0, qty: 5 },
+      ]),
+    ).toBe(product.price * 3);
   });
 });

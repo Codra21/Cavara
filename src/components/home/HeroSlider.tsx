@@ -64,7 +64,9 @@ export function HeroSlider() {
           <div className="studio-slides">
             {slides.map((slide, slideIndex) => {
               const active = slideIndex === index;
-              const classes = ["studio-slide", active && "is-active", slideIndex < index && "is-before"].filter(Boolean).join(" ");
+              const classes = ["studio-slide", active && "is-active", slideIndex < index && "is-before"]
+                .filter(Boolean)
+                .join(" ");
               return (
                 <article
                   key={slide.id}
@@ -89,7 +91,10 @@ export function HeroSlider() {
                       width={800}
                       height={800}
                     />
-                    <RoundBadge value={formatPrice(slide.product.price)} ringText={`${slide.category.name} · Cavara · ${slide.category.name} · Cavara · `} />
+                    <RoundBadge
+                      value={formatPrice(slide.product.price)}
+                      ringText={`${slide.category.name} · Cavara · ${slide.category.name} · Cavara · `}
+                    />
                   </div>
                   <span className="studio-slide-word" aria-hidden="true">
                     {slide.word}
@@ -104,7 +109,11 @@ export function HeroSlider() {
                       <button className="button" type="button" onClick={() => openProduct(slide.product)}>
                         Shop now <Icon name="fa-solid fa-arrow-right" />
                       </button>
-                      <button className="text-link" type="button" onClick={() => goToShop({ category: slide.category.id })}>
+                      <button
+                        className="text-link"
+                        type="button"
+                        onClick={() => goToShop({ category: slide.category.id })}
+                      >
                         View {slide.category.name.toLowerCase()}
                       </button>
                     </div>
@@ -129,10 +138,20 @@ export function HeroSlider() {
               ))}
             </div>
             <div className="studio-hero-buttons">
-              <button className="studio-arrow" type="button" aria-label="Previous slide" onClick={() => show(index - 1)}>
+              <button
+                className="studio-arrow"
+                type="button"
+                aria-label="Previous slide"
+                onClick={() => show(index - 1)}
+              >
                 <Icon name="fa-solid fa-arrow-left-long" />
               </button>
-              <button className="studio-arrow" type="button" aria-label={paused ? "Play slideshow" : "Pause slideshow"} onClick={() => setPaused(!paused)}>
+              <button
+                className="studio-arrow"
+                type="button"
+                aria-label={paused ? "Play slideshow" : "Pause slideshow"}
+                onClick={() => setPaused(!paused)}
+              >
                 <Icon name={`fa-solid ${paused ? "fa-play" : "fa-pause"}`} />
               </button>
               <button className="studio-arrow" type="button" aria-label="Next slide" onClick={() => show(index + 1)}>

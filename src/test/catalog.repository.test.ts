@@ -6,23 +6,36 @@ import { createTestD1, migrationFiles } from "./helpers/d1";
 
 describe("migrations", () => {
   test("apply cleanly to an empty database", () => {
-    expect(migrationFiles()).toEqual(["0001_catalog.sql", "0002_seed_catalog.sql", "0003_admin_auth.sql", "0004_product_revision.sql"]);
+    expect(migrationFiles()).toEqual([
+      "0001_catalog.sql",
+      "0002_seed_catalog.sql",
+      "0003_admin_auth.sql",
+      "0004_product_revision.sql",
+    ]);
     const db = createTestD1();
     const count = (table: string) => (db.sqlite.query(`SELECT count(*) AS n FROM ${table}`).get() as { n: number }).n;
     expect(count("categories")).toBe(CATEGORIES.length);
     expect(count("products")).toBe(PRODUCTS.length);
     expect(count("product_variants")).toBe(PRODUCTS.reduce((sum, p) => sum + p.variants.length, 0));
-    expect(count("product_images")).toBe(PRODUCTS.reduce((sum, p) => sum + p.variants.reduce((s, v) => s + v.images.length, 0), 0));
+    expect(count("product_images")).toBe(
+      PRODUCTS.reduce((sum, p) => sum + p.variants.reduce((s, v) => s + v.images.length, 0), 0),
+    );
   });
 
   test("schema rejects invalid prices and statuses", () => {
     const db = createTestD1({ migrations: ["0001_catalog.sql"] });
     db.sqlite.run("INSERT INTO categories (id, name, image) VALUES ('c', 'C', '/c.webp')");
-    expect(() => db.sqlite.run("INSERT INTO products (id, slug, name, category_id, price) VALUES (1, 'a', 'A', 'c', 0)")).toThrow();
     expect(() =>
-      db.sqlite.run("INSERT INTO products (id, slug, name, category_id, price, status) VALUES (1, 'a', 'A', 'c', 10, 'live')"),
+      db.sqlite.run("INSERT INTO products (id, slug, name, category_id, price) VALUES (1, 'a', 'A', 'c', 0)"),
     ).toThrow();
-    expect(() => db.sqlite.run("INSERT INTO products (id, slug, name, category_id, price) VALUES (1, 'a', 'A', 'missing', 10)")).toThrow();
+    expect(() =>
+      db.sqlite.run(
+        "INSERT INTO products (id, slug, name, category_id, price, status) VALUES (1, 'a', 'A', 'c', 10, 'live')",
+      ),
+    ).toThrow();
+    expect(() =>
+      db.sqlite.run("INSERT INTO products (id, slug, name, category_id, price) VALUES (1, 'a', 'A', 'missing', 10)"),
+    ).toThrow();
   });
 });
 

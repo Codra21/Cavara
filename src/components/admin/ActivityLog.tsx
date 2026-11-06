@@ -44,13 +44,18 @@ export function ActivityLog() {
             <AlertDescription>{audit.error.message || "Could not load the activity log."}</AlertDescription>
           </Alert>
         ) : null}
-        {audit.data && audit.data.length === 0 ? <p className="text-sm text-muted-foreground">No activity yet.</p> : null}
+        {audit.data && audit.data.length === 0 ? (
+          <p className="text-sm text-muted-foreground">No activity yet.</p>
+        ) : null}
         {audit.data && audit.data.length > 0 ? (
           <ul className="divide-y divide-border">
             {audit.data.map((entry) => {
               const summary = describe(entry);
               return (
-                <li key={entry.id} className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5 text-sm">
+                <li
+                  key={entry.id}
+                  className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 py-2.5 text-sm"
+                >
                   <span className="min-w-0">
                     <span className="font-medium text-foreground">{ACTION_LABELS[entry.action] ?? entry.action}</span>
                     {summary ? <span className="text-foreground"> {summary}</span> : null}

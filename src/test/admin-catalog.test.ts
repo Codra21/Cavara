@@ -39,19 +39,38 @@ async function create(db: TestD1, values = form()) {
 describe("productInputSchema", () => {
   test("publishing needs a colour with a picture", () => {
     expect(productInputSchema.safeParse(form({ status: "published", variants: [] })).success).toBe(false);
-    const noImage = form({ status: "published", variants: [{ id: null, name: "Sage", swatch: "#fff", availability: "in_stock", images: [] }] });
+    const noImage = form({
+      status: "published",
+      variants: [{ id: null, name: "Sage", swatch: "#fff", availability: "in_stock", images: [] }],
+    });
     expect(productInputSchema.safeParse(noImage).success).toBe(false);
     expect(productInputSchema.safeParse(form({ status: "published" })).success).toBe(true);
     // Drafts may be incomplete.
     expect(productInputSchema.safeParse(form({ variants: [] })).success).toBe(true);
   });
   test("rejects unsafe swatches, slugs and image paths", () => {
-    const variant = (swatch: string) => [{ id: null, name: "x", swatch, availability: "in_stock" as const, images: [] }];
-    expect(productInputSchema.safeParse(form({ variants: variant("url(https://evil.example/x.png)") })).success).toBe(false);
+    const variant = (swatch: string) => [
+      { id: null, name: "x", swatch, availability: "in_stock" as const, images: [] },
+    ];
+    expect(productInputSchema.safeParse(form({ variants: variant("url(https://evil.example/x.png)") })).success).toBe(
+      false,
+    );
     expect(productInputSchema.safeParse(form({ variants: variant("red; position: fixed") })).success).toBe(false);
-    expect(productInputSchema.safeParse(form({ variants: variant("linear-gradient(135deg, #C9A45C 0 50%, #D8DADB 50% 100%)") })).success).toBe(true);
+    expect(
+      productInputSchema.safeParse(
+        form({ variants: variant("linear-gradient(135deg, #C9A45C 0 50%, #D8DADB 50% 100%)") }),
+      ).success,
+    ).toBe(true);
     expect(productInputSchema.safeParse(form({ slug: "Bad Slug" })).success).toBe(false);
-    const badImage = [{ id: null, name: "x", swatch: "#fff", availability: "in_stock" as const, images: ["https://evil.example/a.png"] }];
+    const badImage = [
+      {
+        id: null,
+        name: "x",
+        swatch: "#fff",
+        availability: "in_stock" as const,
+        images: ["https://evil.example/a.png"],
+      },
+    ];
     expect(productInputSchema.safeParse(form({ variants: badImage })).success).toBe(false);
   });
   test("blank note becomes null; price must be a positive whole number", () => {
@@ -83,14 +102,23 @@ describe("saveProduct", () => {
     expect(product?.variants.map((v) => v.images)).toEqual([[IMG]]);
     expect((await getPublishedCatalog(db)).products.length).toBe(before);
     const audit = await listAudit(db);
-    expect(audit[0]).toMatchObject({ action: "product.created", targetId: String(id), details: { name: "Test Mug", costPrice: 700 } });
+    expect(audit[0]).toMatchObject({
+      action: "product.created",
+      targetId: String(id),
+      details: { name: "Test Mug", costPrice: 700 },
+    });
   });
 
   test("publishing shows it on the storefront without cost price", async () => {
     const db = createTestD1();
     const { id, revision } = await create(db);
     const product = await getAdminProduct(db, id);
-    const result = await saveProduct(db, { actor: owner, id, revision, input: parse({ ...productToForm(product!), status: "published" }) });
+    const result = await saveProduct(db, {
+      actor: owner,
+      id,
+      revision,
+      input: parse({ ...productToForm(product!), status: "published" }),
+    });
     expect(result.ok).toBe(true);
     const shown = (await getPublishedCatalog(db)).products.find((p) => p.id === id);
     expect(shown?.slug).toBe("test-mug");
@@ -121,8 +149,20 @@ describe("saveProduct", () => {
     const db = createTestD1();
     const twoColours = form({
       variants: [
-        { id: null, name: "Sage", swatch: "#9CCB91", availability: "in_stock", images: [IMG, "/product-images/test/b.webp"] },
-        { id: null, name: "Rose", swatch: "#F4B8C7", availability: "preorder", images: ["/product-images/test/c.webp"] },
+        {
+          id: null,
+          name: "Sage",
+          swatch: "#9CCB91",
+          availability: "in_stock",
+          images: [IMG, "/product-images/test/b.webp"],
+        },
+        {
+          id: null,
+          name: "Rose",
+          swatch: "#F4B8C7",
+          availability: "preorder",
+          images: ["/product-images/test/c.webp"],
+        },
       ],
     });
     const { id, revision } = await create(db, twoColours);
@@ -148,7 +188,9 @@ describe("saveProduct", () => {
     ]);
     expect(after.variants[0]?.id).toBe(rose!.id);
     expect(after.variants.some((v) => v.id === sage!.id)).toBe(false);
-    const positions = db.sqlite.query("SELECT position FROM product_variants WHERE product_id = ? ORDER BY position").all(id);
+    const positions = db.sqlite
+      .query("SELECT position FROM product_variants WHERE product_id = ? ORDER BY position")
+      .all(id);
     expect(positions).toEqual([{ position: 0 }, { position: 1 }]);
     const orphanImages = db.sqlite
       .query("SELECT count(*) AS n FROM product_images WHERE variant_id NOT IN (SELECT id FROM product_variants)")
@@ -162,7 +204,12 @@ describe("saveProduct", () => {
     const b = await create(db, form({ slug: "other-mug", name: "Other" }));
     const otherVariant = (await getAdminProduct(db, b.id))!.variants[0]!;
     const loaded = productToForm((await getAdminProduct(db, a.id))!);
-    const result = await saveProduct(db, { actor: owner, id: a.id, revision: a.revision, input: parse({ ...loaded, variants: [otherVariant] }) });
+    const result = await saveProduct(db, {
+      actor: owner,
+      id: a.id,
+      revision: a.revision,
+      input: parse({ ...loaded, variants: [otherVariant] }),
+    });
     expect(result).toMatchObject({ ok: false, conflict: true });
   });
 
@@ -171,7 +218,12 @@ describe("saveProduct", () => {
     await create(db);
     const dup = await saveProduct(db, { actor: owner, id: null, revision: "", input: parse(form()) });
     expect(dup).toEqual({ ok: false, error: "Another product already uses this URL name." });
-    const badCategory = await saveProduct(db, { actor: owner, id: null, revision: "", input: parse(form({ slug: "x", categoryId: "nope" })) });
+    const badCategory = await saveProduct(db, {
+      actor: owner,
+      id: null,
+      revision: "",
+      input: parse(form({ slug: "x", categoryId: "nope" })),
+    });
     expect(badCategory.ok).toBe(false);
   });
 
@@ -181,7 +233,9 @@ describe("saveProduct", () => {
     expect((await listAdminProducts(db))[0]?.id).toBe(id);
     const loaded = productToForm((await getAdminProduct(db, id))!);
     await saveProduct(db, { actor: owner, id, revision, input: parse({ ...loaded, status: "archived" }) });
-    const row = db.sqlite.query("SELECT archived_at FROM products WHERE id = ?").get(id) as { archived_at: string | null };
+    const row = db.sqlite.query("SELECT archived_at FROM products WHERE id = ?").get(id) as {
+      archived_at: string | null;
+    };
     expect(row.archived_at).not.toBeNull();
     expect((await getPublishedCatalog(db)).products.some((p) => p.id === id)).toBe(false);
     const list = await listAdminProducts(db);
@@ -194,7 +248,12 @@ describe("saveProduct", () => {
     const [first] = await listAdminProducts(db);
     const loaded = (await getAdminProduct(db, first!.id))!;
     expect(loaded.revision).toBe("");
-    const result = await saveProduct(db, { actor: owner, id: loaded.id, revision: "", input: parse({ ...productToForm(loaded), costPrice: 300 }) });
+    const result = await saveProduct(db, {
+      actor: owner,
+      id: loaded.id,
+      revision: "",
+      input: parse({ ...productToForm(loaded), costPrice: 300 }),
+    });
     expect(result.ok).toBe(true);
     // Saving a seeded product unchanged keeps the storefront identical (apart from cost price, which is private).
     const shown = (await getPublishedCatalog(db)).products.find((p) => p.id === loaded.id);

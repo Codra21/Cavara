@@ -28,7 +28,9 @@ export function CollectionsSection() {
                 </span>
                 <span className="studio-category-label">
                   <span className="studio-category-name">{category.name}</span>
-                  <span className="studio-category-count">{pluralize(countInCategory(catalog, category.id), "piece")}</span>
+                  <span className="studio-category-count">
+                    {pluralize(countInCategory(catalog, category.id), "piece")}
+                  </span>
                 </span>
               </button>
             </li>
@@ -71,13 +73,23 @@ export function LookbookSection() {
       <div className="container-wide">
         <div className="studio-lookbook-grid">
           <div className="studio-lookbook-media" data-reveal="">
-            <img src={LOOKBOOK.image} alt={`${product.name} in ${product.variants.length} glazes, styled on a breakfast table`} loading="lazy" width={800} height={800} />
+            <img
+              src={LOOKBOOK.image}
+              alt={`${product.name} in ${product.variants.length} glazes, styled on a breakfast table`}
+              loading="lazy"
+              width={800}
+              height={800}
+            />
             {LOOKBOOK.spots.map((spot, index) => {
               const variant = getVariant(product, spot.variant);
               const open = openSpot === index;
               const side = spot.x < 35 ? " is-start" : spot.x > 65 ? " is-end" : "";
               return (
-                <div key={index} className={`studio-spot${side}${open ? " is-open" : ""}`} style={{ "--x": `${spot.x}%`, "--y": `${spot.y}%` } as React.CSSProperties}>
+                <div
+                  key={index}
+                  className={`studio-spot${side}${open ? " is-open" : ""}`}
+                  style={{ "--x": `${spot.x}%`, "--y": `${spot.y}%` } as React.CSSProperties}
+                >
                   <button
                     ref={(element) => {
                       buttonRefs.current[index] = element;
@@ -113,7 +125,9 @@ export function LookbookSection() {
             </span>
             <p className="sub-heading">Shop the table</p>
             <h2 id="studio-lookbook-title">One dish, {product.variants.length} glazes, set for breakfast.</h2>
-            <p className="studio-lookbook-note">Tap a marker to see each colour of the {product.name}, then open it to choose yours.</p>
+            <p className="studio-lookbook-note">
+              Tap a marker to see each colour of the {product.name}, then open it to choose yours.
+            </p>
             <button className="studio-lookbook-card" type="button" onClick={() => openProduct(product)}>
               <span className="studio-lookbook-card-media">
                 <img src={lead.images[0]} alt="" loading="lazy" width={400} height={400} />
@@ -175,7 +189,7 @@ export function CarouselSection() {
             event.stopPropagation();
             event.preventDefault();
           },
-          { capture: true, once: true }
+          { capture: true, once: true },
         );
       }
     };
@@ -210,15 +224,33 @@ export function CarouselSection() {
           <h2 id="studio-carousel-title">The {category.name.toLowerCase()} edit</h2>
         </div>
         <div className="studio-carousel-arrows">
-          <button className="studio-arrow" type="button" aria-label={`Scroll ${category.name} back`} disabled={edges.start} onClick={() => step(-1)}>
+          <button
+            className="studio-arrow"
+            type="button"
+            aria-label={`Scroll ${category.name} back`}
+            disabled={edges.start}
+            onClick={() => step(-1)}
+          >
             <Icon name="fa-solid fa-arrow-left-long" />
           </button>
-          <button className="studio-arrow" type="button" aria-label={`Scroll ${category.name} forward`} disabled={edges.end} onClick={() => step(1)}>
+          <button
+            className="studio-arrow"
+            type="button"
+            aria-label={`Scroll ${category.name} forward`}
+            disabled={edges.end}
+            onClick={() => step(1)}
+          >
             <Icon name="fa-solid fa-arrow-right-long" />
           </button>
         </div>
       </div>
-      <ul className="studio-carousel" data-carousel-track="" aria-label={category.name} ref={trackRef} onScroll={updateEdges}>
+      <ul
+        className="studio-carousel"
+        data-carousel-track=""
+        aria-label={category.name}
+        ref={trackRef}
+        onScroll={updateEdges}
+      >
         {products.map((product) => {
           const variant = getVariant(product);
           return (
@@ -227,7 +259,9 @@ export function CarouselSection() {
                 <span className="studio-carousel-media">
                   <img src={variant.images[0]} alt="" loading="lazy" width={800} height={800} draggable={false} />
                 </span>
-                <span className="eyebrow">{product.variants.length > 1 ? pluralize(product.variants.length, "colour") : variant.name}</span>
+                <span className="eyebrow">
+                  {product.variants.length > 1 ? pluralize(product.variants.length, "colour") : variant.name}
+                </span>
                 <span className="studio-carousel-name">{product.name}</span>
                 <span className="studio-carousel-price">{formatPrice(product.price)}</span>
               </button>
@@ -249,9 +283,19 @@ export function PromoSection() {
       <div className="container-wide">
         <div className="studio-promo-grid" data-reveal="">
           <div className="studio-promo-media">
-            <img src={images[1] ?? images[0]} alt={`${promo.name} in several painted designs`} loading="lazy" width={800} height={800} />
+            <img
+              src={images[1] ?? images[0]}
+              alt={`${promo.name} in several painted designs`}
+              loading="lazy"
+              width={800}
+              height={800}
+            />
           </div>
-          <RoundBadge value={String(promo.variants.length)} ringText="Painted by hand · No two alike · " caption="designs" />
+          <RoundBadge
+            value={String(promo.variants.length)}
+            ringText="Painted by hand · No two alike · "
+            caption="designs"
+          />
           <div className="studio-promo-copy">
             <p className="sub-heading sub-heading-light">Painted by hand</p>
             <h2 id="studio-promo-title">{pluralize(promo.variants.length, "design")}, no two quite alike.</h2>
@@ -281,13 +325,20 @@ export function StorySection() {
             width={800}
             height={1000}
           />
-          <img src="/product-images/vintage-Ceramic-Oil-Pot-22/vintage-Ceramic-Oil-Pot1.webp" alt="Two vintage ceramic oil pots on a wooden tray" loading="lazy" width={800} height={800} />
+          <img
+            src="/product-images/vintage-Ceramic-Oil-Pot-22/vintage-Ceramic-Oil-Pot1.webp"
+            alt="Two vintage ceramic oil pots on a wooden tray"
+            loading="lazy"
+            width={800}
+            height={800}
+          />
         </div>
         <div className="story-copy" data-reveal="">
           <p className="sub-heading">Our philosophy</p>
           <h2 id="story-title">Your home is a personal gallery of your journey.</h2>
           <p className="story-lede">
-            We explore the globe to bring you inspiring home decor, exquisite ceramics, and premium kitchenware — pieces that turn ordinary moments into small rituals.
+            We explore the globe to bring you inspiring home decor, exquisite ceramics, and premium kitchenware — pieces
+            that turn ordinary moments into small rituals.
           </p>
           <ul className="principles">
             <li>
@@ -311,8 +362,14 @@ export function StorySection() {
 
 const STEPS = [
   { title: "Build your bag", body: "Choose your pieces, colours and quantities. Your bag is saved on this device." },
-  { title: "Send your order", body: "Checkout opens WhatsApp with your order written out, or copies it for Messenger." },
-  { title: "Confirm the details", body: "Our team confirms availability, delivery and payment with you directly in chat." },
+  {
+    title: "Send your order",
+    body: "Checkout opens WhatsApp with your order written out, or copies it for Messenger.",
+  },
+  {
+    title: "Confirm the details",
+    body: "Our team confirms availability, delivery and payment with you directly in chat.",
+  },
 ];
 
 export function OrderingSection() {
@@ -326,7 +383,10 @@ export function OrderingSection() {
       const element = fancyRef.current;
       if (!element) return;
       const rect = element.getBoundingClientRect();
-      const progress = Math.min(1, Math.max(0, (window.innerHeight - rect.top) / (window.innerHeight * 0.75 + rect.height)));
+      const progress = Math.min(
+        1,
+        Math.max(0, (window.innerHeight - rect.top) / (window.innerHeight * 0.75 + rect.height)),
+      );
       element.style.setProperty("--fill", `${Math.round(progress * 1000) / 10}%`);
     };
     const queue = () => {

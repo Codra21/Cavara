@@ -2,7 +2,12 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { saveProductSchema } from "@/domain/product-admin";
-import { getAdminProduct, listAdminCategories, listAdminProducts, saveProduct } from "@/server/db/admin-catalog.repository";
+import {
+  getAdminProduct,
+  listAdminCategories,
+  listAdminProducts,
+  saveProduct,
+} from "@/server/db/admin-catalog.repository";
 import { getDb } from "@/server/env";
 import { ownerAuthMiddleware } from "@/server/middleware/auth";
 

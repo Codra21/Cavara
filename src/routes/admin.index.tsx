@@ -12,7 +12,9 @@ function AdminOverview() {
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Welcome back</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Delivery zones and orders arrive here in the next updates.</p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Delivery zones and orders arrive here in the next updates.
+          </p>
         </div>
         <Button asChild>
           <Link to="/admin/products">Manage products</Link>

@@ -1,7 +1,14 @@
 // Request-bound admin session handling: the cookie, private cache headers and access checks. Server-only.
 // Cross-site calls to server functions are already rejected by Start's default CSRF middleware
 // (installed automatically because the app has no src/start.ts).
-import { deleteCookie, getCookie, getRequest, getRequestHeader, setCookie, setResponseHeader } from "@tanstack/react-start/server";
+import {
+  deleteCookie,
+  getCookie,
+  getRequest,
+  getRequestHeader,
+  setCookie,
+  setResponseHeader,
+} from "@tanstack/react-start/server";
 import { ADMIN_SESSION_COOKIE, type AdminIdentity, type AdminSessionState } from "@/domain/admin";
 import { isLocalHttpUrl, sessionCookieOptions } from "./cookie";
 import { getDb, getOwnerCredentials } from "@/server/env";
@@ -40,7 +47,8 @@ export async function signInWithCookie(username: string, password: string) {
   const owner = getOwnerCredentials();
   if (!owner) return { ok: false as const, error: "Admin sign-in is not configured." };
   const url = new URL(getRequest().url);
-  if (url.protocol !== "https:" && !isLocalHttp()) return { ok: false as const, error: "Admin sign-in requires HTTPS." };
+  if (url.protocol !== "https:" && !isLocalHttp())
+    return { ok: false as const, error: "Admin sign-in requires HTTPS." };
   const result = await signIn(getDb(), owner, { username, password, client: clientId() });
   if (!result.ok) return result;
   setCookie(ADMIN_SESSION_COOKIE, result.token, sessionCookieOptions(url));

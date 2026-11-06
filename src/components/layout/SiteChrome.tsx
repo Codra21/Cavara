@@ -2,7 +2,14 @@ import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { pluralize } from "@/domain/catalog";
 import { useCatalog } from "@/lib/query";
-import { CONTACT_EMAIL, FACEBOOK_URL, MESSENGER_URL, WHATSAPP_DISPLAY, WHATSAPP_NUMBER, WHATSAPP_URL } from "@/lib/config";
+import {
+  CONTACT_EMAIL,
+  FACEBOOK_URL,
+  MESSENGER_URL,
+  WHATSAPP_DISPLAY,
+  WHATSAPP_NUMBER,
+  WHATSAPP_URL,
+} from "@/lib/config";
 import { useStore } from "@/components/store/StoreProvider";
 import { BrandLogo, Icon } from "@/components/ui/primitives";
 import { useShopNavigation } from "./useShopNavigation";
@@ -50,7 +57,8 @@ export function SiteFooter() {
                   <Icon name="fa-brands fa-whatsapp" /> WhatsApp support <Icon name="fa-solid fa-arrow-right" />
                 </a>
                 <a className="link-arrow" href={MESSENGER_URL} target="_blank" rel="noopener">
-                  <Icon name="fa-brands fa-facebook-messenger" /> Message on Messenger <Icon name="fa-solid fa-arrow-right" />
+                  <Icon name="fa-brands fa-facebook-messenger" /> Message on Messenger{" "}
+                  <Icon name="fa-solid fa-arrow-right" />
                 </a>
               </div>
             </div>

@@ -53,7 +53,11 @@ function Gallery({ product, variantIndex }: { product: Product; variantIndex: nu
 
   const zoom = useFinePointer();
   return (
-    <div className={`pdp-gallery${images.length === 1 ? " is-single" : ""}`} ref={ref} aria-label={`${product.name} photos`}>
+    <div
+      className={`pdp-gallery${images.length === 1 ? " is-single" : ""}`}
+      ref={ref}
+      aria-label={`${product.name} photos`}
+    >
       {images.map((image, index) => (
         <figure
           key={image}
@@ -110,13 +114,20 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
   const variant = getVariant(product, variantIndex);
   const pageUrl = `${SITE_URL}/products/${product.slug}`;
   const colours = product.variants.map((item) => item.name).join(", ");
-  const recentProducts = recent.filter((id) => id !== product.id).slice(0, 4).flatMap((id) => catalog.productById.get(id) ?? []);
+  const recentProducts = recent
+    .filter((id) => id !== product.id)
+    .slice(0, 4)
+    .flatMap((id) => catalog.productById.get(id) ?? []);
   const bannerImage =
-    product.variants.flatMap((item) => item.images).find((image) => !variant.images.includes(image)) ?? variant.images[variant.images.length - 1];
+    product.variants.flatMap((item) => item.images).find((image) => !variant.images.includes(image)) ??
+    variant.images[variant.images.length - 1];
   const features = [
     ...(product.details ?? []),
     `${pluralize(product.variants.length, "colour")} available`,
-    `${pluralize(product.variants.reduce((sum, item) => sum + item.images.length, 0), "photo")} to compare`,
+    `${pluralize(
+      product.variants.reduce((sum, item) => sum + item.images.length, 0),
+      "photo",
+    )} to compare`,
   ].slice(0, 4);
 
   // New product: reset local state, apply ?variant=, remember it, focus the title.
@@ -165,7 +176,11 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
     event.preventDefault();
     const index = TABS.findIndex((item) => item.id === tab);
     const next =
-      event.key === "Home" ? 0 : event.key === "End" ? TABS.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + TABS.length) % TABS.length;
+      event.key === "Home"
+        ? 0
+        : event.key === "End"
+          ? TABS.length - 1
+          : (index + (event.key === "ArrowRight" ? 1 : -1) + TABS.length) % TABS.length;
     const nextTab = TABS[next];
     if (!nextTab) return;
     setTab(nextTab.id);
@@ -219,18 +234,33 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
                 </p>
                 <div className="pdp-swatches" role="group" aria-label="Choose a colour">
                   {product.variants.map((item, index) => (
-                    <Swatch key={item.name} variant={item} selected={index === variantIndex} size="large" onSelect={() => selectVariant(product.id, index)} />
+                    <Swatch
+                      key={item.name}
+                      variant={item}
+                      selected={index === variantIndex}
+                      size="large"
+                      onSelect={() => selectVariant(product.id, index)}
+                    />
                   ))}
                 </div>
               </div>
 
               <div className="pdp-buy" ref={buyRef}>
-                <Quantity value={quantity} max={MAX_QTY} onChange={(next) => setQuantity(Math.min(MAX_QTY, Math.max(1, next)))} />
+                <Quantity
+                  value={quantity}
+                  max={MAX_QTY}
+                  onChange={(next) => setQuantity(Math.min(MAX_QTY, Math.max(1, next)))}
+                />
                 <button className="button pdp-add" type="button" onClick={add}>
                   {addLabel}
                 </button>
               </div>
-              <a className="button button-outline pdp-now" href={whatsappUrl(singleOrderMessage(product, variant, quantity))} target="_blank" rel="noopener">
+              <a
+                className="button button-outline pdp-now"
+                href={whatsappUrl(singleOrderMessage(product, variant, quantity))}
+                target="_blank"
+                rel="noopener"
+              >
                 <Icon name="fa-brands fa-whatsapp" /> Order now on WhatsApp
               </a>
 
@@ -247,7 +277,11 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
                 >
                   <Icon name="fa-regular fa-copy" /> Copy link
                 </button>
-                <a href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`} target="_blank" rel="noopener">
+                <a
+                  href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`}
+                  target="_blank"
+                  rel="noopener"
+                >
                   <Icon name="fa-brands fa-facebook-f" /> Share
                 </a>
               </div>
@@ -292,12 +326,22 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
             ))}
           </div>
 
-          <div className="pdp-panel" role="tabpanel" id="pdp-panel-description" aria-labelledby="pdp-tab-description" tabIndex={0} hidden={tab !== "description"}>
+          <div
+            className="pdp-panel"
+            role="tabpanel"
+            id="pdp-panel-description"
+            aria-labelledby="pdp-tab-description"
+            tabIndex={0}
+            hidden={tab !== "description"}
+          >
             <div className="pdp-story">
               <div>
                 <p className="eyebrow">About this piece</p>
                 <h2>{product.note || product.summary}</h2>
-                <p>{product.summary} Each piece is selected by the Cavara team for everyday use and the way it looks on a real table.</p>
+                <p>
+                  {product.summary} Each piece is selected by the Cavara team for everyday use and the way it looks on a
+                  real table.
+                </p>
               </div>
               <ul className="pdp-features">
                 {features.map((feature, index) => (
@@ -313,7 +357,14 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
             </figure>
           </div>
 
-          <div className="pdp-panel" role="tabpanel" id="pdp-panel-information" aria-labelledby="pdp-tab-information" tabIndex={0} hidden={tab !== "information"}>
+          <div
+            className="pdp-panel"
+            role="tabpanel"
+            id="pdp-panel-information"
+            aria-labelledby="pdp-tab-information"
+            tabIndex={0}
+            hidden={tab !== "information"}
+          >
             <table className="pdp-table">
               <tbody>
                 <tr>
@@ -349,7 +400,14 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
             </table>
           </div>
 
-          <div className="pdp-panel" role="tabpanel" id="pdp-panel-ordering" aria-labelledby="pdp-tab-ordering" tabIndex={0} hidden={tab !== "ordering"}>
+          <div
+            className="pdp-panel"
+            role="tabpanel"
+            id="pdp-panel-ordering"
+            aria-labelledby="pdp-tab-ordering"
+            tabIndex={0}
+            hidden={tab !== "ordering"}
+          >
             <div className="pdp-ordering">
               <div>
                 <h3>How ordering works</h3>

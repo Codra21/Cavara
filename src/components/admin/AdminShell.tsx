@@ -47,7 +47,12 @@ export function AdminShell({
               <BrandLogo />
             </Link>
             <nav aria-label="Admin" className="flex items-center gap-1">
-              <Link to="/admin" activeOptions={{ exact: true }} className={navClass} activeProps={{ className: activeNavClass }}>
+              <Link
+                to="/admin"
+                activeOptions={{ exact: true }}
+                className={navClass}
+                activeProps={{ className: activeNavClass }}
+              >
                 Overview
               </Link>
               <Link to="/admin/products" className={navClass} activeProps={{ className: activeNavClass }}>

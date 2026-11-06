@@ -61,7 +61,8 @@ export interface TestD1 extends D1Database {
 export function createTestD1(options: { migrations?: string[] } = {}): TestD1 {
   const sqlite = new Database(":memory:");
   sqlite.run("PRAGMA foreign_keys = ON");
-  for (const file of options.migrations ?? migrationFiles()) sqlite.run(readFileSync(join(MIGRATIONS_DIR, file), "utf8"));
+  for (const file of options.migrations ?? migrationFiles())
+    sqlite.run(readFileSync(join(MIGRATIONS_DIR, file), "utf8"));
 
   return {
     sqlite,

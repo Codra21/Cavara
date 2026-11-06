@@ -80,7 +80,9 @@ export function SiteHeader() {
   }, [bagBump]);
 
   const bagLabel = `Open bag, ${pluralize(bagCount, "item")}`;
-  const classes = ["site-header", scrolled && "is-scrolled", tucked && !menuOpen && "is-tucked"].filter(Boolean).join(" ");
+  const classes = ["site-header", scrolled && "is-scrolled", tucked && !menuOpen && "is-tucked"]
+    .filter(Boolean)
+    .join(" ");
 
   return (
     <header className={classes} id="top" ref={headerRef}>
@@ -97,7 +99,11 @@ export function SiteHeader() {
             <Icon name={`fa-solid ${menuOpen ? "fa-xmark" : "fa-bars"}`} />
             <SrOnly>{menuOpen ? "Close menu" : "Open menu"}</SrOnly>
           </button>
-          <button className="icon-button header-search-mobile" type="button" onClick={() => goToShop({ focusSearch: true })}>
+          <button
+            className="icon-button header-search-mobile"
+            type="button"
+            onClick={() => goToShop({ focusSearch: true })}
+          >
             <Icon name="fa-solid fa-magnifying-glass" />
             <SrOnly>Search products</SrOnly>
           </button>

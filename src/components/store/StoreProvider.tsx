@@ -70,7 +70,12 @@ function loadBag(catalog: CatalogIndex): BagItem[] {
 function loadRecent(catalog: CatalogIndex): number[] {
   try {
     const parsed: unknown = JSON.parse(storageGet(STORAGE_KEYS.recent) || "[]");
-    return Array.isArray(parsed) ? parsed.map(Number).filter((id) => catalog.productById.has(id)).slice(0, RECENT_LIMIT) : [];
+    return Array.isArray(parsed)
+      ? parsed
+          .map(Number)
+          .filter((id) => catalog.productById.has(id))
+          .slice(0, RECENT_LIMIT)
+      : [];
   } catch {
     return [];
   }
@@ -129,7 +134,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addToBag = useCallback((productId: number, variant: number, qty = 1) => {
     setBag((current) => {
       const existing = current.find((item) => item.id === productId && item.variant === variant);
-      if (existing) return current.map((item) => (item === existing ? { ...item, qty: clampQty(item.qty + qty) } : item));
+      if (existing)
+        return current.map((item) => (item === existing ? { ...item, qty: clampQty(item.qty + qty) } : item));
       return [...current, { id: productId, variant, qty: clampQty(qty) }];
     });
     setBagBump((value) => value + 1);
@@ -139,7 +145,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setBag((current) =>
       qty <= 0
         ? current.filter((item) => !(item.id === productId && item.variant === variant))
-        : current.map((item) => (item.id === productId && item.variant === variant ? { ...item, qty: clampQty(qty) } : item))
+        : current.map((item) =>
+            item.id === productId && item.variant === variant ? { ...item, qty: clampQty(qty) } : item,
+          ),
     );
   }, []);
 
@@ -172,7 +180,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setToast(null);
       setQuickView(productId);
     },
-    [selectVariant]
+    [selectVariant],
   );
   const closeQuickView = useCallback(() => setQuickView(null), []);
 
@@ -216,7 +224,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       recent,
       rememberViewed,
     }),
-    [bag, bagBump, addToBag, updateBagItem, clearBag, selectedVariants, selectedVariant, selectVariant, theme, toggleTheme, toast, showToast, hideToast, quickView, openQuickView, closeQuickView, bagOpen, openBag, closeBag, recent, rememberViewed]
+    [
+      bag,
+      bagBump,
+      addToBag,
+      updateBagItem,
+      clearBag,
+      selectedVariants,
+      selectedVariant,
+      selectVariant,
+      theme,
+      toggleTheme,
+      toast,
+      showToast,
+      hideToast,
+      quickView,
+      openQuickView,
+      closeQuickView,
+      bagOpen,
+      openBag,
+      closeBag,
+      recent,
+      rememberViewed,
+    ],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

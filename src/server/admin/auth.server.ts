@@ -35,7 +35,8 @@ export function secretMatches(supplied: string, configured: string): boolean {
 }
 
 /** Changes whenever ADMIN_SECRET changes; sessions created under an older secret stop working. */
-const secretFingerprint = (secret: string) => createHmac("sha256", secret).update("cavara-admin-session-v1").digest("hex");
+const secretFingerprint = (secret: string) =>
+  createHmac("sha256", secret).update("cavara-admin-session-v1").digest("hex");
 
 const limitKey = (secret: string, kind: string, value: string) =>
   createHmac("sha256", secret).update(`cavara-admin-login:${kind}:${value}`).digest("hex");
@@ -116,7 +117,14 @@ export async function signIn(
       .prepare(
         "INSERT INTO admin_sessions (token_hash, account_id, role, secret_fp, expires_at, created_at) VALUES (?, ?, ?, ?, ?, ?)",
       )
-      .bind(tokenHash(token), identity.id, identity.role, secretFingerprint(owner.secret), now + ADMIN_SESSION_SECONDS * 1000, new Date(now).toISOString()),
+      .bind(
+        tokenHash(token),
+        identity.id,
+        identity.role,
+        secretFingerprint(owner.secret),
+        now + ADMIN_SESSION_SECONDS * 1000,
+        new Date(now).toISOString(),
+      ),
     auditStatement(db, identity, "session.signed_in", identity.id, {}, new Date(now)),
   ]);
   return { ok: true, token, identity };
@@ -173,7 +181,8 @@ export async function listAudit(db: D1Database): Promise<AdminAuditEntry[]> {
       const parsed: unknown = JSON.parse(row.details);
       if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
         for (const [key, value] of Object.entries(parsed)) {
-          if (value === null || ["string", "number", "boolean"].includes(typeof value)) details[key] = value as AuditValue;
+          if (value === null || ["string", "number", "boolean"].includes(typeof value))
+            details[key] = value as AuditValue;
         }
       }
     } catch {

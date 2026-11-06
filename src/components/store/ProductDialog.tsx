@@ -55,7 +55,10 @@ export function ProductDialog() {
   useEffect(() => {
     if (quickView === null) return;
     const onKey = (event: KeyboardEvent) => {
-      if ((event.key === "ArrowLeft" || event.key === "ArrowRight") && !(event.target as Element).matches?.(".swatch, input")) {
+      if (
+        (event.key === "ArrowLeft" || event.key === "ArrowRight") &&
+        !(event.target as Element).matches?.(".swatch, input")
+      ) {
         step(event.key === "ArrowLeft" ? -1 : 1);
       }
     };
@@ -64,7 +67,12 @@ export function ProductDialog() {
   });
 
   return (
-    <ModalDialog open={quickView !== null} onClose={closeQuickView} className="product-dialog" labelledBy="product-dialog-title">
+    <ModalDialog
+      open={quickView !== null}
+      onClose={closeQuickView}
+      className="product-dialog"
+      labelledBy="product-dialog-title"
+    >
       <div className="dialog-surface product-dialog-surface">
         <button ref={closeRef} className="icon-button dialog-close" type="button" onClick={closeQuickView}>
           <Icon name="fa-solid fa-xmark" />
@@ -75,15 +83,27 @@ export function ProductDialog() {
             <img
               ref={imageRef}
               src={images[current] ?? BLANK}
-              alt={product && variant ? `${product.name}, ${variant.name}, image ${current + 1} of ${images.length}` : ""}
+              alt={
+                product && variant ? `${product.name}, ${variant.name}, image ${current + 1} of ${images.length}` : ""
+              }
               width={800}
               height={800}
             />
-            <button className="gallery-arrow gallery-prev" type="button" hidden={images.length < 2} onClick={() => step(-1)}>
+            <button
+              className="gallery-arrow gallery-prev"
+              type="button"
+              hidden={images.length < 2}
+              onClick={() => step(-1)}
+            >
               <Icon name="fa-solid fa-arrow-left" />
               <SrOnly>Previous image</SrOnly>
             </button>
-            <button className="gallery-arrow gallery-next" type="button" hidden={images.length < 2} onClick={() => step(1)}>
+            <button
+              className="gallery-arrow gallery-next"
+              type="button"
+              hidden={images.length < 2}
+              onClick={() => step(1)}
+            >
               <Icon name="fa-solid fa-arrow-right" />
               <SrOnly>Next image</SrOnly>
             </button>
@@ -136,7 +156,11 @@ export function ProductDialog() {
             </fieldset>
 
             <div className="purchase-row">
-              <Quantity value={quantity} max={MAX_QTY} onChange={(next) => setQuantity(Math.min(MAX_QTY, Math.max(1, next)))} />
+              <Quantity
+                value={quantity}
+                max={MAX_QTY}
+                onChange={(next) => setQuantity(Math.min(MAX_QTY, Math.max(1, next)))}
+              />
               <button
                 className="button purchase-add"
                 type="button"
@@ -163,7 +187,12 @@ export function ProductDialog() {
             </p>
 
             <div className="direct-order">
-              <a className="button button-outline" href={whatsappUrl(singleOrderMessage(product, variant, quantity))} target="_blank" rel="noopener">
+              <a
+                className="button button-outline"
+                href={whatsappUrl(singleOrderMessage(product, variant, quantity))}
+                target="_blank"
+                rel="noopener"
+              >
                 <Icon name="fa-brands fa-whatsapp" /> Order on WhatsApp
               </a>
               <a
@@ -174,7 +203,9 @@ export function ProductDialog() {
                 onClick={async () => {
                   const copied = await copyText(singleOrderMessage(product, variant, quantity));
                   setFeedback({
-                    message: copied ? "Order copied. Paste it into Messenger." : "Messenger opened. Tell us the piece and colour you want.",
+                    message: copied
+                      ? "Order copied. Paste it into Messenger."
+                      : "Messenger opened. Tell us the piece and colour you want.",
                     bagAction: false,
                   });
                 }}

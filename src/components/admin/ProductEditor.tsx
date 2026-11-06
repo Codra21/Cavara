@@ -55,7 +55,17 @@ function move<T>(list: T[], from: number, to: number): T[] {
   return next;
 }
 
-function Field({ label, hint, children, htmlFor }: { label: string; hint?: string; children: React.ReactNode; htmlFor: string }) {
+function Field({
+  label,
+  hint,
+  children,
+  htmlFor,
+}: {
+  label: string;
+  hint?: string;
+  children: React.ReactNode;
+  htmlFor: string;
+}) {
   return (
     <div className="grid gap-1.5">
       <Label htmlFor={htmlFor}>{label}</Label>
@@ -99,7 +109,14 @@ function VariantCard({
           {index === 0 ? <span className="text-xs text-muted-foreground">(shown first)</span> : null}
         </div>
         <div className="flex items-center gap-1">
-          <Button type="button" variant="ghost" size="icon-sm" onClick={() => onMove(index - 1)} disabled={index === 0} aria-label={`Move ${label} up`}>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            onClick={() => onMove(index - 1)}
+            disabled={index === 0}
+            aria-label={`Move ${label} up`}
+          >
             <ArrowUp />
           </Button>
           <Button
@@ -120,7 +137,12 @@ function VariantCard({
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Field label="Colour name" htmlFor={`${id}-name`}>
-          <Input id={`${id}-name`} value={variant.name} maxLength={60} onChange={(e) => onChange({ ...variant, name: e.target.value })} />
+          <Input
+            id={`${id}-name`}
+            value={variant.name}
+            maxLength={60}
+            onChange={(e) => onChange({ ...variant, name: e.target.value })}
+          />
         </Field>
         <Field label="Swatch" htmlFor={`${id}-swatch`} hint="A colour like #E0799C or a CSS gradient.">
           <div className="flex gap-2">
@@ -131,11 +153,19 @@ function VariantCard({
               onChange={(e) => onChange({ ...variant, swatch: e.target.value.toUpperCase() })}
               className="h-9 w-10 shrink-0 cursor-pointer rounded-sm border border-input bg-transparent p-1"
             />
-            <Input id={`${id}-swatch`} value={variant.swatch} maxLength={300} onChange={(e) => onChange({ ...variant, swatch: e.target.value })} />
+            <Input
+              id={`${id}-swatch`}
+              value={variant.swatch}
+              maxLength={300}
+              onChange={(e) => onChange({ ...variant, swatch: e.target.value })}
+            />
           </div>
         </Field>
         <Field label="Availability" htmlFor={`${id}-availability`}>
-          <Select value={variant.availability} onValueChange={(value) => onChange({ ...variant, availability: value as Availability })}>
+          <Select
+            value={variant.availability}
+            onValueChange={(value) => onChange({ ...variant, availability: value as Availability })}
+          >
             <SelectTrigger id={`${id}-availability`} className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -158,7 +188,14 @@ function VariantCard({
           <ul className="flex flex-wrap gap-3">
             {images.map((path, imageIndex) => (
               <li key={path} className="grid w-24 gap-1">
-                <img src={path} alt="" width={96} height={96} loading="lazy" className="size-24 rounded-sm bg-muted object-cover" />
+                <img
+                  src={path}
+                  alt=""
+                  width={96}
+                  height={96}
+                  loading="lazy"
+                  className="size-24 rounded-sm bg-muted object-cover"
+                />
                 <div className="flex justify-between">
                   <Button
                     type="button"
@@ -203,7 +240,10 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
   const id = useId();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const initial = useMemo(() => (product ? productToForm(product) : emptyProductForm(categories[0]?.id)), [product, categories]);
+  const initial = useMemo(
+    () => (product ? productToForm(product) : emptyProductForm(categories[0]?.id)),
+    [product, categories],
+  );
   const [values, setValues] = useState<ProductFormValues>(initial);
   const [detailsText, setDetailsText] = useState((initial.details ?? []).join("\n"));
   const [slugTouched, setSlugTouched] = useState(Boolean(product));
@@ -238,7 +278,8 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
       setProblems([]);
       setSaved(true);
       await queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEY });
-      if (!product) await navigate({ to: "/admin/products/$productId", params: { productId: String(result.id) }, replace: true });
+      if (!product)
+        await navigate({ to: "/admin/products/$productId", params: { productId: String(result.id) }, replace: true });
     },
     onError: (error) => setProblems([error.message || "Could not save. Check your connection and try again."]),
   });
@@ -269,7 +310,9 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
         <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">{product ? product.name : "New product"}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            {product ? `Status: ${STATUS_LABELS[product.status]}` : "New products start as drafts and stay hidden until published."}
+            {product
+              ? `Status: ${STATUS_LABELS[product.status]}`
+              : "New products start as drafts and stay hidden until published."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
@@ -325,7 +368,11 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
               }}
             />
           </Field>
-          <Field label="URL name" htmlFor={`${id}-slug`} hint={`cavarabd.com/products/${values.slug || "…"}. Changing it breaks old links.`}>
+          <Field
+            label="URL name"
+            htmlFor={`${id}-slug`}
+            hint={`cavarabd.com/products/${values.slug || "…"}. Changing it breaks old links.`}
+          >
             <Input
               id={`${id}-slug`}
               value={values.slug}
@@ -351,7 +398,10 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
             </Select>
           </Field>
           <Field label="Status" htmlFor={`${id}-status`} hint="Only published products appear on the shop.">
-            <Select value={values.status} onValueChange={(value) => set("status", value as ProductFormValues["status"])}>
+            <Select
+              value={values.status}
+              onValueChange={(value) => set("status", value as ProductFormValues["status"])}
+            >
               <SelectTrigger id={`${id}-status`} className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -366,7 +416,13 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
           </Field>
           <div className="sm:col-span-2">
             <Field label="Summary" htmlFor={`${id}-summary`} hint="One or two sentences under the product name.">
-              <Textarea id={`${id}-summary`} value={values.summary} maxLength={500} rows={3} onChange={(e) => set("summary", e.target.value)} />
+              <Textarea
+                id={`${id}-summary`}
+                value={values.summary}
+                maxLength={500}
+                rows={3}
+                onChange={(e) => set("summary", e.target.value)}
+              />
             </Field>
           </div>
           <div className="sm:col-span-2">
@@ -384,7 +440,12 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
           </div>
           <div className="sm:col-span-2">
             <Field label="Note" htmlFor={`${id}-note`} hint="Optional short note, e.g. care instructions.">
-              <Input id={`${id}-note`} value={values.note ?? ""} maxLength={300} onChange={(e) => set("note", e.target.value)} />
+              <Input
+                id={`${id}-note`}
+                value={values.note ?? ""}
+                maxLength={300}
+                onChange={(e) => set("note", e.target.value)}
+              />
             </Field>
           </div>
         </CardContent>
@@ -440,12 +501,14 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
         <CardHeader>
           <CardTitle>Colours</CardTitle>
           <CardDescription>
-            Shoppers' saved bags remember a colour by its place in this list, so reordering or removing colours can change
-            the colour in a bag that is already saved.
+            Shoppers' saved bags remember a colour by its place in this list, so reordering or removing colours can
+            change the colour in a bag that is already saved.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4">
-          {variants.length === 0 ? <p className="text-sm text-muted-foreground">No colours yet. A product needs one to be published.</p> : null}
+          {variants.length === 0 ? (
+            <p className="text-sm text-muted-foreground">No colours yet. A product needs one to be published.</p>
+          ) : null}
           <ul className="grid gap-4">
             {variants.map((variant, index) => (
               <VariantCard
@@ -464,7 +527,12 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
               type="button"
               variant="outline"
               disabled={variants.length >= MAX_VARIANTS}
-              onClick={() => setVariants([...variants, { id: null, name: "", swatch: "#E7E9E8", availability: "in_stock", images: [] }])}
+              onClick={() =>
+                setVariants([
+                  ...variants,
+                  { id: null, name: "", swatch: "#E7E9E8", availability: "in_stock", images: [] },
+                ])
+              }
             >
               <Plus /> Add colour
             </Button>
@@ -488,7 +556,11 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
             />
           </Field>
           <div className="flex items-center gap-2 self-center">
-            <Checkbox id={`${id}-featured`} checked={values.featured} onCheckedChange={(checked) => set("featured", checked === true)} />
+            <Checkbox
+              id={`${id}-featured`}
+              checked={values.featured}
+              onCheckedChange={(checked) => set("featured", checked === true)}
+            />
             <Label htmlFor={`${id}-featured`}>Featured</Label>
           </div>
         </CardContent>

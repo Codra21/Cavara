@@ -7,7 +7,11 @@ export function useOpenProduct() {
   const navigate = useNavigate();
   return useCallback(
     (product: Product, variant?: number) =>
-      navigate({ to: "/products/$slug", params: { slug: product.slug }, search: variant === undefined ? {} : { variant } }),
-    [navigate]
+      navigate({
+        to: "/products/$slug",
+        params: { slug: product.slug },
+        search: variant === undefined ? {} : { variant },
+      }),
+    [navigate],
   );
 }

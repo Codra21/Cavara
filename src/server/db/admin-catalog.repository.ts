@@ -161,7 +161,8 @@ export async function getAdminProduct(db: D1Database, id: number): Promise<Admin
 function constraintError(error: unknown): string | null {
   const message = error instanceof Error ? error.message : String(error);
   if (/UNIQUE constraint failed: products\.slug/i.test(message)) return "Another product already uses this URL name.";
-  if (/UNIQUE constraint failed: products\.id/i.test(message)) return "Another product was created at the same moment. Save again.";
+  if (/UNIQUE constraint failed: products\.id/i.test(message))
+    return "Another product was created at the same moment. Save again.";
   if (/FOREIGN KEY constraint failed/i.test(message)) return "That category no longer exists. Reload and pick another.";
   return null;
 }
@@ -189,13 +190,18 @@ export async function saveProduct(db: D1Database, options: SaveProductOptions): 
     db.prepare("SELECT id FROM product_variants WHERE product_id = ?").bind(options.id ?? -1),
     db.prepare("SELECT COALESCE(MAX(id), 0) + 1 AS id FROM products"),
   ]);
-  if (!categoryResult?.results.length) return { ok: false, error: "That category no longer exists. Reload and pick another." };
+  if (!categoryResult?.results.length)
+    return { ok: false, error: "That category no longer exists. Reload and pick another." };
 
   const id = creating ? Number(maxResult?.results[0]?.id ?? 1) : (options.id as number);
   const existingIds = new Set((existingResult?.results ?? []).map((row) => Number(row.id)));
   const keptIds = input.variants.flatMap((variant) => (variant.id === null ? [] : [variant.id]));
   if (keptIds.some((variantId) => !existingIds.has(variantId))) {
-    return { ok: false, conflict: true, error: "Some colours changed in another tab. Reload to see the latest version." };
+    return {
+      ok: false,
+      conflict: true,
+      error: "Some colours changed in another tab. Reload to see the latest version.",
+    };
   }
 
   const guardSql = "EXISTS (SELECT 1 FROM products WHERE id = ? AND revision = ?)";
@@ -250,7 +256,9 @@ export async function saveProduct(db: D1Database, options: SaveProductOptions): 
         )
         .bind(id, JSON.stringify(keptIds), ...guardParams),
       db
-        .prepare(`UPDATE product_variants SET position = position + ${POSITION_PARK} WHERE product_id = ? AND ${guardSql}`)
+        .prepare(
+          `UPDATE product_variants SET position = position + ${POSITION_PARK} WHERE product_id = ? AND ${guardSql}`,
+        )
         .bind(id, ...guardParams),
     );
   }

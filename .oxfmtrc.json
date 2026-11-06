@@ -1,5 +1,14 @@
 {
   "$schema": "./node_modules/oxfmt/configuration_schema.json",
   "printWidth": 120,
-  "ignorePatterns": ["dist/**", ".wrangler/**", ".tanstack/**", "web/**", "src/routeTree.gen.ts", "worker-configuration.d.ts"]
+  "ignorePatterns": [
+    "dist/**",
+    ".wrangler/**",
+    ".tanstack/**",
+    "web/**",
+    "src/routeTree.gen.ts",
+    "worker-configuration.d.ts",
+    "public/**",
+    "src/components/ui/{alert,badge,button,card,checkbox,input,label,select,table,textarea}.tsx"
+  ]
 }

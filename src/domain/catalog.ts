@@ -42,11 +42,18 @@ export function countInCategory(catalog: CatalogIndex, categoryId: string) {
 }
 
 /** Shape check for `?category=` before the catalogue is loaded; unknown ids fall back to "all" when rendering. */
-export const isCategorySlug = (value: unknown): value is string => typeof value === "string" && /^[a-z0-9-]{1,64}$/.test(value);
+export const isCategorySlug = (value: unknown): value is string =>
+  typeof value === "string" && /^[a-z0-9-]{1,64}$/.test(value);
 
 function searchableText(catalog: CatalogIndex, product: Product) {
   const category = catalog.categoryById.get(product.category)?.name ?? "";
-  return [product.name, category, product.summary, ...(product.details ?? []), ...product.variants.map((variant) => variant.name)]
+  return [
+    product.name,
+    category,
+    product.summary,
+    ...(product.details ?? []),
+    ...product.variants.map((variant) => variant.name),
+  ]
     .join(" ")
     .toLowerCase();
 }
@@ -59,7 +66,10 @@ export const SORT_OPTIONS: { value: SortKey; label: string }[] = [
   { value: "name", label: "Name: A–Z" },
 ];
 
-export function filterProducts(catalog: CatalogIndex, { category, query, sort }: { category: string; query: string; sort: SortKey }) {
+export function filterProducts(
+  catalog: CatalogIndex,
+  { category, query, sort }: { category: string; query: string; sort: SortKey },
+) {
   const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
   const order = (product: Product) => catalog.productOrder.get(product.id) ?? 0;
   const sorters: Record<SortKey, (a: Product, b: Product) => number> = {

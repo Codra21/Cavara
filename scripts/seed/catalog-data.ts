@@ -83,7 +83,7 @@ export const PRODUCTS: Product[] = [
     name: "Jelly Bean Amphora Rectangular Dish",
     category: "serveware",
     price: 1050,
-    summary: "Jelly Bean Amphora dish – 9\" (rectangular).",
+    summary: 'Jelly Bean Amphora dish – 9" (rectangular).',
     details: ["Material – Ceramic", "Available in Custard Yellow, Pink, Green, Purple"],
     note: "Perfect for luxury home serving with a vibrant, elegant touch.",
     variants: [
@@ -138,7 +138,7 @@ export const PRODUCTS: Product[] = [
     name: "Jelly Bean Amphora Octagonal Dish",
     category: "serveware",
     price: 1250,
-    summary: "Jelly Bean Amphora dish – 9.5\" (octagonal).",
+    summary: 'Jelly Bean Amphora dish – 9.5" (octagonal).',
     details: ["Material – Ceramic", "Available in Custard Yellow, Pink, Green, Purple"],
     note: "Perfect for luxury home serving with a vibrant, elegant touch.",
     variants: [
@@ -179,7 +179,12 @@ export const PRODUCTS: Product[] = [
     category: "home-accessories",
     price: 200,
     summary: "Leaf-shaped hand towel in soft coral fleece.",
-    details: ["Pink leaves – 25 × 17 cm", "Green leaves – 30 × 17 cm", "Material – Coral fleece", "Yarn specification – 150D"],
+    details: [
+      "Pink leaves – 25 × 17 cm",
+      "Green leaves – 30 × 17 cm",
+      "Material – Coral fleece",
+      "Yarn specification – 150D",
+    ],
     variants: [
       {
         name: "Pink leaves",
@@ -206,7 +211,12 @@ export const PRODUCTS: Product[] = [
     category: "home-accessories",
     price: 200,
     summary: "Coffee-themed hand towel in soft coral fleece.",
-    details: ["Charity coffee beans – 21 × 20 cm", "Baguette – 23 × 18 cm", "Material – Coral fleece", "Yarn specification – 150D"],
+    details: [
+      "Charity coffee beans – 21 × 20 cm",
+      "Baguette – 23 × 18 cm",
+      "Material – Coral fleece",
+      "Yarn specification – 150D",
+    ],
     variants: [
       {
         name: "Charity coffee beans",
@@ -405,7 +415,12 @@ export const PRODUCTS: Product[] = [
     category: "drinkware",
     price: 1650,
     summary: "Threaded ceramic cup with a dustproof lid and steel spoon.",
-    details: ["Cup mouth – 9 cm", "Height – 15 cm", "Material – Ceramic", "Includes cup lid + complimentary steel spoon"],
+    details: [
+      "Cup mouth – 9 cm",
+      "Height – 15 cm",
+      "Material – Ceramic",
+      "Includes cup lid + complimentary steel spoon",
+    ],
     note: "The steel spoon is a random gift and may not be shown in the detailed pictures. The cup lid is a dustproof lid only; it is not sealed or airtight.",
     variants: [
       {
@@ -429,7 +444,13 @@ export const PRODUCTS: Product[] = [
     category: "drinkware",
     price: 1400,
     summary: "Spiral ceramic cup with a unicorn lid and steel spoon.",
-    details: ["Mouth – 8 cm", "Height – about 9.6 cm without lid", "Material – Ceramic", "Packaging – Paper box", "Includes unicorn cup lid + steel spoon"],
+    details: [
+      "Mouth – 8 cm",
+      "Height – about 9.6 cm without lid",
+      "Material – Ceramic",
+      "Packaging – Paper box",
+      "Includes unicorn cup lid + steel spoon",
+    ],
     note: "The steel spoon is a random gift and may not be shown in the detailed pictures.",
     variants: [
       {
@@ -450,7 +471,12 @@ export const PRODUCTS: Product[] = [
     category: "drinkware",
     price: 1750,
     summary: "Ceramic straw cup with a silicone lid and glass straw.",
-    details: ["Includes silicone lid + glass straw", "Material – Ceramic", "Capacity – 400 ml", "Size – 12 × 17 × 5.5 cm"],
+    details: [
+      "Includes silicone lid + glass straw",
+      "Material – Ceramic",
+      "Capacity – 400 ml",
+      "Size – 12 × 17 × 5.5 cm",
+    ],
     variants: [
       {
         name: "Orange",

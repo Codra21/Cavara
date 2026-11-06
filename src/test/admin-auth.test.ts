@@ -1,6 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import { ADMIN_SESSION_SECONDS, LOGIN_LIMITS, LOGIN_WINDOW_MS } from "@/domain/admin";
-import { getIdentity, listAudit, ownerCredentials, secretMatches, signIn, signOut, tokenHash } from "@/server/admin/auth.server";
+import {
+  getIdentity,
+  listAudit,
+  ownerCredentials,
+  secretMatches,
+  signIn,
+  signOut,
+  tokenHash,
+} from "@/server/admin/auth.server";
 import { createTestD1 } from "./helpers/d1";
 
 const owner = { username: "owner", secret: "a-long-test-secret-value-1234567890" };
@@ -14,7 +22,10 @@ describe("ownerCredentials", () => {
   });
   test("username defaults to owner and is case-insensitive", () => {
     expect(ownerCredentials({ ADMIN_SECRET: "s" })).toEqual({ username: "owner", secret: "s" });
-    expect(ownerCredentials({ ADMIN_SECRET: "s", ADMIN_USERNAME: " Forhad " })).toEqual({ username: "forhad", secret: "s" });
+    expect(ownerCredentials({ ADMIN_SECRET: "s", ADMIN_USERNAME: " Forhad " })).toEqual({
+      username: "forhad",
+      secret: "s",
+    });
   });
 });
 
@@ -33,7 +44,10 @@ describe("signIn", () => {
     const result = await signIn(db, owner, { ...good, username: " OWNER " }, T0);
     if (!result.ok) throw new Error(result.error);
     expect(result.token).toMatch(/^[0-9a-f]{64}$/);
-    const rows = db.sqlite.query("SELECT token_hash, expires_at FROM admin_sessions").all() as { token_hash: string; expires_at: number }[];
+    const rows = db.sqlite.query("SELECT token_hash, expires_at FROM admin_sessions").all() as {
+      token_hash: string;
+      expires_at: number;
+    }[];
     expect(rows).toEqual([{ token_hash: tokenHash(result.token), expires_at: T0 + ADMIN_SESSION_SECONDS * 1000 }]);
     expect(JSON.stringify(db.sqlite.query("SELECT * FROM admin_sessions").all())).not.toContain(result.token);
     const audit = await listAudit(db);
@@ -60,7 +74,8 @@ describe("signIn", () => {
 
   test("blocks a username across clients after the username limit", async () => {
     const db = createTestD1();
-    for (let i = 0; i < LOGIN_LIMITS.username; i++) await signIn(db, owner, { ...good, password: "wrong", client: `10.0.0.${i}` }, T0);
+    for (let i = 0; i < LOGIN_LIMITS.username; i++)
+      await signIn(db, owner, { ...good, password: "wrong", client: `10.0.0.${i}` }, T0);
     expect((await signIn(db, owner, { ...good, client: "10.0.1.1" }, T0)).ok).toBe(false);
   });
 
@@ -79,11 +94,17 @@ describe("sessions", () => {
     const db = createTestD1();
     const result = await signIn(db, owner, good, T0);
     if (!result.ok) throw new Error(result.error);
-    expect(await getIdentity(db, owner, result.token, T0 + 1000)).toEqual({ id: "owner", username: "owner", role: "owner" });
+    expect(await getIdentity(db, owner, result.token, T0 + 1000)).toEqual({
+      id: "owner",
+      username: "owner",
+      role: "owner",
+    });
     expect(await getIdentity(db, owner, undefined, T0)).toBeNull();
     expect(await getIdentity(db, owner, "not-a-token", T0)).toBeNull();
     expect(await getIdentity(db, owner, result.token, T0 + ADMIN_SESSION_SECONDS * 1000)).toBeNull();
-    expect(await getIdentity(db, { ...owner, secret: "rotated-secret-value-0987654321" }, result.token, T0 + 1000)).toBeNull();
+    expect(
+      await getIdentity(db, { ...owner, secret: "rotated-secret-value-0987654321" }, result.token, T0 + 1000),
+    ).toBeNull();
   });
 
   test("sign-out deletes the session and records it", async () => {

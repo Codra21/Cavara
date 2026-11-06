@@ -34,11 +34,18 @@ export function ShopSection({ category: requested }: { category: string }) {
   useEffect(() => {
     if (!focusAfterExpand.current) return;
     focusAfterExpand.current = false;
-    gridRef.current?.children[SHOP_PAGE_SIZE]?.querySelector<HTMLButtonElement>(".product-name button")?.focus({ preventScroll: true });
+    gridRef.current?.children[SHOP_PAGE_SIZE]
+      ?.querySelector<HTMLButtonElement>(".product-name button")
+      ?.focus({ preventScroll: true });
   }, [expanded]);
 
   const setCategory = (id: string) =>
-    navigate({ to: "/", search: (prev) => ({ ...prev, category: id === "all" ? undefined : id }), replace: true, resetScroll: false });
+    navigate({
+      to: "/",
+      search: (prev) => ({ ...prev, category: id === "all" ? undefined : id }),
+      replace: true,
+      resetScroll: false,
+    });
 
   return (
     <section className="section shop" id="shop" aria-labelledby="shop-title" tabIndex={-1}>
@@ -47,14 +54,22 @@ export function ShopSection({ category: requested }: { category: string }) {
           <p className="sub-heading">Trending pieces</p>
           <h2 id="shop-title">The collection</h2>
           <p className="section-note" aria-live="polite">
-            {trimmed ? `${pluralize(products.length, "piece")}${scope} for “${trimmed}”` : `Showing ${pluralize(products.length, "piece")}${scope}`}
+            {trimmed
+              ? `${pluralize(products.length, "piece")}${scope} for “${trimmed}”`
+              : `Showing ${pluralize(products.length, "piece")}${scope}`}
           </p>
         </div>
 
         <div className="shop-toolbar" data-reveal="">
           <div className="filter-chips" role="group" aria-label="Filter by collection">
             {filters.map((filter) => (
-              <button key={filter.id} className="filter-chip" type="button" aria-pressed={filter.id === category} onClick={() => setCategory(filter.id)}>
+              <button
+                key={filter.id}
+                className="filter-chip"
+                type="button"
+                aria-pressed={filter.id === category}
+                onClick={() => setCategory(filter.id)}
+              >
                 {filter.name} <span className="filter-chip-count">{filter.count}</span>
               </button>
             ))}
@@ -86,7 +101,12 @@ export function ShopSection({ category: requested }: { category: string }) {
           </div>
         </div>
 
-        <ul ref={gridRef} className={`product-grid${collapsed ? " is-collapsed" : ""}`} aria-label="Products" hidden={products.length === 0}>
+        <ul
+          ref={gridRef}
+          className={`product-grid${collapsed ? " is-collapsed" : ""}`}
+          aria-label="Products"
+          hidden={products.length === 0}
+        >
           {products.map((product, index) => (
             <ProductCard key={product.id} product={product} index={index} />
           ))}

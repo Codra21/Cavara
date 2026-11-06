@@ -19,9 +19,13 @@ export function orderMessage(catalog: CatalogIndex, items: BagItem[]) {
     const product = catalog.productById.get(item.id);
     if (!product) return [];
     const variant = getVariant(product, item.variant);
-    return [`${index + 1}. ${product.name} — Color: ${variant.name} — Qty: ${item.qty} — ${formatPrice(product.price * item.qty)}`];
+    return [
+      `${index + 1}. ${product.name} — Color: ${variant.name} — Qty: ${item.qty} — ${formatPrice(product.price * item.qty)}`,
+    ];
   });
-  return [`Hi Cavara, I'd like to order:`, ...lines, `Subtotal: ${formatPrice(bagSubtotal(catalog, items))}`].join("\n");
+  return [`Hi Cavara, I'd like to order:`, ...lines, `Subtotal: ${formatPrice(bagSubtotal(catalog, items))}`].join(
+    "\n",
+  );
 }
 
 export async function copyText(text: string) {

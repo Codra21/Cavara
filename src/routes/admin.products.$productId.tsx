@@ -23,7 +23,10 @@ function ProductEditorRoute() {
   const product = useQuery({ ...adminProductQuery(numericId), enabled: numericId > 0 });
 
   const back = (
-    <Link to="/admin/products" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
+    <Link
+      to="/admin/products"
+      className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+    >
       <ArrowLeft className="size-4" /> All products
     </Link>
   );
@@ -61,7 +64,11 @@ function ProductEditorRoute() {
     <>
       {back}
       {/* A new revision (after any save) remounts the form with the saved values. */}
-      <ProductEditor key={loaded ? `${loaded.id}:${loaded.revision}` : "new"} product={loaded} categories={categories.data} />
+      <ProductEditor
+        key={loaded ? `${loaded.id}:${loaded.revision}` : "new"}
+        product={loaded}
+        categories={categories.data}
+      />
     </>
   );
 }

@@ -91,7 +91,8 @@ export function ProductList() {
               aria-pressed={status === value}
               onClick={() => setStatus(value)}
             >
-              {value === "all" ? "All" : STATUS_LABELS[value]} <span className="text-muted-foreground tabular-nums">{counts[value]}</span>
+              {value === "all" ? "All" : STATUS_LABELS[value]}{" "}
+              <span className="text-muted-foreground tabular-nums">{counts[value]}</span>
             </Button>
           ))}
         </div>
@@ -106,7 +107,9 @@ export function ProductList() {
       <Card className="py-0">
         <CardContent className="px-0">
           {products.isPending ? <p className="p-4 text-sm text-muted-foreground">Loading…</p> : null}
-          {products.data && visible.length === 0 ? <p className="p-4 text-sm text-muted-foreground">No products match.</p> : null}
+          {products.data && visible.length === 0 ? (
+            <p className="p-4 text-sm text-muted-foreground">No products match.</p>
+          ) : null}
           {visible.length > 0 ? (
             <Table>
               <TableHeader>
@@ -126,7 +129,14 @@ export function ProductList() {
                   <TableRow key={product.id}>
                     <TableCell className="pl-4">
                       {product.thumbnail ? (
-                        <img src={product.thumbnail} alt="" width={40} height={40} loading="lazy" className="size-10 rounded-sm bg-muted object-cover" />
+                        <img
+                          src={product.thumbnail}
+                          alt=""
+                          width={40}
+                          height={40}
+                          loading="lazy"
+                          className="size-10 rounded-sm bg-muted object-cover"
+                        />
                       ) : (
                         <span className="block size-10 rounded-sm bg-muted" />
                       )}
@@ -150,7 +160,11 @@ export function ProductList() {
                     </TableCell>
                     <TableCell className="text-right tabular-nums">{formatPrice(product.price)}</TableCell>
                     <TableCell className="hidden text-right tabular-nums md:table-cell">
-                      {product.costPrice === null ? <span className="text-muted-foreground">—</span> : formatPrice(product.costPrice)}
+                      {product.costPrice === null ? (
+                        <span className="text-muted-foreground">—</span>
+                      ) : (
+                        formatPrice(product.costPrice)
+                      )}
                     </TableCell>
                     <TableCell className="hidden pr-4 text-right tabular-nums md:table-cell">
                       <Margin product={product} />

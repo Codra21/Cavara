@@ -3,7 +3,11 @@
 // /admin layout has confirmed the session.
 import { queryOptions } from "@tanstack/react-query";
 import { listAuditFn } from "@/server/functions/admin-auth.functions";
-import { getAdminProductFn, listAdminCategoriesFn, listAdminProductsFn } from "@/server/functions/admin-catalog.functions";
+import {
+  getAdminProductFn,
+  listAdminCategoriesFn,
+  listAdminProductsFn,
+} from "@/server/functions/admin-catalog.functions";
 
 export const ADMIN_QUERY_KEY = ["admin"] as const;
 
@@ -11,7 +15,10 @@ export const auditQuery = () =>
   queryOptions({ queryKey: [...ADMIN_QUERY_KEY, "audit"], queryFn: ({ signal }) => listAuditFn({ signal }) });
 
 export const adminProductsQuery = () =>
-  queryOptions({ queryKey: [...ADMIN_QUERY_KEY, "products"], queryFn: ({ signal }) => listAdminProductsFn({ signal }) });
+  queryOptions({
+    queryKey: [...ADMIN_QUERY_KEY, "products"],
+    queryFn: ({ signal }) => listAdminProductsFn({ signal }),
+  });
 
 export const adminCategoriesQuery = () =>
   queryOptions({

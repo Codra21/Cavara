@@ -14,8 +14,8 @@
       "database_name": "cavara-dev",
       "database_id": "ad9a1584-6a86-4b2f-bad6-752dd0b3944a",
       "migrations_dir": "migrations",
-      "remote": true
-    }
+      "remote": true,
+    },
   ],
   "env": {
     // Selected with CLOUDFLARE_ENV=production at build time (Cloudflare Vite plugin) or --env production (wrangler).
@@ -26,9 +26,9 @@
           "binding": "DB",
           "database_name": "cavara-prod",
           "database_id": "67ebf200-8a0d-4a00-b932-0ced126e9856",
-          "migrations_dir": "migrations"
-        }
-      ]
-    }
-  }
+          "migrations_dir": "migrations",
+        },
+      ],
+    },
+  },
 }

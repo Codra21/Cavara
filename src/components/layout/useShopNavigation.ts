@@ -15,7 +15,10 @@ export function useShopNavigation() {
       if (pathname !== "/" || category !== undefined) {
         await navigate({
           to: "/",
-          search: (prev: Record<string, unknown>) => ({ ...(pathname === "/" ? prev : {}), category: category === "all" ? undefined : category ?? (prev.category as string | undefined) }),
+          search: (prev: Record<string, unknown>) => ({
+            ...(pathname === "/" ? prev : {}),
+            category: category === "all" ? undefined : (category ?? (prev.category as string | undefined)),
+          }),
           hashScrollIntoView: false,
           resetScroll: false,
           replace: pathname === "/",
@@ -23,6 +26,6 @@ export function useShopNavigation() {
       }
       window.requestAnimationFrame(() => scrollToShop({ focusSearch }));
     },
-    [navigate, pathname]
+    [navigate, pathname],
   );
 }

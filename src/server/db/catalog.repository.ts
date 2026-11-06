@@ -39,7 +39,8 @@ const PUBLISHED_PRODUCTS = "SELECT id FROM products WHERE status = 'published'";
 function parseDetails(raw: string, productId: number): string[] | undefined {
   try {
     const value: unknown = JSON.parse(raw);
-    if (Array.isArray(value) && value.every((item) => typeof item === "string")) return value.length ? value : undefined;
+    if (Array.isArray(value) && value.every((item) => typeof item === "string"))
+      return value.length ? value : undefined;
   } catch {
     // fall through
   }
@@ -74,8 +75,14 @@ export async function getPublishedCatalog(db: D1Database): Promise<Catalog> {
   for (const row of (variantResult?.results ?? []) as VariantRow[]) {
     const list = variantsByProduct.get(row.product_id) ?? [];
     // position is the variant index saved in bags; positions must be 0..n-1 without gaps.
-    if (row.position !== list.length) throw new Error(`product ${row.product_id} has a gap at variant position ${list.length}`);
-    list.push({ name: row.name, swatch: row.swatch, images: imagesByVariant.get(row.id) ?? [], availability: row.availability });
+    if (row.position !== list.length)
+      throw new Error(`product ${row.product_id} has a gap at variant position ${list.length}`);
+    list.push({
+      name: row.name,
+      swatch: row.swatch,
+      images: imagesByVariant.get(row.id) ?? [],
+      availability: row.availability,
+    });
     variantsByProduct.set(row.product_id, list);
   }
 
