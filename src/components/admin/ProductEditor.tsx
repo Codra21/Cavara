@@ -3,7 +3,8 @@ import { useNavigate } from "@tanstack/react-router";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ExternalLink, ImagePlus, Plus, Trash2, X } from "lucide-react";
 import { useId, useMemo, useRef, useState } from "react";
 import { formatPrice } from "@/domain/catalog";
-import { MAX_UPLOAD_BYTES, mediaUrl, UPLOAD_ACCEPT } from "@/domain/media";
+import { IMAGE_OPTIMIZATION, MAX_SOURCE_BYTES, mediaUrl, UPLOAD_ACCEPT } from "@/domain/media";
+import { optimizeImage } from "@/lib/optimize-image";
 import {
   type AdminCategory,
   type AdminProduct,
@@ -79,7 +80,13 @@ function Field({
   );
 }
 
-/** Uploads pictures one at a time and hands back the new R2 keys; the product saves them with everything else. */
+function formatBytes(bytes: number) {
+  return bytes >= 1024 * 1024
+    ? `${(bytes / 1024 / 1024).toFixed(1)} MB`
+    : `${Math.max(1, Math.round(bytes / 1024))} KB`;
+}
+
+/** Optimizes and uploads pictures one at a time and hands back the new R2 keys; the product saves them with everything else. */
 function PictureUpload({
   productId,
   label,
@@ -94,30 +101,41 @@ function PictureUpload({
   const input = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
+  const [summary, setSummary] = useState<string[]>([]);
 
   async function upload(files: File[]) {
     const problems: string[] = [];
     const accepted = files.slice(0, room);
     if (files.length > room) problems.push(`Only ${room} more picture${room === 1 ? "" : "s"} fit on this colour.`);
     const keys: string[] = [];
+    const notes: string[] = [];
     for (const [index, file] of accepted.entries()) {
-      if (file.size > MAX_UPLOAD_BYTES) {
-        problems.push(`${file.name} is larger than ${MAX_UPLOAD_BYTES / 1024 / 1024} MB.`);
+      if (file.size > MAX_SOURCE_BYTES) {
+        problems.push(`${file.name} is larger than ${MAX_SOURCE_BYTES / 1024 / 1024} MB.`);
         continue;
       }
-      setStatus(`Uploading ${index + 1} of ${accepted.length}…`);
-      const form = new FormData();
-      form.set("file", file);
-      form.set("productId", productId);
+      const step = accepted.length > 1 ? ` ${index + 1} of ${accepted.length}` : "";
       try {
+        // Every picture is resized and converted to WebP here; the server accepts nothing else.
+        setStatus(`Optimizing${step}…`);
+        const optimized = await optimizeImage(file);
+        setStatus(`Uploading${step}…`);
+        const form = new FormData();
+        form.set("file", optimized.file);
+        form.set("productId", productId);
         const result = await uploadImageFn({ data: form });
-        if (result.ok) keys.push(result.key);
-        else problems.push(result.error);
+        if (result.ok) {
+          keys.push(result.key);
+          notes.push(
+            `${file.name}: ${formatBytes(optimized.originalBytes)} → ${formatBytes(result.bytes)}, ${result.width}×${result.height}`,
+          );
+        } else problems.push(result.error);
       } catch (error) {
         problems.push(error instanceof Error && error.message ? error.message : `Could not upload ${file.name}.`);
       }
     }
     if (keys.length) onUploaded(keys);
+    setSummary(notes);
     setErrors(problems);
     setStatus(null);
     if (input.current) input.current.value = "";
@@ -147,9 +165,17 @@ function PictureUpload({
           <ImagePlus /> {status ?? "Add pictures"}
         </Button>
         <span className="text-xs text-muted-foreground">
-          WebP, JPEG, PNG or AVIF, up to 5 MB each. WebP keeps the shop fastest.
+          Any JPEG, PNG, WebP or AVIF. Pictures are resized to {IMAGE_OPTIMIZATION.maxEdge} px and converted to WebP
+          before upload.
         </span>
       </div>
+      {summary.length ? (
+        <ul aria-live="polite" className="text-xs text-muted-foreground">
+          {summary.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      ) : null}
       {errors.length ? (
         <ul role="alert" className="list-disc pl-5 text-sm text-destructive">
           {errors.map((error) => (
