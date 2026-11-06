@@ -14,7 +14,7 @@
 @import "tailwindcss" source(none);
 @source "../components/ui";
 @source "../components/admin";
-@source "../routes/admin.tsx";
+@source "../routes/admin*.tsx";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 

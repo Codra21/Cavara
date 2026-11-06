@@ -47,13 +47,25 @@ export function auditStatement(
   targetId: string,
   details: Record<string, AuditValue> = {},
   now = new Date(),
+  /** Optional SQL condition (with its parameters); the row is written only when it holds, e.g. a revision check. */
+  guard?: { sql: string; params: unknown[] },
 ): D1PreparedStatement {
   return db
     .prepare(
       `INSERT INTO admin_audit (id, actor_id, actor_username, actor_role, action, target_id, details, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+       SELECT ?, ?, ?, ?, ?, ?, ?, ? WHERE ${guard?.sql ?? "1"}`,
     )
-    .bind(crypto.randomUUID(), actor.id, actor.username, actor.role, action, targetId, JSON.stringify(details), now.toISOString());
+    .bind(
+      crypto.randomUUID(),
+      actor.id,
+      actor.username,
+      actor.role,
+      action,
+      targetId,
+      JSON.stringify(details),
+      now.toISOString(),
+      ...(guard?.params ?? []),
+    );
 }
 
 /**
