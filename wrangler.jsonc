@@ -46,6 +46,9 @@
         // scripts/db/migrate-prod.ts and the v1 cache path in src/server/catalog-cache.server.ts.
         "CATALOG_SNAPSHOT_KEY": "snapshots/catalog-v1.json",
         "USAGE_ACCOUNT_ID": "7b55798e5a2b91035dece6c8411564e4",
+        // R2 custom domain of cavara-images-prod (connected 2026-11-06). Images skip the Worker and are cached by
+        // Cloudflare's CDN; the /media route stays as a fallback for old links.
+        "IMAGE_BASE_URL": "https://images.cavarabd.com",
       },
       // Hourly usage alert (src/server/usage-alert.server.ts). Minute 10 gives the analytics for the hour that just
       // ended time to arrive. Free allows 5 cron triggers per account.
