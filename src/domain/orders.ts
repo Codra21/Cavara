@@ -156,3 +156,197 @@ export function checkoutFieldErrors(issues: { path: PropertyKey[]; message: stri
   }
   return errors;
 }
+
+// ---------------------------------------------------------------------------------------------------------------
+// Admin: order status changes (unit 7b)
+
+/**
+ * Allowed next fulfilment statuses. Orders move forward one step at a time, can be cancelled until delivered, and a
+ * cancelled order can be reopened as new. Delivered is final, so the dashboard's sales stay stable.
+ */
+export const STATUS_TRANSITIONS: Record<OrderStatus, readonly OrderStatus[]> = {
+  new: ["confirmed", "cancelled"],
+  confirmed: ["dispatched", "cancelled"],
+  dispatched: ["delivered", "cancelled"],
+  delivered: [],
+  cancelled: ["new"],
+};
+
+export function canChangeStatus(from: OrderStatus, to: OrderStatus): boolean {
+  return from === to || STATUS_TRANSITIONS[from].includes(to);
+}
+
+export const STATUS_LABELS: Record<OrderStatus, string> = {
+  new: "New",
+  confirmed: "Confirmed",
+  dispatched: "Dispatched",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+};
+
+export const PAYMENT_LABELS: Record<PaymentStatus, string> = {
+  unpaid: "Unpaid",
+  paid: "Paid",
+  refunded: "Refunded",
+};
+
+/** Verb for the button that moves an order to `status`. */
+export const STATUS_ACTIONS: Record<OrderStatus, string> = {
+  new: "Reopen",
+  confirmed: "Confirm",
+  dispatched: "Mark dispatched",
+  delivered: "Mark delivered",
+  cancelled: "Cancel order",
+};
+
+export const updateOrderSchema = z
+  .object({
+    id: z.uuid(),
+    /** The version the admin loaded; a stale one is refused. */
+    version: z.number().int().min(1),
+    status: z.enum(ORDER_STATUSES),
+    paymentStatus: z.enum(PAYMENT_STATUSES),
+    note: z
+      .string()
+      .transform((value) => value.trim())
+      .pipe(z.string().max(300, "Keep the note under 300 characters")),
+  })
+  .strict();
+
+export type UpdateOrderInput = z.output<typeof updateOrderSchema>;
+
+export type UpdateOrderResult = { ok: true; version: number } | { ok: false; error: string; conflict?: boolean };
+
+export const ORDER_PAGE_SIZE = 50;
+
+export const orderListSchema = z.object({
+  status: z.enum(["all", ...ORDER_STATUSES]).default("all"),
+  /** A phone number or an order reference; anything else matches nothing. */
+  search: z.string().trim().max(40).default(""),
+  /** Keyset cursor: the last row of the previous page. */
+  after: z
+    .object({ createdAt: z.string().max(40), id: z.uuid() })
+    .nullable()
+    .default(null),
+});
+
+export type OrderListQuery = z.input<typeof orderListSchema>;
+
+export interface AdminOrderSummary {
+  id: string;
+  reference: string;
+  customerName: string;
+  phone: string;
+  zoneName: string;
+  total: number;
+  itemCount: number;
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  createdAt: string;
+}
+
+export interface AdminOrderPage {
+  orders: AdminOrderSummary[];
+  /** Pass back as `after` for the next page; null on the last page. */
+  next: { createdAt: string; id: string } | null;
+}
+
+export interface AdminOrderLine {
+  line: number;
+  productId: number;
+  variantPosition: number;
+  productName: string;
+  variantName: string;
+  availability: string;
+  unitPrice: number;
+  costPrice: number | null;
+  qty: number;
+  lineTotal: number;
+}
+
+export interface AdminOrderEvent {
+  id: number;
+  fromStatus: OrderStatus | null;
+  toStatus: OrderStatus;
+  fromPaymentStatus: PaymentStatus | null;
+  toPaymentStatus: PaymentStatus;
+  actorUsername: string | null;
+  note: string;
+  createdAt: string;
+}
+
+export interface AdminOrderDetail extends AdminOrderSummary {
+  address: string;
+  note: string;
+  zoneId: string;
+  deliveryCharge: number;
+  subtotal: number;
+  version: number;
+  shopDay: string;
+  lines: AdminOrderLine[];
+  history: AdminOrderEvent[];
+}
+
+/** Sales effect of one order on its day's totals: profit from lines that have a cost price. */
+export function orderSales(lines: Pick<AdminOrderLine, "unitPrice" | "costPrice" | "qty">[], subtotal: number) {
+  return {
+    revenue: subtotal,
+    profit: lines.reduce(
+      (sum, line) => sum + (line.costPrice === null ? 0 : (line.unitPrice - line.costPrice) * line.qty),
+      0,
+    ),
+    linesWithoutCost: lines.filter((line) => line.costPrice === null).length,
+  };
+}
+
+/**
+ * What the admin search box means: a phone number, an order reference, or nothing searchable.
+ * Both are exact, indexed lookups (D1 read budget: no LIKE scans).
+ */
+export function parseOrderSearch(raw: string): { phone: string } | { reference: string } | null {
+  const value = raw.trim();
+  if (!value) return null;
+  const phone = normalizePhone(value);
+  if (phone) return { phone };
+  const reference = value.toUpperCase().replace(/^CV-?/, "");
+  return /^[2-9A-HJKMNP-Z]{6}$/.test(reference) ? { reference: `CV-${reference}` } : null;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
+// Admin: delivery zones
+
+export const zoneInputSchema = z.object({
+  /** null for a new zone; its id is made from the name. */
+  id: z.string().max(40).nullable(),
+  name: z
+    .string()
+    .transform((value) => value.replace(/\s+/g, " ").trim())
+    .pipe(z.string().min(1, "Name the delivery area").max(60)),
+  charge: z.number().int("Whole taka only").min(0).max(100_000),
+  active: z.boolean(),
+});
+
+export const saveZonesSchema = z.object({
+  zones: z
+    .array(zoneInputSchema)
+    .min(1)
+    .max(20)
+    .superRefine((zones, ctx) => {
+      if (!zones.some((zone) => zone.active)) {
+        ctx.addIssue({ code: "custom", message: "Keep at least one delivery area active, or checkout cannot work" });
+      }
+      const names = new Set<string>();
+      for (const zone of zones) {
+        const key = zone.name.toLowerCase();
+        if (names.has(key)) ctx.addIssue({ code: "custom", message: `Two areas are named "${zone.name}"` });
+        names.add(key);
+      }
+    }),
+});
+
+export type ZoneInput = z.output<typeof zoneInputSchema>;
+
+export interface AdminZone extends DeliveryZone {
+  active: boolean;
+  sort: number;
+}

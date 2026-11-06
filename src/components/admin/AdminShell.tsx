@@ -46,7 +46,7 @@ export function AdminShell({
             <Link to="/admin" className="flex items-center gap-3" aria-label="Admin home">
               <BrandLogo />
             </Link>
-            <nav aria-label="Admin" className="flex items-center gap-1">
+            <nav aria-label="Admin" className="flex flex-wrap items-center gap-1">
               <Link
                 to="/admin"
                 activeOptions={{ exact: true }}
@@ -55,9 +55,17 @@ export function AdminShell({
               >
                 Overview
               </Link>
+              <Link to="/admin/orders" className={navClass} activeProps={{ className: activeNavClass }}>
+                Orders
+              </Link>
               <Link to="/admin/products" className={navClass} activeProps={{ className: activeNavClass }}>
                 Products
               </Link>
+              {admin.role === "owner" ? (
+                <Link to="/admin/zones" className={navClass} activeProps={{ className: activeNavClass }}>
+                  Delivery
+                </Link>
+              ) : null}
             </nav>
           </div>
           <div className="flex items-center gap-3">
