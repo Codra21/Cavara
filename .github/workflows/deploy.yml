@@ -1,0 +1,81 @@
+# Deploys the production Worker (cavara-web → cavarabd.com) on every push to main.
+#
+# Needs two repository secrets (Settings → Secrets and variables → Actions):
+#   CLOUDFLARE_API_TOKEN   token on Hridoyn02's Cloudflare account: "Edit Cloudflare Workers" template plus D1 Read
+#   CLOUDFLARE_ACCOUNT_ID  7b55798e5a2b91035dece6c8411564e4
+#
+# D1 migrations are NOT applied here: they need a backup first (wrangler d1 export) and a deliberate go-ahead.
+# The job stops before deploying if cavara-prod has unapplied migrations, so code never ships ahead of its schema.
+# Docs: https://developers.cloudflare.com/workers/ci-cd/external-cicd/github-actions/
+
+name: Deploy production
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# One production deploy at a time; a newer push waits instead of cancelling a deploy halfway.
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: production
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          # package.json "packageManager": "bun@1.4.4", the same Bun as local development (.mise.toml).
+          bun-version-file: package.json
+
+      - name: Install
+        run: bun install --frozen-lockfile
+
+      - name: Typecheck and test
+        run: bun run check
+
+      - name: Format check
+        run: bun run format:check
+
+      - name: Build for production
+        run: bun run build:prod
+
+      - name: Stop if cavara-prod has unapplied migrations
+        run: |
+          status="$(bunx wrangler d1 migrations list cavara-prod --remote --env production 2>&1)"
+          echo "$status"
+          if ! grep -q "No migrations to apply" <<<"$status"; then
+            echo "::error::cavara-prod has unapplied migrations. Back it up and run 'bun run db:migrate:prod', then re-run this workflow."
+            exit 1
+          fi
+
+      - name: Deploy
+        id: deploy
+        uses: cloudflare/wrangler-action@v4
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # Uses the project's own wrangler (node_modules). The production build already wrote the flattened
+          # production config (dist/server/wrangler.json), which plain `wrangler deploy` picks up.
+          packageManager: bun
+          command: deploy
+
+      - name: Smoke test cavarabd.com
+        run: |
+          # Stable pages only: product URLs can change from the admin.
+          for path in / /robots.txt; do
+            code="$(curl -s -o /dev/null -w '%{http_code}' --retry 3 --retry-delay 5 "https://cavarabd.com$path")"
+            echo "$path → $code"
+            test "$code" = "200"
+          done

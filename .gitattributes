@@ -1,0 +1,9 @@
+# LF everywhere, including Windows checkouts with core.autocrlf=true, so oxfmt (which writes LF) and CI agree.
+* text=auto eol=lf
+*.webp binary
+*.jpg binary
+*.jpeg binary
+*.png binary
+*.avif binary
+*.ico binary
+*.woff2 binary

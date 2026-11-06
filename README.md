@@ -39,5 +39,14 @@ Bun 1.4.4 (pinned in `package.json` and `.mise.toml`).
 - `src/test/` — `bun test` suites
 - `public/` — icons, brand assets and `product-images/`
 
-`public/product-images/` is not in git. Copy it in locally before running the dev server or tests; product images
-move to R2 in a later step.
+## Deploying
+
+Pushing to `main` deploys https://cavarabd.com (`.github/workflows/deploy.yml`): checks, production build,
+`wrangler deploy`, smoke test. It needs the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`.
+The workflow never migrates D1; it stops if `cavara-prod` has unapplied migrations, so back up and run
+`bun run db:migrate:prod` first, then re-run it.
+
+## Images
+
+Product images live in R2 (`cavara-images-dev`, `cavara-images-prod`) and are served at `/media/<key>`.
+`public/product-images/` is not in git; it is only the source for `bun scripts/r2/upload-product-images.ts`.
