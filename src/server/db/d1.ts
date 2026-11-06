@@ -104,4 +104,8 @@ export interface CloudflareEnv {
   TELEGRAM_USAGE_CHAT_ID?: string;
   /** HMAC key for order rate-limit rows (secret, 32+ characters). Unset: a fixed fallback key, with a warning. */
   ORDER_RATE_LIMIT_SECRET?: string;
+  /** Telegram chat for order alerts (secret), separate from the usage chat. Unset: alerts wait in the outbox. */
+  TELEGRAM_CHAT_ID?: string;
+  /** Origin for admin links in order alerts (var). Defaults to https://cavarabd.com. */
+  ORDER_ADMIN_BASE_URL?: string;
 }

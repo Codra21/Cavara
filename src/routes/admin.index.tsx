@@ -1,5 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ActivityLog } from "@/components/admin/ActivityLog";
+import { DashboardPanel } from "@/components/admin/DashboardPanel";
 import { Button } from "@/components/ui/button";
 
 export const Route = createFileRoute("/admin/")({
@@ -7,6 +8,8 @@ export const Route = createFileRoute("/admin/")({
 });
 
 function AdminOverview() {
+  const { adminSession } = Route.useRouteContext();
+  const isOwner = adminSession.admin?.role === "owner";
   return (
     <>
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -25,6 +28,8 @@ function AdminOverview() {
           </Button>
         </div>
       </div>
+      {/* Revenue and profit use cost prices, so the dashboard is Owner-only. */}
+      {isOwner ? <DashboardPanel /> : null}
       <ActivityLog />
     </>
   );

@@ -40,13 +40,13 @@ export interface SubmitContext {
   newReference?: () => string;
 }
 
-const FAILED: SubmitOrderResult = {
+const FAILED: SubmitOutcome = {
   ok: false,
   code: "failed",
   message: "Your order could not be saved. Your bag is unchanged. Please try again, or message us on WhatsApp.",
 };
 
-const CONFLICT: SubmitOrderResult = {
+const CONFLICT: SubmitOutcome = {
   ok: false,
   code: "idempotency_conflict",
   message: "This checkout was already sent with different details. Review your bag and send it again.",
@@ -57,7 +57,12 @@ const isUnique = (error: unknown, column: string) =>
     error instanceof Error ? error.message : String(error),
   );
 
-export async function submitOrder(db: D1Database, raw: unknown, context: SubmitContext): Promise<SubmitOrderResult> {
+/** The public result plus, on success, the order id for the server-side alert (never sent to the shopper). */
+export type SubmitOutcome =
+  | Exclude<SubmitOrderResult, { ok: true }>
+  | (Extract<SubmitOrderResult, { ok: true }> & { orderId: string });
+
+export async function submitOrder(db: D1Database, raw: unknown, context: SubmitContext): Promise<SubmitOutcome> {
   const parsed = checkoutSchema.safeParse(raw);
   if (!parsed.success) {
     return {
@@ -78,7 +83,7 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
   const replay = await findOrderByIdempotencyKey(db, input.idempotencyKey);
   if (replay) {
     return replay.payload_hash === payloadHash
-      ? { ok: true, reference: replay.reference, total: replay.total, replayed: true }
+      ? { ok: true, reference: replay.reference, total: replay.total, replayed: true, orderId: replay.id }
       : CONFLICT;
   }
 
@@ -159,12 +164,12 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
     const reference = makeReference();
     try {
       await insertOrder(db, { ...base, reference });
-      return { ok: true, reference, total, replayed: false };
+      return { ok: true, reference, total, replayed: false, orderId: base.id };
     } catch (error) {
       if (isUnique(error, "idempotency_key")) {
         const saved = await findOrderByIdempotencyKey(db, input.idempotencyKey);
         if (saved?.payload_hash === payloadHash) {
-          return { ok: true, reference: saved.reference, total: saved.total, replayed: true };
+          return { ok: true, reference: saved.reference, total: saved.total, replayed: true, orderId: saved.id };
         }
         return saved ? CONFLICT : FAILED;
       }

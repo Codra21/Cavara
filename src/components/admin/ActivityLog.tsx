@@ -11,6 +11,8 @@ const ACTION_LABELS: Record<string, string> = {
   "product.created": "Created product",
   "product.updated": "Updated product",
   "image.uploaded": "Uploaded picture",
+  "order.updated": "Updated order",
+  "zones.updated": "Updated delivery areas",
 };
 
 // Fixed time zone so every admin sees shop time, whatever their device says.
@@ -21,7 +23,9 @@ export const adminTimeFormat = new Intl.DateTimeFormat("en-GB", {
 });
 
 function describe(entry: AdminAuditEntry): string | null {
-  const { name, status, price } = entry.details;
+  const { status, price } = entry.details;
+  // Products carry a name, orders a reference.
+  const name = entry.details.name ?? entry.details.reference;
   if (typeof name !== "string") return null;
   const parts = [name];
   if (typeof status === "string") parts.push(status);

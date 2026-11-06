@@ -2,6 +2,7 @@
 import { env } from "cloudflare:workers";
 import { ownerCredentials } from "./admin/auth.server";
 import type { D1Database, R2Bucket } from "./db/d1";
+import { alertSettings, type AlertSettings } from "./services/order-notifications.service";
 
 export function getImages(): R2Bucket {
   if (!env.IMAGES) throw new Error("R2 binding IMAGES is not configured for this Worker");
@@ -33,6 +34,11 @@ export function getOrderLimitSecret(): string {
   if (secret && secret.length >= 32) return secret;
   console.warn("ORDER_RATE_LIMIT_SECRET is not set (or shorter than 32 characters); using the fallback key");
   return "cavara-order-limits-fallback-v1";
+}
+
+/** Telegram order-alert settings, or null when TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing. */
+export function getAlertSettings(): AlertSettings | null {
+  return alertSettings(env);
 }
 
 /** Owner credentials, or null when ADMIN_SECRET is not set (admin disabled). */

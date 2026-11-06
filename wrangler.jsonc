@@ -52,7 +52,8 @@
       },
       // Hourly usage alert (src/server/usage-alert.server.ts). Minute 10 gives the analytics for the hour that just
       // ended time to arrive. Free allows 5 cron triggers per account.
-      "triggers": { "crons": ["10 * * * *"] },
+      // Order alert retries every 5 minutes (src/server.ts ORDER_ALERT_CRON); ~0 D1 rows read when nothing waits.
+      "triggers": { "crons": ["10 * * * *", "*/5 * * * *"] },
       "d1_databases": [
         {
           "binding": "DB",

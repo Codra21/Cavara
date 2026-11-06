@@ -3,6 +3,7 @@
 // /admin layout has confirmed the session.
 import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 import type { AdminOrderPage, OrderStatus } from "@/domain/orders";
+import { getDashboardFn } from "@/server/functions/admin-dashboard.functions";
 import { getOrderFn, listOrdersFn, listZonesFn } from "@/server/functions/admin-orders.functions";
 import { listAuditFn } from "@/server/functions/admin-auth.functions";
 import {
@@ -55,4 +56,12 @@ export const adminZonesQuery = () =>
   queryOptions({
     queryKey: [...ADMIN_QUERY_KEY, "zones"],
     queryFn: ({ signal }) => listZonesFn({ signal }),
+  });
+
+export const adminDashboardQuery = () =>
+  queryOptions({
+    queryKey: [...ADMIN_QUERY_KEY, "dashboard"],
+    queryFn: ({ signal }) => getDashboardFn({ signal }),
+    // Totals change only with orders and status changes; a minute is fresh enough and saves D1 reads.
+    staleTime: 60_000,
   });

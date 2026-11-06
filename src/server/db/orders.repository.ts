@@ -4,6 +4,7 @@ import type { Availability } from "@/lib/types";
 import type { D1Database } from "./d1";
 
 export interface OrderReplay {
+  id: string;
   reference: string;
   payload_hash: string;
   total: number;
@@ -11,7 +12,7 @@ export interface OrderReplay {
 
 export async function findOrderByIdempotencyKey(db: D1Database, key: string): Promise<OrderReplay | null> {
   return db
-    .prepare("SELECT reference, payload_hash, total FROM orders WHERE idempotency_key = ?")
+    .prepare("SELECT id, reference, payload_hash, total FROM orders WHERE idempotency_key = ?")
     .bind(key)
     .first<OrderReplay>();
 }
@@ -161,6 +162,13 @@ export async function insertOrder(db: D1Database, order: NewOrder): Promise<void
          ON CONFLICT (shop_day) DO UPDATE SET orders_received = orders_received + 1`,
       )
       .bind(order.shopDay),
+    // The Telegram alert is queued with the order, so it can never be lost (unit 8).
+    db
+      .prepare(
+        `INSERT INTO order_notification_outbox (order_id, next_attempt_at, created_at, updated_at)
+         VALUES (?, ?, ?, ?)`,
+      )
+      .bind(order.id, Date.parse(order.createdAt), order.createdAt, order.createdAt),
   ]);
 }
 
