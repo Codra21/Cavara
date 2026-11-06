@@ -1,6 +1,7 @@
 // Product editor rules shared by the admin form and the server functions. Pure: no React, no D1.
 import { z } from "zod";
 import type { Availability } from "@/lib/types";
+import { isImageKey } from "./media";
 
 export const PRODUCT_STATUSES = ["draft", "published", "archived"] as const;
 export type ProductStatus = (typeof PRODUCT_STATUSES)[number];
@@ -16,8 +17,6 @@ export const MAX_PRICE = 10_000_000;
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 /** Colours and gradients only. No url(), quotes or semicolons, so a swatch cannot load remote content. */
 const SWATCH_PATTERN = /^[#a-zA-Z0-9(),.%\s-]+$/;
-/** Images already in the catalogue. Uploads (R2) add their own prefix in unit 6b. */
-export const IMAGE_PATH_PATTERN = /^\/product-images\/[A-Za-z0-9._\-/]+$/;
 
 const money = z.number().int().min(0).max(MAX_PRICE);
 const optionalText = (max: number) =>
@@ -39,7 +38,8 @@ export const variantInputSchema = z.object({
     .regex(SWATCH_PATTERN, "Use a colour like #E0799C or a CSS gradient")
     .refine((value) => !/url\s*\(/i.test(value), "Swatches cannot load images"),
   availability: z.enum(AVAILABILITIES),
-  images: z.array(z.string().regex(IMAGE_PATH_PATTERN, "Unknown image path")).max(MAX_IMAGES_PER_VARIANT),
+  /** R2 object keys (see src/domain/media.ts). */
+  images: z.array(z.string().max(200).refine(isImageKey, "Unknown image")).max(MAX_IMAGES_PER_VARIANT),
 });
 
 export const productInputSchema = z

@@ -5,7 +5,7 @@ import { filterProducts, formatPrice, getVariant, indexCatalog } from "@/domain/
 import { bagSubtotal } from "@/lib/order";
 import { CATEGORIES, PRODUCTS } from "../../scripts/seed/catalog-data";
 
-const catalog = indexCatalog({ categories: CATEGORIES, products: PRODUCTS });
+const catalog = indexCatalog({ categories: CATEGORIES, products: PRODUCTS, imageBase: "" });
 
 // The seed source for migrations/0002_seed_catalog.sql; checked before it reaches D1.
 describe("catalogue data", () => {

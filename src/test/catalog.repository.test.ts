@@ -11,6 +11,7 @@ describe("migrations", () => {
       "0002_seed_catalog.sql",
       "0003_admin_auth.sql",
       "0004_product_revision.sql",
+      "0005_images_to_r2.sql",
     ]);
     const db = createTestD1();
     const count = (table: string) => (db.sqlite.query(`SELECT count(*) AS n FROM ${table}`).get() as { n: number }).n;
@@ -40,12 +41,19 @@ describe("migrations", () => {
 });
 
 describe("getPublishedCatalog", () => {
-  test("round-trips the seed data exactly, in display order", async () => {
+  test("round-trips the seed data, in display order, with images served from R2", async () => {
     const catalog = await getPublishedCatalog(createTestD1());
-    expect(catalog.categories).toEqual(CATEGORIES);
+    // Seed paths are "/product-images/…"; 0005 turns them into R2 keys, served at /media/<key> with no IMAGE_BASE_URL.
+    const media = (path: string) => `/media${path}`;
+    expect(catalog.imageBase).toBe("");
+    expect(catalog.categories).toEqual(CATEGORIES.map((category) => ({ ...category, image: media(category.image) })));
     // The seed source has no availability; D1 defaults every colour to in stock.
     const expected: Product[] = PRODUCTS.map((product) => {
-      const [first, ...rest] = product.variants.map((variant): Variant => ({ ...variant, availability: "in_stock" }));
+      const [first, ...rest] = product.variants.map((variant): Variant => ({
+        ...variant,
+        images: variant.images.map(media),
+        availability: "in_stock",
+      }));
       return { ...product, variants: [first!, ...rest] };
     });
     expect(catalog.products).toEqual(expected);

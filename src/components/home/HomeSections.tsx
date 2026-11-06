@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { countInCategory, formatPrice, getVariant, pluralize } from "@/domain/catalog";
+import { mediaUrl } from "@/domain/media";
 import { useCatalog } from "@/lib/query";
 import { CAROUSEL_CATEGORY, LOOKBOOK, PROMO_PRODUCT_ID } from "@/lib/config";
 import { scrollBehavior } from "@/lib/dom";
@@ -45,7 +46,8 @@ export function LookbookSection() {
   const openProduct = useOpenProduct();
   const [openSpot, setOpenSpot] = useState<number | null>(null);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const product = useCatalog().productById.get(LOOKBOOK.productId);
+  const catalog = useCatalog();
+  const product = catalog.productById.get(LOOKBOOK.productId);
 
   useEffect(() => {
     if (openSpot === null) return;
@@ -74,7 +76,7 @@ export function LookbookSection() {
         <div className="studio-lookbook-grid">
           <div className="studio-lookbook-media" data-reveal="">
             <img
-              src={LOOKBOOK.image}
+              src={mediaUrl(catalog.imageBase, LOOKBOOK.image)}
               alt={`${product.name} in ${product.variants.length} glazes, styled on a breakfast table`}
               loading="lazy"
               width={800}
@@ -314,19 +316,20 @@ export function PromoSection() {
 }
 
 export function StorySection() {
+  const { imageBase } = useCatalog();
   return (
     <section className="section story" id="story" aria-labelledby="story-title">
       <div className="container story-grid">
         <div className="story-media" data-reveal="">
           <img
-            src="/product-images/Ceramic-Seasoning-Bottle-21/Ceramic-Seasoning-Bottle1.webp"
+            src={mediaUrl(imageBase, "product-images/Ceramic-Seasoning-Bottle-21/Ceramic-Seasoning-Bottle1.webp")}
             alt="Hand-decorated ceramic seasoning bottles on a kitchen counter"
             loading="lazy"
             width={800}
             height={1000}
           />
           <img
-            src="/product-images/vintage-Ceramic-Oil-Pot-22/vintage-Ceramic-Oil-Pot1.webp"
+            src={mediaUrl(imageBase, "product-images/vintage-Ceramic-Oil-Pot-22/vintage-Ceramic-Oil-Pot1.webp")}
             alt="Two vintage ceramic oil pots on a wooden tray"
             loading="lazy"
             width={800}

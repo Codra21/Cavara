@@ -12,6 +12,7 @@ import type {
   SaveProductResult,
 } from "@/domain/product-admin";
 import type { Availability } from "@/lib/types";
+import { mediaUrl } from "@/domain/media";
 import { auditStatement } from "@/server/admin/auth.server";
 import type { D1Database, D1PreparedStatement } from "./d1";
 
@@ -79,7 +80,7 @@ export async function listAdminCategories(db: D1Database): Promise<AdminCategory
 }
 
 /** Every product, archived included, with its first picture for the list. */
-export async function listAdminProducts(db: D1Database): Promise<AdminProductSummary[]> {
+export async function listAdminProducts(db: D1Database, imageBase = ""): Promise<AdminProductSummary[]> {
   const { results } = await db
     .prepare(
       `SELECT p.id, p.slug, p.name, p.category_id, p.price, p.cost_price, p.status, p.featured, p.sort, p.updated_at,
@@ -101,7 +102,7 @@ export async function listAdminProducts(db: D1Database): Promise<AdminProductSum
     featured: row.featured === 1,
     sort: row.sort,
     variantCount: row.variant_count,
-    thumbnail: row.thumbnail,
+    thumbnail: row.thumbnail ? mediaUrl(imageBase, row.thumbnail) : null,
     updatedAt: row.updated_at,
   }));
 }

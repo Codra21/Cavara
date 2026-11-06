@@ -1,13 +1,14 @@
 import { describe, expect, test } from "bun:test";
 import type { AdminIdentity } from "@/domain/admin";
 import { type ProductFormValues, productInputSchema, productToForm, slugify, unitMargin } from "@/domain/product-admin";
+import { mediaUrl } from "@/domain/media";
 import { listAudit } from "@/server/admin/auth.server";
 import { getAdminProduct, listAdminProducts, saveProduct } from "@/server/db/admin-catalog.repository";
 import { getPublishedCatalog } from "@/server/db/catalog.repository";
 import { createTestD1, type TestD1 } from "./helpers/d1";
 
 const owner: AdminIdentity = { id: "owner", username: "owner", role: "owner" };
-const IMG = "/product-images/test/a.webp";
+const IMG = "product-images/test/a.webp";
 
 function form(overrides: Partial<ProductFormValues> = {}): ProductFormValues {
   return {
@@ -154,14 +155,14 @@ describe("saveProduct", () => {
           name: "Sage",
           swatch: "#9CCB91",
           availability: "in_stock",
-          images: [IMG, "/product-images/test/b.webp"],
+          images: [IMG, "product-images/test/b.webp"],
         },
         {
           id: null,
           name: "Rose",
           swatch: "#F4B8C7",
           availability: "preorder",
-          images: ["/product-images/test/c.webp"],
+          images: ["product-images/test/c.webp"],
         },
       ],
     });
@@ -175,7 +176,7 @@ describe("saveProduct", () => {
       input: parse({
         ...productToForm(loaded),
         variants: [
-          { ...rose!, name: "Blush", images: ["/product-images/test/c.webp"] },
+          { ...rose!, name: "Blush", images: ["product-images/test/c.webp"] },
           { id: null, name: "Ink", swatch: "#26332f", availability: "out_of_stock", images: [] },
         ],
       }),
@@ -240,7 +241,7 @@ describe("saveProduct", () => {
     expect((await getPublishedCatalog(db)).products.some((p) => p.id === id)).toBe(false);
     const list = await listAdminProducts(db);
     expect(list.at(-1)?.id).toBe(id);
-    expect(list.find((p) => p.id === id)?.thumbnail).toBe(IMG);
+    expect(list.find((p) => p.id === id)?.thumbnail).toBe(`/media/${IMG}`);
   });
 
   test("seeded products (blank revision) can be edited", async () => {
@@ -258,6 +259,6 @@ describe("saveProduct", () => {
     // Saving a seeded product unchanged keeps the storefront identical (apart from cost price, which is private).
     const shown = (await getPublishedCatalog(db)).products.find((p) => p.id === loaded.id);
     expect(shown?.variants.length).toBe(loaded.variants.length);
-    expect(shown?.variants[0]?.images).toEqual(loaded.variants[0]!.images);
+    expect(shown?.variants[0]?.images).toEqual(loaded.variants[0]!.images.map((key) => mediaUrl("", key)));
   });
 });

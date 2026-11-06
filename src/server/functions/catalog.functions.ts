@@ -2,6 +2,8 @@
 // the client (TanStack Start server-functions guide), so the repository and D1 never reach the browser.
 import { createServerFn } from "@tanstack/react-start";
 import { getPublishedCatalog } from "@/server/db/catalog.repository";
-import { getDb } from "@/server/env";
+import { getDb, getImageBase } from "@/server/env";
 
-export const getCatalogFn = createServerFn({ method: "GET" }).handler(() => getPublishedCatalog(getDb()));
+export const getCatalogFn = createServerFn({ method: "GET" }).handler(() =>
+  getPublishedCatalog(getDb(), getImageBase()),
+);

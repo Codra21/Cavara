@@ -38,7 +38,8 @@ export const CAROUSEL_CATEGORY = "drinkware";
 
 export const LOOKBOOK = {
   productId: 5,
-  image: "/product-images/jba-oct/jba-yellow1.webp",
+  /** R2 key; resolve with mediaUrl(). */
+  image: "product-images/jba-oct/jba-yellow1.webp",
   spots: [
     { variant: 1, x: 50, y: 13 },
     { variant: 3, x: 21, y: 29 },

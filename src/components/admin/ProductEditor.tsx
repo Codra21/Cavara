@@ -1,14 +1,16 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ExternalLink, Plus, Trash2, X } from "lucide-react";
-import { useId, useMemo, useState } from "react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ExternalLink, ImagePlus, Plus, Trash2, X } from "lucide-react";
+import { useId, useMemo, useRef, useState } from "react";
 import { formatPrice } from "@/domain/catalog";
+import { MAX_UPLOAD_BYTES, mediaUrl, UPLOAD_ACCEPT } from "@/domain/media";
 import {
   type AdminCategory,
   type AdminProduct,
   AVAILABILITIES,
   emptyProductForm,
   MAX_DETAILS,
+  MAX_IMAGES_PER_VARIANT,
   MAX_VARIANTS,
   PRODUCT_STATUSES,
   type ProductFormValues,
@@ -17,6 +19,7 @@ import {
   slugify,
   unitMargin,
 } from "@/domain/product-admin";
+import { useCatalog } from "@/lib/query";
 import type { Availability } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -27,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { saveProductFn } from "@/server/functions/admin-catalog.functions";
+import { uploadImageFn } from "@/server/functions/admin-media.functions";
 import { STATUS_LABELS } from "./ProductList";
 import { ADMIN_QUERY_KEY } from "./queries";
 
@@ -75,6 +79,88 @@ function Field({
   );
 }
 
+/** Uploads pictures one at a time and hands back the new R2 keys; the product saves them with everything else. */
+function PictureUpload({
+  productId,
+  label,
+  room,
+  onUploaded,
+}: {
+  productId: string;
+  label: string;
+  room: number;
+  onUploaded: (keys: string[]) => void;
+}) {
+  const input = useRef<HTMLInputElement>(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [errors, setErrors] = useState<string[]>([]);
+
+  async function upload(files: File[]) {
+    const problems: string[] = [];
+    const accepted = files.slice(0, room);
+    if (files.length > room) problems.push(`Only ${room} more picture${room === 1 ? "" : "s"} fit on this colour.`);
+    const keys: string[] = [];
+    for (const [index, file] of accepted.entries()) {
+      if (file.size > MAX_UPLOAD_BYTES) {
+        problems.push(`${file.name} is larger than ${MAX_UPLOAD_BYTES / 1024 / 1024} MB.`);
+        continue;
+      }
+      setStatus(`Uploading ${index + 1} of ${accepted.length}…`);
+      const form = new FormData();
+      form.set("file", file);
+      form.set("productId", productId);
+      try {
+        const result = await uploadImageFn({ data: form });
+        if (result.ok) keys.push(result.key);
+        else problems.push(result.error);
+      } catch (error) {
+        problems.push(error instanceof Error && error.message ? error.message : `Could not upload ${file.name}.`);
+      }
+    }
+    if (keys.length) onUploaded(keys);
+    setErrors(problems);
+    setStatus(null);
+    if (input.current) input.current.value = "";
+  }
+
+  return (
+    <div className="grid gap-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <input
+          ref={input}
+          type="file"
+          accept={UPLOAD_ACCEPT}
+          multiple
+          className="sr-only"
+          tabIndex={-1}
+          aria-hidden="true"
+          onChange={(event) => upload([...(event.target.files ?? [])])}
+        />
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          disabled={Boolean(status) || room <= 0}
+          onClick={() => input.current?.click()}
+          aria-label={`Add pictures to ${label}`}
+        >
+          <ImagePlus /> {status ?? "Add pictures"}
+        </Button>
+        <span className="text-xs text-muted-foreground">
+          WebP, JPEG, PNG or AVIF, up to 5 MB each. WebP keeps the shop fastest.
+        </span>
+      </div>
+      {errors.length ? (
+        <ul role="alert" className="list-disc pl-5 text-sm text-destructive">
+          {errors.map((error) => (
+            <li key={error}>{error}</li>
+          ))}
+        </ul>
+      ) : null}
+    </div>
+  );
+}
+
 function VariantCard({
   variant,
   index,
@@ -82,6 +168,9 @@ function VariantCard({
   onChange,
   onMove,
   onRemove,
+  onAddImages,
+  productId,
+  imageBase,
 }: {
   variant: FormVariant;
   index: number;
@@ -89,6 +178,9 @@ function VariantCard({
   onChange: (variant: FormVariant) => void;
   onMove: (to: number) => void;
   onRemove: () => void;
+  onAddImages: (keys: string[]) => void;
+  productId: string;
+  imageBase: string;
 }) {
   const id = useId();
   const images = variant.images ?? [];
@@ -183,13 +275,13 @@ function VariantCard({
       <div className="grid gap-2">
         <span className="text-sm font-medium">Pictures</span>
         {images.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No pictures yet. Picture upload arrives with image storage.</p>
+          <p className="text-sm text-muted-foreground">No pictures yet. The first picture shows on product cards.</p>
         ) : (
           <ul className="flex flex-wrap gap-3">
             {images.map((path, imageIndex) => (
               <li key={path} className="grid w-24 gap-1">
                 <img
-                  src={path}
+                  src={mediaUrl(imageBase, path)}
                   alt=""
                   width={96}
                   height={96}
@@ -231,6 +323,12 @@ function VariantCard({
             ))}
           </ul>
         )}
+        <PictureUpload
+          productId={productId}
+          label={label}
+          room={MAX_IMAGES_PER_VARIANT - images.length}
+          onUploaded={onAddImages}
+        />
       </div>
     </li>
   );
@@ -240,6 +338,7 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
   const id = useId();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const { imageBase } = useCatalog();
   const initial = useMemo(
     () => (product ? productToForm(product) : emptyProductForm(categories[0]?.id)),
     [product, categories],
@@ -265,6 +364,19 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
   }
 
   const setVariants = (variants: FormVariant[]) => set("variants", variants);
+
+  // Uploads finish later, so append to the latest state rather than the variants captured at click time.
+  function addImages(index: number, keys: string[]) {
+    setSaved(false);
+    setValues((previous) => ({
+      ...previous,
+      variants: (previous.variants ?? []).map((variant, i) =>
+        i === index
+          ? { ...variant, images: [...(variant.images ?? []), ...keys].slice(0, MAX_IMAGES_PER_VARIANT) }
+          : variant,
+      ),
+    }));
+  }
 
   const save = useMutation({
     mutationFn: (form: ProductFormValues) =>
@@ -519,6 +631,9 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
                 onChange={(next) => setVariants(variants.map((item, i) => (i === index ? next : item)))}
                 onMove={(to) => setVariants(move(variants, index, to))}
                 onRemove={() => setVariants(variants.filter((_, i) => i !== index))}
+                onAddImages={(keys) => addImages(index, keys)}
+                productId={product ? String(product.id) : "new"}
+                imageBase={imageBase}
               />
             ))}
           </ul>

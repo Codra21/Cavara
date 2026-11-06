@@ -34,7 +34,10 @@ export interface Product {
 /** Published catalogue as read from D1, in display order. */
 export interface Catalog {
   categories: Category[];
+  /** Image URLs in categories and products are already resolved. */
   products: Product[];
+  /** Image origin for other R2 keys (see mediaUrl in src/domain/media.ts); "" means this Worker's /media route. */
+  imageBase: string;
 }
 
 export interface BagItem {

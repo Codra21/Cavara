@@ -31,9 +31,52 @@ export interface D1Database {
   batch<T = unknown>(statements: D1PreparedStatement[]): Promise<D1Result<T>[]>;
 }
 
+// R2: the subset Cavara uses, copied from the same generated file.
+export interface R2HTTPMetadata {
+  contentType?: string;
+  contentLanguage?: string;
+  contentDisposition?: string;
+  contentEncoding?: string;
+  cacheControl?: string;
+  cacheExpiry?: Date;
+}
+
+export interface R2PutOptions {
+  httpMetadata?: R2HTTPMetadata | Headers;
+  customMetadata?: Record<string, string>;
+}
+
+export interface R2Object {
+  readonly key: string;
+  readonly size: number;
+  readonly etag: string;
+  readonly httpEtag: string;
+  readonly uploaded: Date;
+  readonly httpMetadata?: R2HTTPMetadata;
+  writeHttpMetadata(headers: Headers): void;
+}
+
+export interface R2ObjectBody extends R2Object {
+  get body(): ReadableStream;
+}
+
+export interface R2Bucket {
+  get(key: string): Promise<R2ObjectBody | null>;
+  put(
+    key: string,
+    value: ReadableStream | ArrayBuffer | ArrayBufferView | string | null | Blob,
+    options?: R2PutOptions,
+  ): Promise<R2Object>;
+  delete(keys: string | string[]): Promise<void>;
+}
+
 /** Bindings declared in wrangler.jsonc. */
 export interface CloudflareEnv {
   DB: D1Database;
+  /** Product images (R2). */
+  IMAGES: R2Bucket;
+  /** Public origin of the image bucket's custom domain. Blank: images are served by the Worker at /media/<key>. */
+  IMAGE_BASE_URL?: string;
   /** Owner sign-in name (Worker var). Defaults to "owner". */
   ADMIN_USERNAME?: string;
   /** Owner password (Worker secret; .dev.vars locally). Blank disables the admin. */

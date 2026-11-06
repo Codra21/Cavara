@@ -8,12 +8,12 @@ import {
   listAdminProducts,
   saveProduct,
 } from "@/server/db/admin-catalog.repository";
-import { getDb } from "@/server/env";
+import { getDb, getImageBase } from "@/server/env";
 import { ownerAuthMiddleware } from "@/server/middleware/auth";
 
 export const listAdminProductsFn = createServerFn({ method: "GET" })
   .middleware([ownerAuthMiddleware])
-  .handler(() => listAdminProducts(getDb()));
+  .handler(() => listAdminProducts(getDb(), getImageBase()));
 
 export const listAdminCategoriesFn = createServerFn({ method: "GET" })
   .middleware([ownerAuthMiddleware])

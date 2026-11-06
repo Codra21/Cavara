@@ -17,6 +17,15 @@
       "remote": true,
     },
   ],
+  // Product images. Served by the Worker at /media/<key> unless the IMAGE_BASE_URL var points at the bucket's
+  // custom domain (e.g. https://images.cavarabd.com), which then serves them without Worker requests.
+  "r2_buckets": [
+    {
+      "binding": "IMAGES",
+      "bucket_name": "cavara-images-dev",
+      "remote": true,
+    },
+  ],
   "env": {
     // Selected with CLOUDFLARE_ENV=production at build time (Cloudflare Vite plugin) or --env production (wrangler).
     "production": {
@@ -27,6 +36,12 @@
           "database_name": "cavara-prod",
           "database_id": "67ebf200-8a0d-4a00-b932-0ced126e9856",
           "migrations_dir": "migrations",
+        },
+      ],
+      "r2_buckets": [
+        {
+          "binding": "IMAGES",
+          "bucket_name": "cavara-images-prod",
         },
       ],
     },

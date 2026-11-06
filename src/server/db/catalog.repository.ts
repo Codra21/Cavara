@@ -1,5 +1,6 @@
 // Catalogue reads from D1. Server-only. Public reads return published products only and never cost_price.
 import type { Availability, Catalog, Category, Product, Variant } from "@/lib/types";
+import { mediaUrl } from "@/domain/media";
 import type { D1Database } from "./d1";
 
 interface CategoryRow {
@@ -47,8 +48,11 @@ function parseDetails(raw: string, productId: number): string[] | undefined {
   throw new Error(`products.details for product ${productId} is not a JSON array of strings`);
 }
 
-/** The published catalogue in display order. One batch = one round trip and a consistent snapshot. */
-export async function getPublishedCatalog(db: D1Database): Promise<Catalog> {
+/**
+ * The published catalogue in display order, with image keys turned into URLs (`imageBase` from IMAGE_BASE_URL).
+ * One batch = one round trip and a consistent snapshot.
+ */
+export async function getPublishedCatalog(db: D1Database, imageBase = ""): Promise<Catalog> {
   const [categoryResult, productResult, variantResult, imageResult] = await db.batch([
     db.prepare("SELECT id, name, description, image FROM categories ORDER BY sort, id"),
     db.prepare(
@@ -67,7 +71,7 @@ export async function getPublishedCatalog(db: D1Database): Promise<Catalog> {
   const imagesByVariant = new Map<number, string[]>();
   for (const image of (imageResult?.results ?? []) as ImageRow[]) {
     const list = imagesByVariant.get(image.variant_id) ?? [];
-    list.push(image.path);
+    list.push(mediaUrl(imageBase, image.path));
     imagesByVariant.set(image.variant_id, list);
   }
 
@@ -90,7 +94,7 @@ export async function getPublishedCatalog(db: D1Database): Promise<Catalog> {
     id: row.id,
     name: row.name,
     description: row.description,
-    image: row.image,
+    image: mediaUrl(imageBase, row.image),
   }));
 
   const products: Product[] = ((productResult?.results ?? []) as ProductRow[]).flatMap((row) => {
@@ -112,5 +116,5 @@ export async function getPublishedCatalog(db: D1Database): Promise<Catalog> {
     return [product];
   });
 
-  return { categories, products };
+  return { categories, products, imageBase };
 }

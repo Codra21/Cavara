@@ -10,6 +10,7 @@ const ACTION_LABELS: Record<string, string> = {
   "session.signed_out": "Signed out",
   "product.created": "Created product",
   "product.updated": "Updated product",
+  "image.uploaded": "Uploaded picture",
 };
 
 // Fixed time zone so every admin sees shop time, whatever their device says.
