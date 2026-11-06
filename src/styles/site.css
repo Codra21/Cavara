@@ -1293,6 +1293,7 @@
     padding: 0;
     border: 0;
     background: none;
+    text-decoration: none;
   }
 
   .product-media-button img {
@@ -1440,7 +1441,10 @@
     line-height: 1.35;
   }
 
-  .product-name button {
+  /* A link (crawlable product URL), styled like the original button. */
+  .product-name :is(button, a) {
+    display: inline;
+    text-decoration: none;
     padding: 0;
     border: 0;
     background: none;
@@ -1451,7 +1455,7 @@
     transition: opacity 0.2s ease;
   }
 
-  .product-name button:hover {
+  .product-name :is(button, a):hover {
     opacity: 0.7;
   }
 

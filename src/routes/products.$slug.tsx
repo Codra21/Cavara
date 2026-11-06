@@ -1,7 +1,8 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
 import { getVariant, indexCatalog } from "@/domain/catalog";
 import { catalogQueryOptions } from "@/lib/query";
-import { SITE_URL } from "@/lib/config";
+import { absoluteUrl, breadcrumbJsonLd, metaDescription, productJsonLd, productUrl } from "@/domain/seo";
+import { SHARE_DESCRIPTION, SITE_URL } from "@/lib/config";
 import { ProductPage } from "@/components/product/ProductPage";
 
 interface ProductSearch {
@@ -17,37 +18,33 @@ export const Route = createFileRoute("/products/$slug")({
     const catalog = indexCatalog(await context.queryClient.query(catalogQueryOptions()));
     const product = catalog.productBySlug.get(params.slug);
     if (!product) throw notFound();
-    return { product };
+    return { product, category: catalog.categoryById.get(product.category) };
   },
   head: ({ loaderData }) => {
     const product = loaderData?.product;
     if (!product) return {};
-    const url = `${SITE_URL}/products/${product.slug}`;
-    const image = `${SITE_URL}${encodeURI(getVariant(product).images[0] ?? "")}`;
+    const category = loaderData?.category;
+    const url = productUrl(SITE_URL, product);
+    const image = absoluteUrl(SITE_URL, getVariant(product).images[0] ?? "/og-image.jpg");
     const title = `${product.name} — Cavara`;
+    const description = metaDescription(product, SHARE_DESCRIPTION);
     return {
       meta: [
         { title },
-        { name: "description", content: product.summary },
+        { name: "description", content: description },
         { property: "og:type", content: "product" },
         { property: "og:title", content: title },
-        { property: "og:description", content: product.summary },
+        { property: "og:description", content: description },
         { property: "og:url", content: url },
         { property: "og:image", content: image },
+        { property: "og:image:alt", content: `${product.name}, ${getVariant(product).name}` },
+        { property: "product:price:amount", content: String(product.price) },
+        { property: "product:price:currency", content: "BDT" },
         { name: "twitter:title", content: title },
-        { name: "twitter:description", content: product.summary },
+        { name: "twitter:description", content: description },
         { name: "twitter:image", content: image },
-        {
-          "script:ld+json": {
-            "@context": "https://schema.org",
-            "@type": "Product",
-            name: product.name,
-            description: product.summary,
-            image: product.variants.flatMap((variant) => variant.images).map((src) => `${SITE_URL}${encodeURI(src)}`),
-            brand: { "@type": "Brand", name: "Cavara" },
-            offers: { "@type": "Offer", price: product.price, priceCurrency: "BDT", url },
-          },
-        },
+        { "script:ld+json": productJsonLd(product, category, SITE_URL) },
+        { "script:ld+json": breadcrumbJsonLd(product, category, SITE_URL) },
       ],
       links: [{ rel: "canonical", href: url }],
     };

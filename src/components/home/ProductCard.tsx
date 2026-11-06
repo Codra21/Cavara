@@ -1,3 +1,4 @@
+import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { formatPrice, getCategory, getVariant, pluralize } from "@/domain/catalog";
 import { useCatalog } from "@/lib/query";
@@ -30,12 +31,13 @@ export function ProductCard({ product, index }: { product: Product; index: numbe
       style={{ "--reveal-delay": `${(index % 4) * 80}ms` } as React.CSSProperties}
     >
       <div className="product-media">
-        <button
+        {/* Real links so crawlers find every product page; the name link below is the focusable one. */}
+        <Link
           className="product-media-button"
-          type="button"
+          to="/products/$slug"
+          params={{ slug: product.slug }}
           tabIndex={-1}
           aria-hidden="true"
-          onClick={() => openProduct(product)}
         >
           <img
             className="product-image"
@@ -58,7 +60,7 @@ export function ProductCard({ product, index }: { product: Product; index: numbe
               height={1000}
             />
           ) : null}
-        </button>
+        </Link>
         {product.variants.length > 1 ? (
           <span className="product-badge">{pluralize(product.variants.length, "colour")}</span>
         ) : null}
@@ -102,9 +104,9 @@ export function ProductCard({ product, index }: { product: Product; index: numbe
       <div className="product-info">
         <p className="product-meta">{getCategory(catalog, product).name}</p>
         <h3 className="product-name">
-          <button type="button" onClick={() => openProduct(product)}>
+          <Link to="/products/$slug" params={{ slug: product.slug }}>
             {product.name}
-          </button>
+          </Link>
         </h3>
         <p className="product-price">{formatPrice(product.price)}</p>
         <div className="product-swatches" role="group" aria-label={`${product.name} colours`}>

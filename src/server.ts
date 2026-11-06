@@ -6,12 +6,18 @@ import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 import type { CloudflareEnv, ExecutionContext, ScheduledController } from "@/server/db/d1";
 import { alertSettings, deliverOrderAlerts } from "@/server/services/order-notifications.service";
 import { runUsageAlert } from "@/server/usage-alert.server";
+import { canonicalRedirect } from "@/domain/seo";
+import { SITE_URL } from "@/lib/config";
 
 /** Must match the crons in wrangler.jsonc env.production. */
 const ORDER_ALERT_CRON = "*/5 * * * *";
 
 const entry = createServerEntry({
   fetch(request, opts) {
+    // www.cavarabd.com → cavarabd.com (301), so search engines index one copy of each page. Static files on www are
+    // served before the Worker runs and are not redirected; pages, which are what gets indexed, always are.
+    const redirect = canonicalRedirect(new URL(request.url), new URL(SITE_URL).hostname);
+    if (redirect) return Response.redirect(redirect, 301);
     return handler.fetch(request, opts);
   },
 });
