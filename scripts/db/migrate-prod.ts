@@ -1,7 +1,8 @@
 // Applies pending D1 migrations to cavara-prod with two backups taken first. Used by the deploy workflow on every
 // push to main, and by hand (`bun run db:release:prod`). Does nothing when cavara-prod is up to date.
 //
-//   1. Refuses unless every migration is already applied to cavara-dev (changes are tested on dev first).
+//   1. Refuses unless every migration is already applied to the remote cavara-dev (`bun run db:migrate:dev`). Day-to-day
+//      testing runs on a local D1 that CI cannot see, so the remote cavara-dev is the staging check on real D1.
 //   2. Records the D1 Time Travel bookmark of cavara-prod (instant point-in-time restore, 7 days on Workers Free).
 //   3. Exports cavara-prod to a SQL file and stores it in the private R2 bucket cavara-backups
 //      (d1/cavara-prod/<time>-before-<migration>.sql, deleted after 90 days by a lifecycle rule).
