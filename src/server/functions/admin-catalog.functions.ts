@@ -8,6 +8,7 @@ import {
   listAdminProducts,
   saveProduct,
 } from "@/server/db/admin-catalog.repository";
+import { invalidateCatalogCache } from "@/server/catalog-cache.server";
 import { getDb, getImageBase } from "@/server/env";
 import { ownerAuthMiddleware } from "@/server/middleware/auth";
 
@@ -27,6 +28,13 @@ export const getAdminProductFn = createServerFn({ method: "GET" })
 export const saveProductFn = createServerFn({ method: "POST" })
   .middleware([ownerAuthMiddleware])
   .validator(saveProductSchema)
-  .handler(({ data, context }) =>
-    saveProduct(getDb(), { actor: context.admin, id: data.id, revision: data.revision, input: data.product }),
-  );
+  .handler(async ({ data, context }) => {
+    const result = await saveProduct(getDb(), {
+      actor: context.admin,
+      id: data.id,
+      revision: data.revision,
+      input: data.product,
+    });
+    if (result.ok) await invalidateCatalogCache(getImageBase());
+    return result;
+  });

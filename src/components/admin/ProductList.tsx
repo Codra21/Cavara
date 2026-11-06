@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { adminCategoriesQuery, adminProductsQuery } from "./queries";
 
 export const STATUS_LABELS: Record<ProductStatus, string> = {
@@ -32,6 +33,7 @@ export function ProductList() {
   const products = useQuery(adminProductsQuery());
   const categories = useQuery(adminCategoriesQuery());
   const [search, setSearch] = useState("");
+  const searched = useDebouncedValue(search);
   const [status, setStatus] = useState<ProductStatus | "all">("all");
 
   const categoryName = useMemo(
@@ -39,13 +41,13 @@ export function ProductList() {
     [categories.data],
   );
   const visible = useMemo(() => {
-    const needle = search.trim().toLowerCase();
+    const needle = searched.trim().toLowerCase();
     return (products.data ?? []).filter(
       (product) =>
         (status === "all" || product.status === status) &&
         (!needle || product.name.toLowerCase().includes(needle) || product.slug.includes(needle)),
     );
-  }, [products.data, search, status]);
+  }, [products.data, searched, status]);
 
   const counts = useMemo(() => {
     const all = products.data ?? [];

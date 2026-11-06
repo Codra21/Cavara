@@ -2,6 +2,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { SORT_OPTIONS, countInCategory, filterProducts, pluralize, type SortKey } from "@/domain/catalog";
 import { useCatalog } from "@/lib/query";
+import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { SHOP_PAGE_SIZE } from "@/lib/config";
 import { Icon } from "@/components/ui/primitives";
 import { ProductCard } from "./ProductCard";
@@ -26,10 +27,14 @@ export function ShopSection({ category: requested }: { category: string }) {
   const gridRef = useRef<HTMLUListElement>(null);
   const focusAfterExpand = useRef(false);
 
-  const products = useMemo(() => filterProducts(catalog, { category, query, sort }), [catalog, category, query, sort]);
+  const searched = useDebouncedValue(query);
+  const products = useMemo(
+    () => filterProducts(catalog, { category, query: searched, sort }),
+    [catalog, category, searched, sort],
+  );
   const collapsed = !expanded && products.length > SHOP_PAGE_SIZE;
   const scope = category === "all" ? "" : ` in ${catalog.categoryById.get(category)?.name ?? ""}`;
-  const trimmed = query.trim();
+  const trimmed = searched.trim();
 
   useEffect(() => {
     if (!focusAfterExpand.current) return;
