@@ -7,7 +7,7 @@ import viteReact from "@vitejs/plugin-react";
 // Plugin order: tailwindcss first (Tailwind Vite docs), then cloudflare (ssr env) → tanstackStart → react
 // (TanStack Start + Cloudflare docs).
 // `bun run dev:remote` (CAVARA_REMOTE_DB=1): read and write the real cavara-dev instead of the local D1, with the
-// catalogue snapshot on, as in production. Never set for builds.
+// catalogue snapshots on (key below, plus the v2 objects beside it), as in production. Never set for builds.
 const remoteDb = process.env.CAVARA_REMOTE_DB === "1";
 
 export default defineConfig({

@@ -97,13 +97,15 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
             <div className="font-medium text-foreground">{order.customerName}</div>
             <div className="flex flex-wrap items-center gap-2">
               <span className="tabular-nums">{formatPhone(order.phone)}</span>
-              <Button asChild size="sm" variant="outline">
-                <a href={`tel:${order.phone}`}>Call</a>
+              <Button size="sm" variant="outline" render={<a href={`tel:${order.phone}`} />}>
+                Call
               </Button>
-              <Button asChild size="sm" variant="outline">
-                <a href={whatsappLink(order.phone)} target="_blank" rel="noreferrer">
-                  WhatsApp
-                </a>
+              <Button
+                size="sm"
+                variant="outline"
+                render={<a href={whatsappLink(order.phone)} target="_blank" rel="noreferrer" />}
+              >
+                WhatsApp
               </Button>
             </div>
             <div>
@@ -202,7 +204,15 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
                   </AlertDescription>
                 </Alert>
               ) : null}
-              <Button type="submit" disabled={!dirty || save.isPending}>
+              <Button
+                type="submit"
+                disabled={!dirty || save.isPending}
+                data-agent-confirm={
+                  status === "cancelled" && order.status !== "cancelled"
+                    ? `Cancels order ${order.reference} and removes it from sales`
+                    : undefined
+                }
+              >
                 {save.isPending ? "Saving…" : "Save"}
               </Button>
             </form>

@@ -5,14 +5,12 @@ import type { AdminIdentity, AuditValue } from "@/domain/admin";
 import type {
   AdminCategory,
   AdminProduct,
-  AdminProductSummary,
   AdminVariant,
   ProductInput,
   ProductStatus,
   SaveProductResult,
 } from "@/domain/product-admin";
 import type { Availability } from "@/lib/types";
-import { mediaUrl } from "@/domain/media";
 import { auditStatement } from "@/server/admin/auth.server";
 import type { D1Database, D1PreparedStatement } from "./d1";
 
@@ -32,21 +30,6 @@ interface ProductRow {
   sort: number;
   revision: string;
   updated_at: string;
-}
-
-interface SummaryRow {
-  id: number;
-  slug: string;
-  name: string;
-  category_id: string;
-  price: number;
-  cost_price: number | null;
-  status: ProductStatus;
-  featured: number;
-  sort: number;
-  updated_at: string;
-  variant_count: number;
-  thumbnail: string | null;
 }
 
 interface VariantRow {
@@ -77,34 +60,6 @@ function parseDetails(raw: string): string[] {
 export async function listAdminCategories(db: D1Database): Promise<AdminCategory[]> {
   const { results } = await db.prepare("SELECT id, name FROM categories ORDER BY sort, id").all<AdminCategory>();
   return results;
-}
-
-/** Every product, archived included, with its first picture for the list. */
-export async function listAdminProducts(db: D1Database, imageBase = ""): Promise<AdminProductSummary[]> {
-  const { results } = await db
-    .prepare(
-      `SELECT p.id, p.slug, p.name, p.category_id, p.price, p.cost_price, p.status, p.featured, p.sort, p.updated_at,
-         (SELECT count(*) FROM product_variants v WHERE v.product_id = p.id) AS variant_count,
-         (SELECT i.path FROM product_variants v JOIN product_images i ON i.variant_id = v.id
-           WHERE v.product_id = p.id ORDER BY v.position, i.position LIMIT 1) AS thumbnail
-       FROM products p
-       ORDER BY CASE p.status WHEN 'archived' THEN 1 ELSE 0 END, p.sort, p.id`,
-    )
-    .all<SummaryRow>();
-  return results.map((row) => ({
-    id: row.id,
-    slug: row.slug,
-    name: row.name,
-    categoryId: row.category_id,
-    price: row.price,
-    costPrice: row.cost_price,
-    status: row.status,
-    featured: row.featured === 1,
-    sort: row.sort,
-    variantCount: row.variant_count,
-    thumbnail: row.thumbnail ? mediaUrl(imageBase, row.thumbnail) : null,
-    updatedAt: row.updated_at,
-  }));
 }
 
 export async function getAdminProduct(db: D1Database, id: number): Promise<AdminProduct | null> {

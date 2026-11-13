@@ -3,6 +3,12 @@
 // server-rendered HTML, so these run in route head() and appear in the raw SSR response.
 import type { Availability, Category, Product } from "@/lib/types";
 
+/** What the product metadata reads. Both the legacy `Product` and the product page's detail object fit. */
+export interface SeoProduct extends Pick<Product, "id" | "slug" | "name" | "price" | "summary"> {
+  details?: readonly string[];
+  variants: readonly { images: readonly string[]; availability?: Availability | undefined }[];
+}
+
 /**
  * Absolute URL for an image or path. Catalogue images are already absolute on production
  * (https://images.cavarabd.com/…); local and fallback paths start with "/" and get the site origin.
@@ -23,7 +29,7 @@ const SCHEMA_AVAILABILITY: Record<Availability, string> = {
 };
 
 /** In stock if any colour is, else pre-order if any colour is, else out of stock. */
-export function productAvailability(product: Product): Availability {
+export function productAvailability(product: SeoProduct): Availability {
   const states = product.variants.map((variant) => variant.availability ?? "in_stock");
   if (states.includes("in_stock")) return "in_stock";
   if (states.includes("preorder")) return "preorder";
@@ -31,12 +37,12 @@ export function productAvailability(product: Product): Availability {
 }
 
 /** Short plain-text description for meta tags: the summary, else the first detail, trimmed to ~160 characters. */
-export function metaDescription(product: Product, fallback: string): string {
+export function metaDescription(product: SeoProduct, fallback: string): string {
   const text = (product.summary || product.details?.[0] || fallback).replace(/\s+/g, " ").trim();
   return text.length <= 160 ? text : `${text.slice(0, 157).replace(/\s+\S*$/, "")}…`;
 }
 
-export function productJsonLd(product: Product, category: Category | undefined, siteUrl: string) {
+export function productJsonLd(product: SeoProduct, category: Category | undefined, siteUrl: string) {
   const url = productUrl(siteUrl, product);
   const images = [...new Set(product.variants.flatMap((variant) => variant.images))].map((src) =>
     absoluteUrl(siteUrl, src),
@@ -63,7 +69,7 @@ export function productJsonLd(product: Product, category: Category | undefined, 
   };
 }
 
-export function breadcrumbJsonLd(product: Product, category: Category | undefined, siteUrl: string) {
+export function breadcrumbJsonLd(product: SeoProduct, category: Category | undefined, siteUrl: string) {
   const base = siteUrl.replace(/\/+$/, "");
   const items = [
     { name: "Home", item: `${base}/` },

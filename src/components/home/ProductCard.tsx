@@ -1,5 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
+import { availabilityTag, BAG_FULL_MESSAGE } from "@/domain/bag";
 import { formatPrice, getCategory, getVariant, pluralize } from "@/domain/catalog";
 import { useCatalog } from "@/lib/query";
 import type { Product } from "@/lib/types";
@@ -17,6 +18,7 @@ export function ProductCard({ product, index }: { product: Product; index: numbe
   const visible = product.variants.slice(0, 5);
   const hiddenCount = product.variants.length - visible.length;
   const altImage = variant.images[1];
+  const stockTag = availabilityTag(variant.availability);
 
   useEffect(() => {
     if (!added) return;
@@ -61,7 +63,9 @@ export function ProductCard({ product, index }: { product: Product; index: numbe
             />
           ) : null}
         </Link>
-        {product.variants.length > 1 ? (
+        {stockTag ? (
+          <span className="product-badge is-sold-out">{stockTag}</span>
+        ) : product.variants.length > 1 ? (
           <span className="product-badge">{pluralize(product.variants.length, "colour")}</span>
         ) : null}
         <div className="product-icons">
@@ -80,21 +84,29 @@ export function ProductCard({ product, index }: { product: Product; index: numbe
           <button
             className={`quick-add${added ? " is-added" : ""}`}
             type="button"
-            aria-label={`Add ${product.name}, ${variant.name}, to bag`}
+            aria-label={
+              stockTag
+                ? `${product.name}, ${variant.name}, is out of stock`
+                : `Add ${product.name}, ${variant.name}, to bag`
+            }
+            disabled={stockTag !== null}
             onClick={() => {
-              addToBag(product.id, selected, 1);
+              if (!addToBag(product.id, selected, 1)) {
+                showToast(BAG_FULL_MESSAGE, { actionLabel: "View bag", action: openBag });
+                return;
+              }
               setAdded(true);
               showToast(`${product.name} added to your bag`, { actionLabel: "View bag", action: openBag });
             }}
           >
             <Icon name={`fa-solid ${added ? "fa-check" : "fa-bag-shopping"}`} />
-            <span>{added ? "Added" : "Add to bag"}</span>
+            <span>{stockTag ?? (added ? "Added" : "Add to bag")}</span>
           </button>
           <button
             className="card-quick-view"
             type="button"
             aria-label={`Quick view ${product.name}`}
-            onClick={() => openQuickView(product.id)}
+            onClick={() => openQuickView(product)}
           >
             <Icon name="fa-regular fa-eye" />
             <span>Quick view</span>

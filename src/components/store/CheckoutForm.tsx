@@ -1,9 +1,14 @@
 import { useId, useRef, useState } from "react";
-import { formatPrice, getVariant } from "@/domain/catalog";
-import { type CheckoutField, type CheckoutRequest, normalizePhone, type SubmitOrderResult } from "@/domain/orders";
+import type { BuyableLine } from "@/domain/bag";
+import { formatPrice } from "@/domain/catalog";
+import {
+  type CheckoutField,
+  type CheckoutRequest,
+  type DeliveryZone,
+  normalizePhone,
+  type SubmitOrderResult,
+} from "@/domain/orders";
 import { WHATSAPP_DISPLAY } from "@/lib/config";
-import { useCatalog } from "@/lib/query";
-import type { BagItem } from "@/lib/types";
 import { submitOrderFn } from "@/server/functions/orders.functions";
 
 export interface PlacedOrder {
@@ -23,21 +28,22 @@ interface Draft {
 const priceKey = (productId: number, variant: number) => `${productId}:${variant}`;
 
 /**
- * Guest checkout inside the bag drawer. The server re-checks every price; when they changed, the form shows the
+ * Guest checkout inside the bag drawer. `lines` are the buyable bag lines and `zones` the delivery areas, both from
+ * the drawer's getProductsByIdsFn lookup. The server re-checks every price; when they changed, the form shows the
  * current ones and uses them for the next send.
  */
 export function CheckoutForm({
-  bag,
+  lines: buyable,
+  zones,
   onBack,
   onPlaced,
 }: {
-  bag: BagItem[];
+  lines: BuyableLine[];
+  zones: DeliveryZone[];
   onBack: () => void;
   onPlaced: (order: PlacedOrder) => void;
 }) {
   const id = useId();
-  const catalog = useCatalog();
-  const zones = catalog.deliveryZones;
   const [draft, setDraft] = useState<Draft>({
     name: "",
     phone: "",
@@ -49,19 +55,17 @@ export function CheckoutForm({
   const [errors, setErrors] = useState<Partial<Record<CheckoutField, string>>>({});
   const [message, setMessage] = useState<{ tone: "error" | "notice"; text: string } | null>(null);
   const [pending, setPending] = useState(false);
-  /** Prices the server reported after a price change, used until the bag or the catalogue catches up. */
+  /** Prices the server reported after a price change, used until the bag lookup catches up. */
   const [serverPrices, setServerPrices] = useState<Map<string, number>>(new Map());
   const [serverCharge, setServerCharge] = useState<{ zoneId: string; charge: number } | null>(null);
   /** The key is reused only for an identical retry, so a lost response cannot create a second order. */
   const attempt = useRef<{ key: string; payload: string } | null>(null);
   const errorSummary = useRef<HTMLDivElement>(null);
 
-  const lines = bag.flatMap((item) => {
-    const product = catalog.productById.get(item.id);
-    if (!product) return [];
-    const unitPrice = serverPrices.get(priceKey(item.id, item.variant)) ?? product.price;
-    return [{ item, product, variant: getVariant(product, item.variant), unitPrice }];
-  });
+  const lines = buyable.map((line) => ({
+    ...line,
+    unitPrice: serverPrices.get(priceKey(line.item.id, line.item.variant)) ?? line.product.price,
+  }));
   const zone = zones.find((candidate) => candidate.id === draft.zoneId);
   const deliveryCharge =
     serverCharge && serverCharge.zoneId === draft.zoneId ? serverCharge.charge : (zone?.charge ?? 0);

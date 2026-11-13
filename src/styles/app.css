@@ -1,7 +1,8 @@
 /*
   Tailwind + shadcn entry. Loaded before site.css (see __root.tsx).
 
-  Cascade layers: vendor (Font Awesome) → theme → base (preflight) → components → utilities. site.css is a separate stylesheet whose
+  Cascade layers: ui-sdk → vendor (Font Awesome) → theme → base (preflight) → components → utilities. ui-sdk is
+  declared first so its optional web.css (not imported today) could never beat Cavara's rules. site.css is a separate stylesheet whose
   whole body sits in `@layer components`, so it overrides preflight and Tailwind utilities still override it.
   It is linked separately, not @imported, because Tailwind scans imported CSS for class names and words in
   site.css (container, hidden, table…) would generate colliding utilities.
@@ -9,7 +10,7 @@
   Utilities are generated only for the folders listed with @source. Add a folder when it adopts Tailwind.
   shadcn variables are aliases of Cavara's tokens (defined in site.css), so both themes flow through one set.
 */
-@layer vendor, theme, base, components, utilities;
+@layer ui-sdk, vendor, theme, base, components, utilities;
 @import url("https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css") layer(vendor);
 @import "tailwindcss" source(none);
 @source "../components/ui";
@@ -109,4 +110,11 @@
   * {
     @apply border-border outline-ring/50;
   }
+}
+
+/* ui-sdk's scroll lock reserves the scrollbar gutter, which leaves an undimmed strip beside modal popups.
+   Hide the scrollbar and pad the page by its width instead, so the layout stays put and the scrim covers it. */
+html[style*="scrollbar-gutter"] {
+  scrollbar-gutter: auto !important;
+  padding-right: var(--scrollbar-width);
 }

@@ -3,7 +3,8 @@ import type { AdminIdentity } from "@/domain/admin";
 import { type ProductFormValues, productInputSchema, productToForm, slugify, unitMargin } from "@/domain/product-admin";
 import { mediaUrl } from "@/domain/media";
 import { listAudit } from "@/server/admin/auth.server";
-import { getAdminProduct, listAdminProducts, saveProduct } from "@/server/db/admin-catalog.repository";
+import { getAdminProduct, saveProduct } from "@/server/db/admin-catalog.repository";
+import { listAdminProducts } from "@/server/db/admin-product-list.repository";
 import { getPublishedCatalog } from "@/server/db/catalog.repository";
 import { createTestD1, type TestD1 } from "./helpers/d1";
 
@@ -228,10 +229,10 @@ describe("saveProduct", () => {
     expect(badCategory.ok).toBe(false);
   });
 
-  test("archiving stamps archived_at, hides the product and sorts it last in the admin list", async () => {
+  test("archiving stamps archived_at, hides the product and lists it under Archived", async () => {
     const db = createTestD1();
     const { id, revision } = await create(db, form({ status: "published", sort: -5 }));
-    expect((await listAdminProducts(db))[0]?.id).toBe(id);
+    expect((await listAdminProducts(db, { sort: "updated" })).products[0]?.id).toBe(id);
     const loaded = productToForm((await getAdminProduct(db, id))!);
     await saveProduct(db, { actor: owner, id, revision, input: parse({ ...loaded, status: "archived" }) });
     const row = db.sqlite.query("SELECT archived_at FROM products WHERE id = ?").get(id) as {
@@ -239,14 +240,14 @@ describe("saveProduct", () => {
     };
     expect(row.archived_at).not.toBeNull();
     expect((await getPublishedCatalog(db)).products.some((p) => p.id === id)).toBe(false);
-    const list = await listAdminProducts(db);
-    expect(list.at(-1)?.id).toBe(id);
-    expect(list.find((p) => p.id === id)?.thumbnail).toBe(`/media/${IMG}`);
+    const archived = await listAdminProducts(db, { sort: "updated", status: "archived" }, "");
+    expect(archived.products.map((p) => p.id)).toEqual([id]);
+    expect(archived.products[0]?.thumbnail).toBe(`/media/${IMG}`);
   });
 
   test("seeded products (blank revision) can be edited", async () => {
     const db = createTestD1();
-    const [first] = await listAdminProducts(db);
+    const [first] = (await listAdminProducts(db, { sort: "name" })).products;
     const loaded = (await getAdminProduct(db, first!.id))!;
     expect(loaded.revision).toBe("");
     const result = await saveProduct(db, {

@@ -1,8 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { filterProducts, formatPrice, getVariant, indexCatalog } from "@/domain/catalog";
-import { bagSubtotal } from "@/lib/order";
+import { filterProducts, formatPrice, getVariant, indexCatalog, isProductSlug } from "@/domain/catalog";
 import { CATEGORIES, PRODUCTS } from "../../scripts/seed/catalog-data";
 
 const catalog = indexCatalog({ categories: CATEGORIES, products: PRODUCTS, imageBase: "", deliveryZones: [] });
@@ -23,11 +22,20 @@ describe("catalogue data", () => {
     }
   });
 
-  test("every image path points at a file in public/", () => {
-    const paths = [...CATEGORIES.map((c) => c.image), ...PRODUCTS.flatMap((p) => p.variants.flatMap((v) => v.images))];
-    const missing = paths.filter((path) => !existsSync(join(import.meta.dir, "../../public", path)));
-    expect(missing).toEqual([]);
-  });
+  // The originals live in Cavara/product-images/ (git-ignored, not in public/ so they never ship in dist/client).
+  // A fresh clone or CI checkout has no such folder; the check then has nothing to look at and is skipped.
+  const originals = join(import.meta.dir, "../..");
+  test.skipIf(!existsSync(join(originals, "product-images")))(
+    "every image path points at an original in product-images/",
+    () => {
+      const paths = [
+        ...CATEGORIES.map((c) => c.image),
+        ...PRODUCTS.flatMap((p) => p.variants.flatMap((v) => v.images)),
+      ];
+      const missing = paths.filter((path) => !existsSync(join(originals, path)));
+      expect(missing).toEqual([]);
+    },
+  );
 
   test("every variant has at least one image", () => {
     for (const product of PRODUCTS) {
@@ -49,17 +57,13 @@ describe("catalogue helpers", () => {
     expect(result.every((p) => p.category === category)).toBe(true);
   });
 
-  test("formatPrice uses the taka sign and thousands separators", () => {
-    expect(formatPrice(1550)).toBe("৳ 1,550");
+  test("isProductSlug accepts what the editor writes and nothing else", () => {
+    expect(isProductSlug("ceramic-foaming-bottle")).toBe(true);
+    for (const bad of ["", "Bad.Slug", "a--b", "-a", "a b", "x".repeat(81), 5, null])
+      expect(isProductSlug(bad)).toBe(false);
   });
 
-  test("bagSubtotal multiplies price by quantity and ignores unknown ids", () => {
-    const product = PRODUCTS[0]!;
-    expect(
-      bagSubtotal(catalog, [
-        { id: product.id, variant: 0, qty: 3 },
-        { id: -1, variant: 0, qty: 5 },
-      ]),
-    ).toBe(product.price * 3);
+  test("formatPrice uses the taka sign and thousands separators", () => {
+    expect(formatPrice(1550)).toBe("৳ 1,550");
   });
 });

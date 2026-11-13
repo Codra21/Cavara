@@ -20,11 +20,9 @@ function AdminOverview() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button asChild>
-            <Link to="/admin/orders">Open orders</Link>
-          </Button>
-          <Button asChild variant="outline">
-            <Link to="/admin/products">Manage products</Link>
+          <Button render={<Link to="/admin/orders" />}>Open orders</Button>
+          <Button variant="outline" render={<Link to="/admin/products" />}>
+            Manage products
           </Button>
         </div>
       </div>

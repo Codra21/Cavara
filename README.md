@@ -37,7 +37,8 @@ Bun 1.4.4 (pinned in `package.json` and `.mise.toml`).
 - `scripts/seed/` — original catalogue and the seed generator
 - `src/styles/site.css` — all styles and theme tokens
 - `src/test/` — `bun test` suites
-- `public/` — icons, brand assets and `product-images/`
+- `public/` — icons, brand assets, self-hosted `fonts/` and `_headers` (headers for static files)
+- `product-images/` — original product photos (not in git, outside `public/` so they never ship)
 
 ## Deploying
 
@@ -55,4 +56,5 @@ Both need the repository secrets `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_
 ## Images
 
 Product images live in R2 (`cavara-images-dev`, `cavara-images-prod`) and are served at `/media/<key>`.
-`public/product-images/` is not in git; it is only the source for `bun scripts/r2/upload-product-images.ts`.
+`product-images/` (this folder's root, not in git) holds the originals and is only the source for
+`bun scripts/r2/upload-product-images.ts`. It stays out of `public/` so deploys do not ship it.

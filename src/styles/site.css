@@ -6,6 +6,33 @@
   Colour comes from the theme tokens below (Teal light, Midnight dark); components never hardcode hex.
 */
 
+/*
+  Fonts are self-hosted (public/fonts, licences alongside). Not inside a layer: @font-face is unaffected by the cascade.
+  Plus Jakarta Sans is one variable file (latin subset, weights 200-800), so every weight the site uses (400-800) costs one
+  request. Characters outside latin (for example arrows) fall back to the system font, as they did with Google Fonts.
+  The Noto Sans Bengali file holds only the taka sign U+09F3 (the same single-glyph subset Google served: text=%E0%A7%B3).
+  src/routes/__root.tsx preloads the Plus Jakarta Sans file.
+*/
+@font-face {
+  font-family: "Plus Jakarta Sans";
+  font-style: normal;
+  font-weight: 200 800;
+  font-display: swap;
+  src: url("/fonts/plus-jakarta-sans-latin-wght-normal.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC,
+    U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Noto Sans Bengali";
+  font-style: normal;
+  font-weight: 500 600;
+  font-display: swap;
+  src: url("/fonts/noto-sans-bengali-taka.woff2") format("woff2");
+  unicode-range: U+09F3;
+}
+
 /* Everything below is in the components layer, after Tailwind preflight and before utilities (see app.css). */
 @layer components {
   /* ---------- Themes ----------
@@ -21,7 +48,7 @@
     --tint-3: #f3efe9;
     --ink: #262626;
     --ink-soft: #454545;
-    --body: #6b6f6e;
+    --body: #646867;
     --line: #e7e9e8;
     --line-strong: #cfd4d2;
     --brand: #224d4b;
@@ -1635,9 +1662,33 @@
     font-size: 30px;
   }
 
-  .empty-state h3 {
+  .empty-state h3,
+  .empty-state h1 {
     margin-top: 16px;
     font-size: 24px;
+  }
+
+  /* Root error boundary: no header or footer around it, so it fills the viewport and carries its own logo. */
+  .error-page {
+    min-height: 100vh;
+    min-height: 100dvh;
+    display: grid;
+    align-content: center;
+  }
+
+  /* Doubled class: the header's mobile rule centres .brand absolutely and comes later in this file. */
+  .error-page .error-page-brand {
+    position: static;
+    transform: none;
+    display: flex;
+    justify-content: center;
+  }
+
+  .error-page-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 10px;
   }
 
   .empty-state p {
@@ -1949,6 +2000,7 @@
   }
 
   .studio-carousel-media {
+    position: relative;
     width: 100%;
     display: block;
     overflow: hidden;
@@ -2494,33 +2546,36 @@
   }
 
   /* ---------- Dialogs ---------- */
-  dialog {
-    max-width: none;
-    max-height: none;
-    padding: 0;
-    border: 0;
-    background: transparent;
+  /* ui-sdk Dialog: a popover div replaces the native <dialog>, so it needs the insets <dialog> got from the UA. */
+  .product-dialog,
+  .bag-drawer {
+    inset: 0;
+    height: fit-content;
     color: var(--ink);
   }
 
-  dialog::backdrop {
+  .modal-scrim {
+    position: fixed;
+    inset: 0;
     background: var(--scrim);
   }
 
-  dialog[open] {
-    animation: dialog-in 0.35s var(--ease-out);
-  }
-
-  dialog[open]::backdrop {
+  .modal-scrim[data-open] {
     animation: fade-in 0.3s ease;
   }
 
-  dialog.is-closing {
-    animation: dialog-out 0.18s ease-in forwards;
+  .product-dialog[data-open],
+  .bag-drawer[data-open] {
+    animation: dialog-in 0.35s var(--ease-out);
   }
 
-  dialog.is-closing::backdrop {
+  .modal-scrim[data-ending-style] {
     animation: fade-out 0.18s ease forwards;
+  }
+
+  .product-dialog[data-ending-style],
+  .bag-drawer[data-ending-style] {
+    animation: dialog-out 0.18s ease-in forwards;
   }
 
   @keyframes fade-in {
@@ -2893,11 +2948,11 @@
     margin: 0 0 0 auto;
   }
 
-  .bag-drawer[open] {
+  .bag-drawer[data-open] {
     animation: drawer-in 0.4s var(--ease-out);
   }
 
-  .bag-drawer.is-closing {
+  .bag-drawer[data-ending-style] {
     animation: drawer-out 0.2s ease-in forwards;
   }
 
@@ -3608,7 +3663,7 @@
     color: var(--ink);
   }
 
-  .pdp-tablist [aria-selected="true"] {
+  .pdp-tablist [data-selected] {
     border-bottom-color: var(--ink);
     color: var(--ink);
   }
@@ -3622,6 +3677,11 @@
   .pdp-panel {
     padding-top: clamp(40px, 5vw, 72px);
     animation: pdp-panel-in 0.45s var(--ease-out);
+  }
+
+  /* ui-sdk keeps the old panel mounted until its animations end, which would stack it above the new one. */
+  .pdp-panel[data-ending-style] {
+    animation: none;
   }
 
   @keyframes pdp-panel-in {
@@ -4439,6 +4499,213 @@
     .pdp-table td {
       padding: 14px;
     }
+  }
+
+  /* Out of stock: listed normally, tagged, and not addable (checkout refuses them too). */
+  .product-badge.is-sold-out {
+    background: var(--ink);
+    color: var(--surface);
+  }
+
+  .stock-tag {
+    display: inline-block;
+    margin-left: 10px;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--surface-alt);
+    color: var(--ink);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.6;
+    text-transform: uppercase;
+    vertical-align: middle;
+  }
+
+  .bag-item-controls .stock-tag {
+    margin-left: 0;
+  }
+
+  .swatch[data-sold-out] span {
+    position: relative;
+    opacity: 0.5;
+  }
+
+  .swatch[data-sold-out] span::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    background: linear-gradient(
+      to top right,
+      transparent calc(50% - 1px),
+      var(--ink) calc(50% - 1px),
+      var(--ink) calc(50% + 1px),
+      transparent calc(50% + 1px)
+    );
+  }
+
+  .button:disabled:not(.checkout-submit) {
+    border-color: var(--line-strong);
+    background: var(--surface-alt);
+    color: var(--body);
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .button[aria-disabled="true"] {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+
+  .quick-add:disabled,
+  .quick-add:disabled:hover {
+    background: var(--surface);
+    color: var(--body);
+    cursor: not-allowed;
+  }
+
+  .bag-item.is-unavailable h3 {
+    color: var(--body);
+  }
+
+  .bag-item.is-unavailable .bag-item-image img {
+    opacity: 0.45;
+    filter: grayscale(1);
+  }
+
+  span.bag-item-image {
+    display: block;
+  }
+
+  .bag-notice {
+    color: var(--danger);
+    font-weight: 600;
+  }
+
+  .bag-error {
+    display: grid;
+    justify-items: center;
+    gap: 16px;
+    padding: 48px 0;
+    text-align: center;
+  }
+
+  .dialog-retry {
+    justify-self: start;
+    margin-top: 24px;
+  }
+
+  /* Loading placeholders. They take the size of what replaces them, so nothing moves when the data arrives. */
+  .skeleton {
+    position: relative;
+    display: block;
+    overflow: hidden;
+    background: var(--media-bg);
+  }
+
+  .skeleton::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--surface) 60%, transparent), transparent);
+    transform: translateX(-100%);
+    animation: skeleton-sweep 1.4s ease-in-out infinite;
+  }
+
+  @keyframes skeleton-sweep {
+    to {
+      transform: translateX(100%);
+    }
+  }
+
+  .skeleton-media {
+    position: absolute;
+    inset: 0;
+  }
+
+  .skeleton-line {
+    border-radius: var(--radius-sm);
+  }
+
+  /* Loaded dialogs measure 756 to 852 px tall at 1440x900 (the cap is the viewport height less 48 px), so the
+     placeholder reserves about that much and the sheet barely resizes when the product arrives. */
+  .product-dialog-surface:has(.is-loading) {
+    min-height: min(800px, calc(100dvh - 48px));
+  }
+
+  @media (max-width: 960px) {
+    .product-dialog-surface:has(.is-loading) {
+      min-height: calc(100dvh - 24px);
+    }
+  }
+
+  .product-dialog-info.is-loading .is-eyebrow {
+    width: 96px;
+    height: 14px;
+  }
+
+  .product-dialog-info.is-loading .is-heading {
+    width: min(70%, 320px);
+    height: 44px;
+    margin-top: 10px;
+  }
+
+  .product-dialog-info.is-loading .is-price {
+    width: 110px;
+    height: 26px;
+    margin-top: 14px;
+  }
+
+  .product-dialog-info.is-loading .is-text {
+    height: 16px;
+    margin-top: 12px;
+  }
+
+  .product-dialog-info.is-loading .is-text + .is-text {
+    width: 78%;
+  }
+
+  .product-dialog-info.is-loading .is-swatches {
+    width: 220px;
+    height: 70px;
+    margin-top: 28px;
+  }
+
+  .product-dialog-info.is-loading .is-buy {
+    height: 52px;
+    margin-top: 28px;
+  }
+
+  .product-dialog-info.is-loading .is-buy + .is-buy {
+    height: 46px;
+    margin-top: 10px;
+  }
+
+  .bag-item.is-loading .skeleton-line {
+    border-radius: 4px;
+  }
+
+  .bag-item.is-loading .is-title {
+    width: 60%;
+    height: 20px;
+  }
+
+  .bag-item.is-loading .is-meta {
+    width: 45%;
+    height: 14px;
+    margin-top: 8px;
+  }
+
+  .bag-item.is-loading .is-controls {
+    width: 112px;
+    height: 38px;
+    margin-top: 12px;
+  }
+
+  .bag-item.is-loading .is-price {
+    width: 56px;
+    height: 20px;
   }
 
   @media (prefers-reduced-motion: reduce) {

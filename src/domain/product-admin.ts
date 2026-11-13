@@ -132,8 +132,27 @@ export interface AdminProductSummary {
   featured: boolean;
   sort: number;
   variantCount: number;
+  /** Colours marked out of stock. */
+  outOfStockColours: number;
   thumbnail: string | null;
   updatedAt: string;
+}
+
+/** One page of the admin list. `next` and `prev` are cursor tokens for the URL's `after` and `before`. */
+export interface AdminProductPage {
+  products: AdminProductSummary[];
+  next: string | null;
+  prev: string | null;
+}
+
+export type AdminStatusCounts = Record<ProductStatus | "all", number>;
+
+/** The slim row the browser filters when searching by name. */
+export interface AdminProductName {
+  id: number;
+  name: string;
+  slug: string;
+  status: ProductStatus;
 }
 
 export interface AdminCategory {

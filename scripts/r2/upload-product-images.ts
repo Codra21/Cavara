@@ -1,5 +1,6 @@
-// One-off: optimizes public/product-images/** with Bun.Image (scripts/r2/optimize.ts) and uploads the results to an
-// R2 bucket under the same keys ("product-images/…"). The originals on disk are not changed.
+// One-off: optimizes product-images/** (the originals, at the Cavara/ repo root, git-ignored and outside public/ so
+// they never ship in dist/client) with Bun.Image (scripts/r2/optimize.ts) and uploads the results to an R2 bucket
+// under the same keys ("product-images/…"). The originals on disk are not changed.
 // Run before applying migrations/0005_images_to_r2.sql to that environment's D1, or images break.
 //
 //   bun scripts/r2/upload-product-images.ts dev                → cavara-images-dev
@@ -23,9 +24,9 @@ if (!target || !(target in BUCKETS)) {
   process.exit(1);
 }
 const bucket = BUCKETS[target];
-/** Cavara/, where wrangler.jsonc lives. */
+/** Cavara/, where wrangler.jsonc lives. Keys are paths relative to it, so they still start with "product-images/". */
 const appRoot = join(import.meta.dir, "../..");
-const root = join(appRoot, "public");
+const root = appRoot;
 const source = join(root, "product-images");
 const work = mkdtempSync(join(tmpdir(), "cavara-images-"));
 

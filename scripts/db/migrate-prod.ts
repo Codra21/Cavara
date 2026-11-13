@@ -7,8 +7,10 @@
 //   3. Exports cavara-prod to a SQL file and stores it in the private R2 bucket cavara-backups
 //      (d1/cavara-prod/<time>-before-<migration>.sql, deleted after 90 days by a lifecycle rule).
 //   4. Applies the migrations.
-//   5. Deletes the public catalogue snapshot in R2, so the shop rebuilds it from the migrated data. Edge copies
-//      expire within 5 minutes.
+//   5. Deletes the public catalogue snapshots in R2 (the v2 summary and the v1 full catalogue), so the shop rebuilds
+//      both from the migrated data. Per-product detail objects (snapshots/products/v2/<id>.json) need no deletion:
+//      they carry the summary's generation, and the rebuild starts a new one, which makes every older detail stale.
+//      Edge copies expire within 5 minutes.
 //
 // Every step prints the commands to restore, and the summary goes to the GitHub job summary when run in Actions.
 // Docs: https://developers.cloudflare.com/d1/reference/time-travel/ and
@@ -20,8 +22,13 @@ import { join } from "node:path";
 const appRoot = join(import.meta.dir, "../..");
 const PROD = ["cavara-prod", "--env", "production"];
 const BACKUP_BUCKET = "cavara-backups";
-// Must match CATALOG_SNAPSHOT_KEY and the IMAGES bucket in wrangler.jsonc env.production.
-const SNAPSHOT_OBJECT = "cavara-images-prod/snapshots/catalog-v1.json";
+// Must match snapshotKeys() in src/server/catalog-cache.server.ts, CATALOG_SNAPSHOT_KEY and the IMAGES bucket in
+// wrangler.jsonc env.production. Details are not listed on purpose (see step 5); to drop them anyway, bump the
+// `products/v2/` folder in snapshotKeys().
+const SNAPSHOT_OBJECTS = [
+  "cavara-images-prod/snapshots/catalog-v2.json",
+  "cavara-images-prod/snapshots/catalog-v1.json",
+];
 const summary: string[] = [];
 
 function wrangler(args: string[]) {
@@ -139,13 +146,16 @@ summary.push(`Applied: ${pending.map((name) => `\`${name}\``).join(", ")}`);
 writeSummary();
 console.log(`Applied ${pending.join(", ")} to cavara-prod.`);
 
-// 5. Drop the catalogue snapshot. A failure here does not undo the migration; the shop would keep serving the
-// pre-migration catalogue until the next product save, so it fails the job to get attention.
-const dropped = wrangler(["r2", "object", "delete", SNAPSHOT_OBJECT, "--remote"]);
-if (!dropped.ok)
-  fail(`Migrated, but deleting the catalogue snapshot failed. Run:
+// 5. Drop the catalogue snapshots. A failure here does not undo the migration; the shop would keep serving the
+// pre-migration catalogue until the next product save, so it fails the job to get attention. The summary goes first:
+// its generation is what makes the detail objects stale.
+for (const object of SNAPSHOT_OBJECTS) {
+  const dropped = wrangler(["r2", "object", "delete", object, "--remote"]);
+  if (!dropped.ok)
+    fail(`Migrated, but deleting a catalogue snapshot failed. Run:
 
-    bunx wrangler r2 object delete ${SNAPSHOT_OBJECT} --remote
+    bunx wrangler r2 object delete ${object} --remote
 
 ${dropped.out}`);
-console.log("Deleted the catalogue snapshot; the shop rebuilds it from D1 on the next read.");
+}
+console.log("Deleted the catalogue snapshots; the shop rebuilds them from D1 on the next read.");

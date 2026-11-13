@@ -13,6 +13,7 @@ import {
   SITE_URL,
   WHATSAPP_NUMBER,
 } from "@/lib/config";
+import { RootErrorPage } from "@/components/layout/ErrorPage";
 import { GlobalEffects } from "@/components/layout/GlobalEffects";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Announcement, FloatingChat, QuickDock, SiteFooter, Toast } from "@/components/layout/SiteChrome";
@@ -22,13 +23,22 @@ import { StoreProvider } from "@/components/store/StoreProvider";
 import { THEME_BOOT, THEME_COLORS } from "@/lib/theme";
 import { catalogQueryOptions } from "@/lib/query";
 
+/** Self-hosted Plus Jakarta Sans (declared in site.css). A font preload must be crossorigin even when same-origin. */
+const PRIMARY_FONT = "/fonts/plus-jakarta-sans-latin-wght-normal.woff2";
 const OG_IMAGE = `${SITE_URL}/og-image.jpg`;
 const OG_ALT = "Cavara logo beside hand-painted ceramic cups and a yellow serving dish";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   // Every page needs the catalogue (header bag, footer collections, product lookups); load it once here.
   loader: async ({ context }) => {
-    await context.queryClient.query(catalogQueryOptions());
+    try {
+      await context.queryClient.query(catalogQueryOptions());
+    } catch (error) {
+      // Router writes a failed loader's error message into the page's hydration data. A database error message
+      // ("D1_ERROR: no such table…") must not reach the HTML, so log the real one and rethrow a generic one.
+      console.error("catalogue load failed:", error);
+      throw new Error("The catalogue could not be loaded");
+    }
   },
   head: () => ({
     meta: [
@@ -78,21 +88,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
     ],
     links: [
-      { rel: "icon", type: "image/png", sizes: "32x32", href: "/favicon-32x32.png" },
-      { rel: "icon", type: "image/png", sizes: "16x16", href: "/favicon-16x16.png" },
-      { rel: "icon", href: "/favicon.ico", sizes: "any" },
+      // SVG for current browsers, ICO (16/32/48) as the fallback; sizes on the ICO keep Chrome from choosing it over the SVG.
+      { rel: "icon", type: "image/svg+xml", href: "/favicon.svg", sizes: "any" },
+      { rel: "icon", type: "image/x-icon", href: "/favicon.ico", sizes: "48x48" },
       { rel: "apple-touch-icon", sizes: "180x180", href: "/apple-touch-icon.png" },
       { rel: "manifest", href: "/site.webmanifest" },
-      { rel: "preconnect", href: "https://fonts.googleapis.com" },
-      { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap",
-      },
-      {
-        rel: "stylesheet",
-        href: "https://fonts.googleapis.com/css2?family=Noto+Sans+Bengali:wght@500;600&text=%E0%A7%B3&display=swap",
-      },
+      // The one font file every page needs (variable weights 200-800). The ৳ file is 4 KB and loads on demand.
+      { rel: "preload", href: PRIMARY_FONT, as: "font", type: "font/woff2", crossOrigin: "anonymous" },
       { rel: "preconnect", href: "https://cdnjs.cloudflare.com", crossOrigin: "anonymous" },
       { rel: "stylesheet", href: appCss },
       { rel: "stylesheet", href: siteCss },
@@ -101,6 +103,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   shellComponent: RootDocument,
   component: RootLayout,
   notFoundComponent: NotFound,
+  errorComponent: RootErrorPage,
 });
 
 function RootDocument({ children }: { children: ReactNode }) {

@@ -1,11 +1,15 @@
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { formatPrice, getCategory, getVariant, pluralize, relatedProducts } from "@/domain/catalog";
-import { useCatalog } from "@/lib/query";
+import { Tabs, TabsList, TabsPanel, TabsTab } from "@ui-sdk/react/tabs";
+import { useEffect, useRef, useState } from "react";
+import { availabilityTag, BAG_FULL_MESSAGE } from "@/domain/bag";
+import { formatPrice, getVariant, pluralize } from "@/domain/catalog";
+import type { ProductCard, PublicProduct } from "@/domain/catalog-snapshot";
+import { lookupIds, productsByIdsQueryOptions, relatedQueryOptions } from "@/lib/query";
 import { MAX_QTY, MESSENGER_URL, SITE_URL, WHATSAPP_URL } from "@/lib/config";
 import { finePointer } from "@/lib/dom";
 import { copyText, singleOrderMessage, whatsappUrl } from "@/lib/order";
-import type { Product } from "@/lib/types";
+import type { Category } from "@/lib/types";
 import { useShopNavigation } from "@/components/layout/useShopNavigation";
 import { useStore } from "@/components/store/StoreProvider";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
@@ -20,16 +24,20 @@ type TabId = (typeof TABS)[number]["id"];
 
 const FEATURE_ICONS = ["fa-ruler-combined", "fa-circle-half-stroke", "fa-palette", "fa-images"];
 
-function PageCard({ product }: { product: Product }) {
-  const catalog = useCatalog();
+/** A card with no colour chosen is sold out only when every colour is. */
+const soldOut = (product: ProductCard) =>
+  product.variants.length > 0 && product.variants.every((variant) => variant.availability === "out_of_stock");
+
+function PageCard({ product, categoryName }: { product: ProductCard; categoryName: string }) {
   const openProduct = useOpenProduct();
   return (
     <li className="pdp-card">
       <button className="studio-carousel-card" type="button" onClick={() => openProduct(product)}>
         <span className="studio-carousel-media">
-          <img src={getVariant(product).images[0]} alt="" loading="lazy" width={800} height={800} />
+          <img src={product.images[0]} alt="" loading="lazy" width={800} height={800} />
+          {soldOut(product) ? <span className="product-badge is-sold-out">Out of stock</span> : null}
         </span>
-        <span className="eyebrow">{getCategory(catalog, product).name}</span>
+        <span className="eyebrow">{categoryName}</span>
         <span className="studio-carousel-name">{product.name}</span>
         <span className="studio-carousel-price">{formatPrice(product.price)}</span>
       </button>
@@ -37,7 +45,7 @@ function PageCard({ product }: { product: Product }) {
   );
 }
 
-function Gallery({ product, variantIndex }: { product: Product; variantIndex: number }) {
+function Gallery({ product, variantIndex }: { product: PublicProduct; variantIndex: number }) {
   const variant = getVariant(product, variantIndex);
   const images = variant.images;
   const ref = useRef<HTMLDivElement>(null);
@@ -97,9 +105,16 @@ function useFinePointer() {
   return fine;
 }
 
-export function ProductPage({ product, initialVariant }: { product: Product; initialVariant?: number }) {
+export function ProductPage({
+  product,
+  category: loadedCategory,
+  initialVariant,
+}: {
+  product: PublicProduct;
+  category: Category | null;
+  initialVariant?: number | undefined;
+}) {
   const { selectedVariant, selectVariant, addToBag, showToast, openBag, recent, rememberViewed } = useStore();
-  const catalog = useCatalog();
   const navigate = useNavigate();
   const goToShop = useShopNavigation();
   const [quantity, setQuantity] = useState(1);
@@ -107,17 +122,26 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
   const [barVisible, setBarVisible] = useState(false);
   const buyRef = useRef<HTMLDivElement>(null);
   const titleRef = useRef<HTMLHeadingElement>(null);
-  const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
 
-  const category = getCategory(catalog, product);
-  const variantIndex = selectedVariant(product.id);
+  const category = loadedCategory ?? { id: product.category, name: "Collection" };
+  // A colour picked earlier on another page can be out of range after the editor removed colours.
+  const picked = selectedVariant(product.id);
+  const variantIndex = product.variants[picked] ? picked : 0;
   const variant = getVariant(product, variantIndex);
+  const stockTag = availabilityTag(variant.availability);
   const pageUrl = `${SITE_URL}/products/${product.slug}`;
   const colours = product.variants.map((item) => item.name).join(", ");
-  const recentProducts = recent
-    .filter((id) => id !== product.id)
-    .slice(0, 4)
-    .flatMap((id) => catalog.productById.get(id) ?? []);
+
+  // Related pieces come from the summary and are prefetched by the route loader, so they are in the server HTML.
+  const related = useQuery(relatedQueryOptions(product.slug)).data;
+  // Recently viewed lives in localStorage, so it loads after hydration. The lookup returns ids in sorted order.
+  const recentIds = recent.filter((id) => id !== product.id).slice(0, 4);
+  const recentLookup = useQuery({
+    ...productsByIdsQueryOptions(lookupIds(recentIds)),
+    enabled: recentIds.length > 0,
+  }).data;
+  const recentById = new Map(recentLookup?.products.map((item) => [item.id, item]));
+  const recentProducts = recentIds.flatMap((id) => recentById.get(id) ?? []);
   const bannerImage =
     product.variants.flatMap((item) => item.images).find((image) => !variant.images.includes(image)) ??
     variant.images[variant.images.length - 1];
@@ -134,7 +158,7 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
   useEffect(() => {
     setQuantity(1);
     setTab("description");
-    if (initialVariant !== undefined) selectVariant(product.id, initialVariant);
+    if (initialVariant !== undefined && product.variants[initialVariant]) selectVariant(product.id, initialVariant);
     rememberViewed(product.id);
     document.documentElement.dataset.view = "product";
     window.requestAnimationFrame(() => titleRef.current?.focus({ preventScroll: true }));
@@ -166,26 +190,14 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
   }, [product.id]);
 
   const add = () => {
-    addToBag(product.id, variantIndex, quantity);
+    if (stockTag) return;
+    if (!addToBag(product.id, variantIndex, quantity)) {
+      showToast(BAG_FULL_MESSAGE, { actionLabel: "View bag", action: openBag });
+      return;
+    }
     showToast(`${pluralize(quantity, "item")} added · ${variant.name}`, { actionLabel: "View bag", action: openBag });
   };
-  const addLabel = quantity > 1 ? `Add ${quantity} to bag` : "Add to bag";
-
-  const onTabKey = (event: KeyboardEvent<HTMLButtonElement>) => {
-    if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
-    event.preventDefault();
-    const index = TABS.findIndex((item) => item.id === tab);
-    const next =
-      event.key === "Home"
-        ? 0
-        : event.key === "End"
-          ? TABS.length - 1
-          : (index + (event.key === "ArrowRight" ? 1 : -1) + TABS.length) % TABS.length;
-    const nextTab = TABS[next];
-    if (!nextTab) return;
-    setTab(nextTab.id);
-    tabRefs.current[nextTab.id]?.focus();
-  };
+  const addLabel = stockTag ?? (quantity > 1 ? `Add ${quantity} to bag` : "Add to bag");
 
   return (
     <section className="pdp" aria-labelledby="pdp-title">
@@ -220,7 +232,7 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
               </h1>
               <p className="pdp-price">{formatPrice(product.price)}</p>
               <p className="pdp-summary">{product.summary}</p>
-              {product.details?.length ? (
+              {product.details.length ? (
                 <ul className="pdp-specs">
                   {product.details.map((detail) => (
                     <li key={detail}>{detail}</li>
@@ -231,6 +243,7 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
               <div className="pdp-option">
                 <p className="pdp-option-label">
                   Colour: <strong>{variant.name}</strong>
+                  {stockTag ? <span className="stock-tag">{stockTag}</span> : null}
                 </p>
                 <div className="pdp-swatches" role="group" aria-label="Choose a colour">
                   {product.variants.map((item, index) => (
@@ -251,7 +264,7 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
                   max={MAX_QTY}
                   onChange={(next) => setQuantity(Math.min(MAX_QTY, Math.max(1, next)))}
                 />
-                <button className="button pdp-add" type="button" onClick={add}>
+                <button className="button pdp-add" type="button" onClick={add} disabled={stockTag !== null}>
                   {addLabel}
                 </button>
               </div>
@@ -304,36 +317,23 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
           </div>
         </div>
 
-        <div className="pdp-tabs" data-reveal="">
-          <div className="pdp-tablist" role="tablist" aria-label="Product information">
+        <Tabs
+          className="pdp-tabs"
+          data-reveal=""
+          value={tab}
+          onValueChange={(next) => {
+            if (next) setTab(next as TabId);
+          }}
+        >
+          <TabsList className="pdp-tablist" aria-label="Product information">
             {TABS.map((item) => (
-              <button
-                key={item.id}
-                ref={(element) => {
-                  tabRefs.current[item.id] = element;
-                }}
-                type="button"
-                role="tab"
-                id={`pdp-tab-${item.id}`}
-                aria-controls={`pdp-panel-${item.id}`}
-                aria-selected={item.id === tab}
-                tabIndex={item.id === tab ? 0 : -1}
-                onClick={() => setTab(item.id)}
-                onKeyDown={onTabKey}
-              >
+              <TabsTab key={item.id} value={item.id}>
                 {item.label}
-              </button>
+              </TabsTab>
             ))}
-          </div>
+          </TabsList>
 
-          <div
-            className="pdp-panel"
-            role="tabpanel"
-            id="pdp-panel-description"
-            aria-labelledby="pdp-tab-description"
-            tabIndex={0}
-            hidden={tab !== "description"}
-          >
+          <TabsPanel className="pdp-panel" value="description" keepMounted>
             <div className="pdp-story">
               <div>
                 <p className="eyebrow">About this piece</p>
@@ -355,16 +355,9 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
             <figure className="pdp-banner">
               <img src={bannerImage} alt={product.name} loading="lazy" width={1400} height={700} />
             </figure>
-          </div>
+          </TabsPanel>
 
-          <div
-            className="pdp-panel"
-            role="tabpanel"
-            id="pdp-panel-information"
-            aria-labelledby="pdp-tab-information"
-            tabIndex={0}
-            hidden={tab !== "information"}
-          >
+          <TabsPanel className="pdp-panel" value="information" keepMounted>
             <table className="pdp-table">
               <tbody>
                 <tr>
@@ -379,7 +372,7 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
                   <th scope="row">{product.variants.length > 1 ? "Colours" : "Colour"}</th>
                   <td>{colours}</td>
                 </tr>
-                {product.details?.length ? (
+                {product.details.length ? (
                   <tr>
                     <th scope="row">Details</th>
                     <td>
@@ -398,16 +391,9 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
                 </tr>
               </tbody>
             </table>
-          </div>
+          </TabsPanel>
 
-          <div
-            className="pdp-panel"
-            role="tabpanel"
-            id="pdp-panel-ordering"
-            aria-labelledby="pdp-tab-ordering"
-            tabIndex={0}
-            hidden={tab !== "ordering"}
-          >
+          <TabsPanel className="pdp-panel" value="ordering" keepMounted>
             <div className="pdp-ordering">
               <div>
                 <h3>How ordering works</h3>
@@ -430,16 +416,16 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
                 </div>
               </div>
             </div>
-          </div>
-        </div>
+          </TabsPanel>
+        </Tabs>
 
         <section className="pdp-related" aria-labelledby="pdp-related-title">
           <h2 id="pdp-related-title" data-reveal="">
             Related pieces
           </h2>
           <ul className="pdp-grid">
-            {relatedProducts(catalog, product).map((item) => (
-              <PageCard key={item.id} product={item} />
+            {related?.products.map((item) => (
+              <PageCard key={item.id} product={item} categoryName={related.categoryNames[item.category] ?? ""} />
             ))}
           </ul>
         </section>
@@ -451,7 +437,11 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
             </h2>
             <ul className="pdp-grid">
               {recentProducts.map((item) => (
-                <PageCard key={item.id} product={item} />
+                <PageCard
+                  key={item.id}
+                  product={item}
+                  categoryName={recentLookup?.categoryNames[item.category] ?? ""}
+                />
               ))}
             </ul>
           </section>
@@ -467,7 +457,7 @@ export function ProductPage({ product, initialVariant }: { product: Product; ini
               <span>{variant.name}</span> · {formatPrice(product.price)}
             </p>
           </div>
-          <button className="button" type="button" onClick={add}>
+          <button className="button" type="button" onClick={add} disabled={stockTag !== null}>
             {addLabel}
           </button>
         </div>

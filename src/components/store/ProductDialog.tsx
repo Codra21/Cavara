@@ -1,21 +1,22 @@
+import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { formatPrice, getCategory, getVariant, pluralize } from "@/domain/catalog";
-import { useCatalog } from "@/lib/query";
+import { availabilityTag, BAG_FULL_MESSAGE } from "@/domain/bag";
+import { formatPrice, getVariant, pluralize } from "@/domain/catalog";
+import { productQueryOptions } from "@/lib/query";
 import { MAX_QTY, MESSENGER_URL } from "@/lib/config";
 import { copyText, singleOrderMessage, whatsappUrl } from "@/lib/order";
 import { ModalDialog } from "@/components/ui/ModalDialog";
 import { Icon, Quantity, SrOnly, Swatch } from "@/components/ui/primitives";
-import { useStore } from "./StoreProvider";
+import { type QuickViewTarget, useStore } from "./StoreProvider";
 
 const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";
 
 export function ProductDialog() {
   const { quickView, closeQuickView, selectedVariant, selectVariant, addToBag, openBag } = useStore();
-  const catalog = useCatalog();
   const navigate = useNavigate();
   // Keep the last product rendered while the close animation plays.
-  const [productId, setProductId] = useState<number | null>(null);
+  const [target, setTarget] = useState<QuickViewTarget | null>(null);
   const [imageIndex, setImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [feedback, setFeedback] = useState<{ message: string; bagAction: boolean } | null>(null);
@@ -24,17 +25,25 @@ export function ProductDialog() {
 
   useEffect(() => {
     if (quickView === null) return;
-    if (quickView !== productId) setQuantity(1);
-    setProductId(quickView);
+    if (quickView.id !== target?.id) setQuantity(1);
+    setTarget(quickView);
     setImageIndex(0);
     setFeedback(null);
     window.requestAnimationFrame(() => closeRef.current?.focus());
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset only when a product is opened
   }, [quickView]);
 
-  const product = productId === null ? undefined : catalog.productById.get(productId);
-  const variantIndex = product ? selectedVariant(product.id) : 0;
+  // The detail loads when the dialog opens (the same cache entry the product page uses). The slug comes from the card.
+  const lookup = useQuery({
+    ...productQueryOptions(target?.slug ?? ""),
+    enabled: quickView !== null && target !== null,
+  });
+  const product = lookup.data?.product ?? undefined;
+  const categoryName = lookup.data?.category?.name ?? "Collection";
+  const picked = product ? selectedVariant(product.id) : 0;
+  const variantIndex = product?.variants[picked] ? picked : 0;
   const variant = product ? getVariant(product, variantIndex) : undefined;
+  const stockTag = availabilityTag(variant?.availability);
   const images = variant?.images ?? [];
   const current = Math.min(imageIndex, Math.max(0, images.length - 1));
 
@@ -50,7 +59,7 @@ export function ProductDialog() {
     image.style.animation = "none";
     void image.offsetWidth;
     image.style.animation = "";
-  }, [current, variantIndex, productId]);
+  }, [current, variantIndex, product?.id]);
 
   useEffect(() => {
     if (quickView === null) return;
@@ -80,15 +89,17 @@ export function ProductDialog() {
         </button>
         <div className="product-dialog-gallery">
           <div className="product-dialog-media">
-            <img
-              ref={imageRef}
-              src={images[current] ?? BLANK}
-              alt={
-                product && variant ? `${product.name}, ${variant.name}, image ${current + 1} of ${images.length}` : ""
-              }
-              width={800}
-              height={800}
-            />
+            {product ? (
+              <img
+                ref={imageRef}
+                src={images[current] ?? BLANK}
+                alt={`${product.name}, ${variant?.name ?? ""}, image ${current + 1} of ${images.length}`}
+                width={800}
+                height={800}
+              />
+            ) : target ? (
+              <span className="skeleton skeleton-media" aria-hidden="true" />
+            ) : null}
             <button
               className="gallery-arrow gallery-prev"
               type="button"
@@ -111,7 +122,10 @@ export function ProductDialog() {
               {current + 1} / {images.length}
             </span>
           </div>
-          <div className="product-dialog-thumbs" hidden={images.length < 2}>
+          <div className="product-dialog-thumbs" hidden={product ? images.length < 2 : false}>
+            {!product && target
+              ? [0, 1, 2].map((slot) => <span className="thumb skeleton" key={slot} aria-hidden="true" />)
+              : null}
             {images.map((image, index) => (
               <button
                 key={image}
@@ -129,7 +143,7 @@ export function ProductDialog() {
 
         {product && variant ? (
           <div className="product-dialog-info">
-            <p className="product-dialog-category">{getCategory(catalog, product).name}</p>
+            <p className="product-dialog-category">{categoryName}</p>
             <h2 id="product-dialog-title">{product.name}</h2>
             <p className="product-dialog-price">{formatPrice(product.price)}</p>
             <p className="product-dialog-summary">{product.summary}</p>
@@ -137,6 +151,7 @@ export function ProductDialog() {
             <fieldset className="variant-picker">
               <legend>
                 Color: <span>{variant.name}</span>
+                {stockTag ? <span className="stock-tag">{stockTag}</span> : null}
               </legend>
               <div className="variant-swatches">
                 {product.variants.map((item, index) => (
@@ -164,13 +179,17 @@ export function ProductDialog() {
               <button
                 className="button purchase-add"
                 type="button"
+                disabled={stockTag !== null}
                 onClick={() => {
-                  addToBag(product.id, variantIndex, quantity);
+                  if (!addToBag(product.id, variantIndex, quantity)) {
+                    setFeedback({ message: BAG_FULL_MESSAGE, bagAction: true });
+                    return;
+                  }
                   setFeedback({ message: `${pluralize(quantity, "item")} added · ${variant.name}`, bagAction: true });
                 }}
               >
                 <Icon name="fa-solid fa-bag-shopping" />
-                <span>Add to bag · {formatPrice(product.price * quantity)}</span>
+                <span>{stockTag ?? `Add to bag · ${formatPrice(product.price * quantity)}`}</span>
               </button>
             </div>
             <p className="dialog-feedback" role="status" aria-live="polite" hidden={!feedback}>
@@ -227,16 +246,56 @@ export function ProductDialog() {
             <div className="product-details">
               <h3>Details</h3>
               <ul>
-                {(product.details ?? []).map((detail) => (
+                {product.details.map((detail) => (
                   <li key={detail}>{detail}</li>
                 ))}
               </ul>
               {product.note ? <p className="product-note">{product.note}</p> : null}
             </div>
           </div>
+        ) : !target ? (
+          <div className="product-dialog-info">
+            <h2 id="product-dialog-title" className="sr-only">
+              Product details
+            </h2>
+          </div>
+        ) : lookup.isPending ? (
+          <div className="product-dialog-info is-loading" role="status" aria-busy="true">
+            <h2 id="product-dialog-title" className="sr-only">
+              Loading product details
+            </h2>
+            <span className="skeleton skeleton-line is-eyebrow" aria-hidden="true" />
+            <span className="skeleton skeleton-line is-heading" aria-hidden="true" />
+            <span className="skeleton skeleton-line is-price" aria-hidden="true" />
+            <span className="skeleton skeleton-line is-text" aria-hidden="true" />
+            <span className="skeleton skeleton-line is-text" aria-hidden="true" />
+            <span className="skeleton skeleton-line is-swatches" aria-hidden="true" />
+            <span className="skeleton skeleton-line is-buy" aria-hidden="true" />
+            <span className="skeleton skeleton-line is-buy" aria-hidden="true" />
+          </div>
         ) : (
           <div className="product-dialog-info">
-            <h2 id="product-dialog-title">Product details</h2>
+            <h2 id="product-dialog-title">
+              {lookup.isError ? "We couldn't load this product" : "This piece is no longer available"}
+            </h2>
+            <p className="product-dialog-summary">
+              {lookup.isError
+                ? "Check your connection and try again."
+                : "It may have been removed from the shop. Browse the collection for something similar."}
+            </p>
+            {lookup.isError ? (
+              <button
+                className="button button-outline dialog-retry"
+                type="button"
+                onClick={() => void lookup.refetch()}
+              >
+                Try again
+              </button>
+            ) : (
+              <button className="button dialog-retry" type="button" onClick={closeQuickView}>
+                Back to the shop
+              </button>
+            )}
           </div>
         )}
       </div>

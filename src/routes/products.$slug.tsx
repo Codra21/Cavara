@@ -1,6 +1,7 @@
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import { getVariant, indexCatalog } from "@/domain/catalog";
-import { catalogQueryOptions } from "@/lib/query";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { getVariant, isProductSlug } from "@/domain/catalog";
+import { productQueryOptions, relatedQueryOptions } from "@/lib/query";
 import { absoluteUrl, breadcrumbJsonLd, metaDescription, productJsonLd, productUrl } from "@/domain/seo";
 import { SHARE_DESCRIPTION, SITE_URL } from "@/lib/config";
 import { ProductPage } from "@/components/product/ProductPage";
@@ -15,15 +16,21 @@ export const Route = createFileRoute("/products/$slug")({
     return Number.isInteger(variant) && variant >= 0 ? { variant } : {};
   },
   loader: async ({ context, params }) => {
-    const catalog = indexCatalog(await context.queryClient.query(catalogQueryOptions()));
-    const product = catalog.productBySlug.get(params.slug);
+    // A slug the editor could never have written is not found; the server function would reject it as bad input.
+    if (!isProductSlug(params.slug)) throw notFound();
+    const [{ product, category }] = await Promise.all([
+      context.queryClient.query(productQueryOptions(params.slug)),
+      // Related pieces are below the fold; a failure leaves the row empty instead of failing the page.
+      context.queryClient.prefetchQuery(relatedQueryOptions(params.slug)),
+    ]);
     if (!product) throw notFound();
-    return { product, category: catalog.categoryById.get(product.category) };
+    // head() below needs the product too. The component reads the same data back from the query cache.
+    return { product, category };
   },
   head: ({ loaderData }) => {
     const product = loaderData?.product;
     if (!product) return {};
-    const category = loaderData?.category;
+    const category = loaderData?.category ?? undefined;
     const url = productUrl(SITE_URL, product);
     const image = absoluteUrl(SITE_URL, getVariant(product).images[0] ?? "/og-image.jpg");
     const title = `${product.name} — Cavara`;
@@ -53,7 +60,10 @@ export const Route = createFileRoute("/products/$slug")({
 });
 
 function ProductRoute() {
-  const { product } = Route.useLoaderData();
+  const { slug } = Route.useParams();
   const { variant } = Route.useSearch();
-  return <ProductPage key={product.id} product={product} initialVariant={variant} />;
+  const { data } = useSuspenseQuery(productQueryOptions(slug));
+  // The loader found it, but a later refetch (stale after 5 minutes) can find it archived.
+  if (!data.product) throw notFound();
+  return <ProductPage key={data.product.id} product={data.product} category={data.category} initialVariant={variant} />;
 }

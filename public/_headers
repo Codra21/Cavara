@@ -1,0 +1,20 @@
+# Headers for static assets only. Workers Assets answers these requests before the Worker runs, so the Worker's
+# src/server/security-headers.ts never sees them, and this file never touches Worker responses (pages, /healthz,
+# /sitemap.xml, server functions). Keep the values in step with that module (src/test/security-headers.test.ts checks it).
+# Docs: https://developers.cloudflare.com/workers/static-assets/headers/
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Frame-Options: DENY
+  Content-Security-Policy: frame-ancestors 'none'
+
+# Vite writes fingerprinted files straight into /assets/ (the hash is in the name), so a changed file gets a new URL.
+# The placeholder matches one path segment only, so the unhashed /assets/brand/ files from public/ are not caught.
+/assets/:file
+  Cache-Control: public, max-age=31536000, immutable
+
+# Font files are not fingerprinted; rename a file when its bytes change.
+/fonts/*
+  Cache-Control: public, max-age=31536000, immutable

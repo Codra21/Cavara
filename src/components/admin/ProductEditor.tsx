@@ -1,6 +1,17 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, ExternalLink, ImagePlus, Plus, Trash2, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowLeft,
+  ArrowRight,
+  ArrowUp,
+  Copy,
+  ExternalLink,
+  ImagePlus,
+  Plus,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useId, useMemo, useRef, useState } from "react";
 import { formatPrice } from "@/domain/catalog";
 import { IMAGE_OPTIMIZATION, MAX_SOURCE_BYTES, mediaUrl, UPLOAD_ACCEPT } from "@/domain/media";
@@ -33,7 +44,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { saveProductFn } from "@/server/functions/admin-catalog.functions";
 import { uploadImageFn } from "@/server/functions/admin-media.functions";
 import { STATUS_LABELS } from "./ProductList";
-import { ADMIN_QUERY_KEY } from "./queries";
+import { DuplicateDialog } from "./ProductActions";
+import { ADMIN_QUERY_KEY, invalidateProductData, patchProductNames } from "./queries";
 
 type FormVariant = ProductFormValues["variants"][number];
 
@@ -375,6 +387,8 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
   const [problems, setProblems] = useState<string[]>([]);
   const [conflict, setConflict] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [copying, setCopying] = useState(false);
+  const archiving = values.status === "archived" && product?.status !== "archived";
 
   const details = detailsText
     .split("\n")
@@ -415,7 +429,11 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
       }
       setProblems(result.warning ? [result.warning] : []);
       setSaved(true);
-      await queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEY });
+      // The product list, counts and this product refetch; the name list (one read per product) is patched instead.
+      patchProductNames(queryClient, [
+        { id: result.id, name: current.name, slug: current.slug, status: current.status ?? "draft" },
+      ]);
+      await invalidateProductData(queryClient);
       if (!product)
         await navigate({ to: "/admin/products/$productId", params: { productId: String(result.id) }, replace: true });
     },
@@ -454,14 +472,24 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          {product?.status === "published" ? (
-            <Button asChild variant="outline">
-              <a href={`/products/${product.slug}`} target="_blank" rel="noreferrer">
-                View on shop <ExternalLink />
-              </a>
+          {product ? (
+            <Button type="button" variant="outline" onClick={() => setCopying(true)}>
+              <Copy /> Duplicate
             </Button>
           ) : null}
-          <Button type="submit" disabled={save.isPending}>
+          {product?.status === "published" ? (
+            <Button
+              variant="outline"
+              render={<a href={`/products/${product.slug}`} target="_blank" rel="noreferrer" />}
+            >
+              View on shop <ExternalLink />
+            </Button>
+          ) : null}
+          <Button
+            type="submit"
+            disabled={save.isPending}
+            data-agent-confirm={archiving ? "Archives this product and removes it from the shop" : undefined}
+          >
             {save.isPending ? "Saving…" : product ? "Save changes" : "Create product"}
           </Button>
         </div>
@@ -708,10 +736,18 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
       </Card>
 
       <div className="flex justify-end">
-        <Button type="submit" disabled={save.isPending}>
+        <Button
+          type="submit"
+          disabled={save.isPending}
+          data-agent-confirm={archiving ? "Archives this product and removes it from the shop" : undefined}
+        >
           {save.isPending ? "Saving…" : product ? "Save changes" : "Create product"}
         </Button>
       </div>
+      <DuplicateDialog
+        product={copying && product ? { id: product.id, name: product.name } : null}
+        onClose={() => setCopying(false)}
+      />
     </form>
   );
 }

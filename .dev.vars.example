@@ -1,0 +1,27 @@
+# Copy to .dev.vars for `bun run dev` (Wrangler reads that file; it is git-ignored). Never reuse these values in production.
+# Production secrets are set with `bunx wrangler secret put <NAME> --env production`.
+
+# Admin sign-in. Leave ADMIN_SECRET empty to disable the admin area.
+# ADMIN_USERNAME is optional and falls back to the built-in owner name.
+ADMIN_USERNAME=owner
+ADMIN_SECRET=change-me-to-a-long-random-passphrase
+
+# HMAC key for order rate-limit rows. 32+ characters. If unset or shorter, a fixed fallback key is used and a warning is logged.
+ORDER_RATE_LIMIT_SECRET=replace-with-at-least-32-random-characters
+
+# Telegram order alerts. Both are required, otherwise alerts are off.
+TELEGRAM_BOT_TOKEN=
+TELEGRAM_CHAT_ID=
+# Origin used for admin links inside alerts. Defaults to https://cavarabd.com.
+ORDER_ADMIN_BASE_URL=http://localhost:3000
+
+# Hourly Cloudflare usage alert (cron only). All four are required for it to run.
+# USAGE_ACCOUNT_ID is a plain var in wrangler.jsonc for production; set it here only to test locally.
+USAGE_ACCOUNT_ID=
+CF_ANALYTICS_TOKEN=
+TELEGRAM_USAGE_CHAT_ID=
+
+# Optional. Image origin without a trailing slash; empty serves images through the Worker's /media route.
+IMAGE_BASE_URL=
+# Optional. R2 key of the catalogue snapshot; empty turns snapshots off.
+CATALOG_SNAPSHOT_KEY=

@@ -42,8 +42,11 @@
       "workers_dev": false,
       "preview_urls": false,
       "vars": {
-        // R2 key (in IMAGES) of the public catalogue JSON. Change it together with SNAPSHOT_OBJECT in
-        // scripts/db/migrate-prod.ts and the v1 cache path in src/server/catalog-cache.server.ts.
+        // R2 key (in IMAGES) of the legacy full catalogue JSON. Its folder also holds catalog-v2.json (the summary)
+        // and products/v2/<id>.json (one detail per product); snapshotKeys() in src/server/catalog-cache.server.ts
+        // derives them. A blank value turns snapshots off. Change the names together with SNAPSHOT_OBJECTS in
+        // scripts/db/migrate-prod.ts, the package.json db:migrate scripts and the edge cache paths in
+        // catalog-cache.server.ts.
         "CATALOG_SNAPSHOT_KEY": "snapshots/catalog-v1.json",
         "USAGE_ACCOUNT_ID": "7b55798e5a2b91035dece6c8411564e4",
         // R2 custom domain of cavara-images-prod (connected 2026-11-06). Images skip the Worker and are cached by

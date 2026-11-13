@@ -15,6 +15,7 @@ describe("migrations", () => {
       "0006_orders.sql",
       "0007_order_change_token.sql",
       "0008_order_outbox.sql",
+      "0009_admin_product_list.sql",
     ]);
     const db = createTestD1();
     const count = (table: string) => (db.sqlite.query(`SELECT count(*) AS n FROM ${table}`).get() as { n: number }).n;

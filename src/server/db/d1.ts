@@ -41,9 +41,16 @@ export interface R2HTTPMetadata {
   cacheExpiry?: Date;
 }
 
+/** Precondition for put(): with etagMatches, the write happens only if the object still has that etag. */
+export interface R2Conditional {
+  etagMatches?: string;
+  etagDoesNotMatch?: string;
+}
+
 export interface R2PutOptions {
   httpMetadata?: R2HTTPMetadata | Headers;
   customMetadata?: Record<string, string>;
+  onlyIf?: R2Conditional | Headers;
 }
 
 export interface R2Object {
@@ -73,11 +80,12 @@ export interface ExecutionContext {
 
 export interface R2Bucket {
   get(key: string): Promise<R2ObjectBody | null>;
+  /** Resolves to null (and stores nothing) when an `onlyIf` precondition fails. */
   put(
     key: string,
     value: ReadableStream | ArrayBuffer | ArrayBufferView | string | null | Blob,
     options?: R2PutOptions,
-  ): Promise<R2Object>;
+  ): Promise<R2Object | null>;
   delete(keys: string | string[]): Promise<void>;
 }
 

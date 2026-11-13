@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { orderListSchema, saveZonesSchema, updateOrderSchema } from "@/domain/orders";
 import { getOrder, listOrders, listZones, saveZones, updateOrderStatus } from "@/server/db/admin-orders.repository";
-import { refreshCatalog } from "@/server/catalog-cache.server";
+import { refreshZones } from "@/server/catalog-cache.server";
 import { catalogSources } from "@/server/catalog-sources.server";
 import { getDb } from "@/server/env";
 import { adminAuthMiddleware, ownerAuthMiddleware } from "@/server/middleware/auth";
@@ -41,8 +41,8 @@ export const saveZonesFn = createServerFn({ method: "POST" })
   .handler(async ({ data, context }) => {
     const result = await saveZones(getDb(), context.admin, data.zones);
     if (!result.ok) return result;
-    // Checkout reads zones from the cached catalogue, so rebuild it now.
-    const refreshed = await refreshCatalog(catalogSources());
+    // Checkout reads zones from the cached catalogue: patch the zones in the snapshots (reads only the zones).
+    const refreshed = await refreshZones(catalogSources());
     return refreshed
       ? result
       : {

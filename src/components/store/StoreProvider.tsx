@@ -1,8 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { MAX_QTY, RECENT_LIMIT, STORAGE_KEYS } from "@/lib/config";
+import { RECENT_LIMIT, STORAGE_KEYS } from "@/lib/config";
 import { storageGet, storageSet } from "@/lib/dom";
-import { useCatalog } from "@/lib/query";
-import type { CatalogIndex } from "@/domain/catalog";
+import { addBagLine, clampQty, normalizeBag } from "@/domain/bag";
 import type { BagItem } from "@/lib/types";
 import { applyTheme, isTheme, onSystemThemeChange, saveTheme, storedTheme, systemTheme, type Theme } from "@/lib/theme";
 
@@ -14,11 +13,17 @@ export interface ToastState {
   inBag?: boolean;
 }
 
+export interface QuickViewTarget {
+  id: number;
+  slug: string;
+}
+
 interface StoreValue {
   bag: BagItem[];
   bagCount: number;
   bagBump: number;
-  addToBag: (productId: number, variant: number, qty?: number) => void;
+  /** False when the bag already holds the most lines an order can have and this colour is not one of them. */
+  addToBag: (productId: number, variant: number, qty?: number) => boolean;
   updateBagItem: (productId: number, variant: number, qty: number) => void;
   clearBag: () => void;
 
@@ -33,8 +38,9 @@ interface StoreValue {
   showToast: (message: string, options?: Omit<ToastState, "id" | "message">) => void;
   hideToast: () => void;
 
-  quickView: number | null;
-  openQuickView: (productId: number, variant?: number) => void;
+  /** The product open in the quick view. The slug is what the detail lookup needs. */
+  quickView: QuickViewTarget | null;
+  openQuickView: (product: QuickViewTarget, variant?: number) => void;
   closeQuickView: () => void;
 
   bagOpen: boolean;
@@ -47,60 +53,49 @@ interface StoreValue {
 
 const StoreContext = createContext<StoreValue | null>(null);
 
-function clampQty(value: number) {
-  return Math.min(MAX_QTY, Math.max(1, value));
-}
-
-function loadBag(catalog: CatalogIndex): BagItem[] {
+// The bag and the recent list are checked for shape only. Whether a product still exists is the server's answer
+// (getProductsByIdsFn), shown by the bag drawer as "unavailable" instead of silently dropping the line.
+function loadBag(): BagItem[] {
   try {
-    const parsed: unknown = JSON.parse(storageGet(STORAGE_KEYS.bag) || "[]");
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((item: { id?: unknown; variant?: unknown; qty?: unknown }) => ({
-        id: Number(item.id),
-        variant: Number(item.variant),
-        qty: clampQty(Number(item.qty) || 1),
-      }))
-      .filter((item) => catalog.productById.get(item.id)?.variants[item.variant]);
+    return normalizeBag(JSON.parse(storageGet(STORAGE_KEYS.bag) || "[]"));
   } catch {
     return [];
   }
 }
 
-function loadRecent(catalog: CatalogIndex): number[] {
+function loadRecent(): number[] {
   try {
     const parsed: unknown = JSON.parse(storageGet(STORAGE_KEYS.recent) || "[]");
-    return Array.isArray(parsed)
-      ? parsed
-          .map(Number)
-          .filter((id) => catalog.productById.has(id))
-          .slice(0, RECENT_LIMIT)
-      : [];
+    if (!Array.isArray(parsed)) return [];
+    const ids = (parsed as unknown[]).map(Number).filter((id) => Number.isInteger(id) && id > 0);
+    return [...new Set(ids)].slice(0, RECENT_LIMIT);
   } catch {
     return [];
   }
 }
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const catalog = useCatalog();
-  // Storage listeners outlive renders; read the latest catalogue through a ref.
-  const catalogRef = useRef(catalog);
-  catalogRef.current = catalog;
   // Browser-only state starts empty so server and first client render match; it loads after hydration.
-  const [bag, setBag] = useState<BagItem[]>([]);
+  const [bag, setBagState] = useState<BagItem[]>([]);
+  // The latest bag, readable synchronously, so addToBag can answer "was it added?" before React re-renders.
+  const bagRef = useRef<BagItem[]>([]);
+  const setBag = useCallback((next: BagItem[]) => {
+    bagRef.current = next;
+    setBagState(next);
+  }, []);
   const [bagBump, setBagBump] = useState(0);
   const [selectedVariants, setSelectedVariants] = useState<Record<number, number>>({});
   const [theme, setTheme] = useState<Theme>("light");
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [quickView, setQuickView] = useState<number | null>(null);
+  const [quickView, setQuickView] = useState<QuickViewTarget | null>(null);
   const [bagOpen, setBagOpen] = useState(false);
   const [recent, setRecent] = useState<number[]>([]);
   const [hydrated, setHydrated] = useState(false);
   const toastTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
-    setBag(loadBag(catalogRef.current));
-    setRecent(loadRecent(catalogRef.current));
+    setBag(loadBag());
+    setRecent(loadRecent());
     // THEME_BOOT already applied the theme; read it back. Follow the system until the visitor chooses.
     const booted = document.documentElement.dataset.theme;
     setTheme(isTheme(booted) ? booted : systemTheme());
@@ -112,7 +107,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     setHydrated(true);
 
     const onStorage = (event: StorageEvent) => {
-      if (event.key === STORAGE_KEYS.bag) setBag(loadBag(catalogRef.current));
+      if (event.key === STORAGE_KEYS.bag) setBag(loadBag());
       if (event.key === STORAGE_KEYS.theme) {
         const next = isTheme(event.newValue) ? event.newValue : systemTheme();
         applyTheme(next);
@@ -131,31 +126,37 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     if (hydrated) storageSet(STORAGE_KEYS.bag, JSON.stringify(bag));
   }, [bag, hydrated]);
 
-  const addToBag = useCallback((productId: number, variant: number, qty = 1) => {
-    setBag((current) => {
-      const existing = current.find((item) => item.id === productId && item.variant === variant);
-      if (existing)
-        return current.map((item) => (item === existing ? { ...item, qty: clampQty(item.qty + qty) } : item));
-      return [...current, { id: productId, variant, qty: clampQty(qty) }];
-    });
-    setBagBump((value) => value + 1);
-  }, []);
+  const addToBag = useCallback(
+    (productId: number, variant: number, qty = 1) => {
+      // An order holds at most MAX_BAG_LINES lines, so a longer bag could never be placed (see addBagLine).
+      const result = addBagLine(bagRef.current, productId, variant, qty);
+      if (!result.added) return false;
+      setBag(result.bag);
+      setBagBump((value) => value + 1);
+      return true;
+    },
+    [setBag],
+  );
 
-  const updateBagItem = useCallback((productId: number, variant: number, qty: number) => {
-    setBag((current) =>
-      qty <= 0
-        ? current.filter((item) => !(item.id === productId && item.variant === variant))
-        : current.map((item) =>
-            item.id === productId && item.variant === variant ? { ...item, qty: clampQty(qty) } : item,
-          ),
-    );
-  }, []);
+  const updateBagItem = useCallback(
+    (productId: number, variant: number, qty: number) => {
+      const current = bagRef.current;
+      setBag(
+        qty <= 0
+          ? current.filter((item) => !(item.id === productId && item.variant === variant))
+          : current.map((item) =>
+              item.id === productId && item.variant === variant ? { ...item, qty: clampQty(qty) } : item,
+            ),
+      );
+    },
+    [setBag],
+  );
 
-  const clearBag = useCallback(() => setBag([]), []);
+  const clearBag = useCallback(() => setBag([]), [setBag]);
 
   const selectedVariant = useCallback((productId: number) => selectedVariants[productId] ?? 0, [selectedVariants]);
   const selectVariant = useCallback((productId: number, variant: number) => {
-    if (!catalogRef.current.productById.get(productId)?.variants[variant]) return;
+    if (!Number.isInteger(variant) || variant < 0) return;
     setSelectedVariants((current) => ({ ...current, [productId]: variant }));
   }, []);
 
@@ -174,11 +175,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const openQuickView = useCallback(
-    (productId: number, variant?: number) => {
-      if (variant !== undefined) selectVariant(productId, variant);
+    (product: QuickViewTarget, variant?: number) => {
+      if (variant !== undefined) selectVariant(product.id, variant);
       setBagOpen(false);
       setToast(null);
-      setQuickView(productId);
+      setQuickView({ id: product.id, slug: product.slug });
     },
     [selectVariant],
   );

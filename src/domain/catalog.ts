@@ -1,5 +1,5 @@
 // Pure catalogue helpers. No React, no D1, no fetch: every function takes the catalogue it works on.
-import type { Catalog, Category, Product, Variant } from "@/lib/types";
+import type { Catalog, Category, Product } from "@/lib/types";
 
 /** The catalogue plus lookup maps, built once per catalogue value. */
 export interface CatalogIndex extends Catalog {
@@ -27,7 +27,8 @@ export function pluralize(count: number, singular: string, plural = `${singular}
   return `${count} ${count === 1 ? singular : plural}`;
 }
 
-export function getVariant(product: Product, index = 0): Variant {
+/** The colour at `index`, or the first one when the index is out of range. Works on any product shape with colours. */
+export function getVariant<V>(product: { variants: [V, ...V[]] }, index = 0): V {
   return product.variants[index] ?? product.variants[0];
 }
 
@@ -40,6 +41,10 @@ export function getCategory(catalog: CatalogIndex, product: Product): Category {
 export function countInCategory(catalog: CatalogIndex, categoryId: string) {
   return catalog.products.filter((product) => product.category === categoryId).length;
 }
+
+/** Lowercase words joined by single hyphens, as the editor writes them (see SLUG_PATTERN in product-admin.ts). */
+export const isProductSlug = (value: unknown): value is string =>
+  typeof value === "string" && value.length >= 1 && value.length <= 80 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
 
 /** Shape check for `?category=` before the catalogue is loaded; unknown ids fall back to "all" when rendering. */
 export const isCategorySlug = (value: unknown): value is string =>
@@ -85,10 +90,4 @@ export function filterProducts(
       return terms.every((term) => text.includes(term));
     })
     .sort(sorters[sort]);
-}
-
-export function relatedProducts(catalog: CatalogIndex, product: Product) {
-  const same = catalog.products.filter((item) => item.id !== product.id && item.category === product.category);
-  const others = catalog.products.filter((item) => item.id !== product.id && item.category !== product.category);
-  return [...same, ...others].slice(0, 4);
 }
