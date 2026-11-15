@@ -6,10 +6,11 @@
 //   amount coupon takes `value` off. Either way the order never drops below 1 taka, so `orders.subtotal > 0` holds.
 // - It applies when it is active, startsAt <= now < endsAt (endsAt null = no end date), usedCount < usageLimit
 //   (null = unlimited) and the item total after sales reaches minOrder.
-// - Cancelling an order does not give its use back: the limit counts orders placed, not orders kept.
+// - Cancelling an order that was never paid gives its use back, and reopening it takes a use again (refused when none
+//   is left). A paid or refunded order keeps its use. The rule lives in updateOrderStatus.
 import { z } from "zod";
 import { formatPrice } from "@/domain/catalog";
-import { DISCOUNT_TYPES, isSaleActive } from "@/domain/discounts";
+import { DISCOUNT_TYPES, isoDate, isSaleActive } from "@/domain/discounts";
 
 export const COUPON_CODE_PATTERN = /^[A-Z0-9-]{3,20}$/;
 
@@ -41,21 +42,19 @@ export type CouponEvaluation =
   | { ok: true; discount: number; itemsTotal: number; subtotal: number }
   | { ok: false; reason: CouponReason; message: string };
 
-/** What the shopper is told. `unknown` also covers a coupon the Owner switched off, so a dead code reveals nothing. */
+/** What the shopper is told. Everything but the minimum order reads the same, so a dead code reveals nothing. */
 export const couponMessage = (reason: CouponReason, minOrder?: number | null): string => {
   switch (reason) {
+    // One text for every refusal a stranger could use to learn that a code exists (see couponAnswer).
     case "unknown":
-      return "We don't recognise that code. Check the spelling.";
     case "not_started":
-      return "This code is not active yet.";
     case "expired":
-      return "This code has expired.";
     case "used_up":
-      return "This code has been used up.";
+      return "This code isn't valid right now.";
     case "min_order":
       return `This code needs at least ${formatPrice(minOrder ?? 0)} in items, after any sale prices.`;
     case "no_discount":
-      return "This code does not lower the price of this bag.";
+      return "This code isn't valid right now.";
   }
 };
 
@@ -114,11 +113,6 @@ export type CouponCheckResult = CouponAnswer | { ok: false; reason: "rate_limite
 // Admin form: shared by the form and the server function.
 
 const MAX_VALUE = 10_000_000;
-
-const isoDate = z
-  .string()
-  .refine((value) => !Number.isNaN(Date.parse(value)), "Enter a date and time")
-  .transform((value) => new Date(value).toISOString());
 
 const optionalAmount = (label: string) =>
   z

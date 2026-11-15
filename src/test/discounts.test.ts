@@ -170,6 +170,14 @@ describe("discountInputSchema", () => {
     expect(parsed).toMatchObject({ name: "Eid sale", categoryId: null, productId: null });
   });
 
+  test("rejects a year outside 2000 to 9999 and an overlong date string", () => {
+    const fails = (over: object) => discountInputSchema.safeParse({ ...valid, ...over }).success === false;
+    expect(fails({ startsAt: "1999-12-31T23:59:59.000Z" })).toBe(true);
+    expect(fails({ endsAt: "+010000-01-01T00:00:00.000Z" })).toBe(true);
+    expect(fails({ endsAt: "2026-12-01T00:00:00.000Z" + " ".repeat(40) })).toBe(true);
+    expect(fails({ startsAt: "2000-01-01T00:00:00.000Z", endsAt: "9999-12-31T23:59:59.000Z" })).toBe(false);
+  });
+
   test("rejects 100 percent, a category sale without a category, and an end before the start", () => {
     const fails = (over: object) => discountInputSchema.safeParse({ ...valid, ...over }).success === false;
     expect(fails({ value: 100 })).toBe(true);

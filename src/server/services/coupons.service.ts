@@ -1,12 +1,13 @@
 // The public "Have a code?" check. Server-only; takes the database and request facts as arguments so tests run on
 // bun:sqlite. It answers what a submission would: the same item total after sales, the same coupon rule.
 //
-// Every call counts against a per-IP limit in the order rate-limit table, under its own key kind, so a code cannot be
+// Every call counts against a per-client limit (IPv6 by its /64, see rateLimitSubject) in the order rate-limit table, under its own key kind, so a code cannot be
 // guessed by calling this over and over. A valid code costs one coupon row read (UNIQUE index on discounts.code) plus
 // the bag's own lookups, which are primary-key reads of at most 30 lines.
 import { couponCheckSchema, type CouponCheckResult, couponMessage, normalizeCouponCode } from "@/domain/coupons";
 import { ORDER_LIMIT_WINDOW_MS, ORDER_LIMITS } from "@/domain/orders";
 import { bestSale } from "@/domain/discounts";
+import { rateLimitSubject } from "@/domain/rate-limit-subject";
 import type { D1Database } from "@/server/db/d1";
 import { readLiveSales } from "@/server/db/catalog.repository";
 import { consumeOrderLimits, readCouponByCode, readSelections } from "@/server/db/orders.repository";
@@ -32,7 +33,12 @@ export async function checkCoupon(
 
   const withinLimit = await consumeOrderLimits(
     db,
-    [{ key: orderLimitKey(context.limitSecret, "coupon-ip", context.client), max: ORDER_LIMITS.couponIp }],
+    [
+      {
+        key: orderLimitKey(context.limitSecret, "coupon-ip", rateLimitSubject(context.client)),
+        max: ORDER_LIMITS.couponIp,
+      },
+    ],
     now.getTime(),
     ORDER_LIMIT_WINDOW_MS,
   );

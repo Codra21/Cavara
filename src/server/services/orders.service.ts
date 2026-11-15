@@ -28,8 +28,9 @@ import {
   shopDay,
   type SubmitOrderResult,
 } from "@/domain/orders";
-import { type CouponAnswer, type CouponRule, evaluateCoupon } from "@/domain/coupons";
+import { type CouponAnswer, type CouponRule, couponMessage, evaluateCoupon } from "@/domain/coupons";
 import { bestSale } from "@/domain/discounts";
+import { rateLimitSubject } from "@/domain/rate-limit-subject";
 import { crossesZero, isShort, shortageMessage } from "@/domain/stock";
 import type { D1Database } from "@/server/db/d1";
 import { readLiveSales } from "@/server/db/catalog.repository";
@@ -65,10 +66,17 @@ const CONFLICT: SubmitOutcome = {
   message: "This checkout was already sent with different details. Review your bag and send it again.",
 };
 
-/** The shopper-facing answer for a code and an item total: the discount, or why the code does not apply. */
+/**
+ * The shopper-facing answer for a code and an item total: the discount, or why the code does not apply. Only the
+ * minimum order is explained, because it is something the shopper can act on. Every other refusal (unknown, switched
+ * off, expired, not started, used up, no discount) gets the same answer, so a guess cannot tell a real code that has
+ * ended from a code that does not exist.
+ */
 export function couponAnswer(rule: CouponRule | null, code: string, itemsTotal: number, nowMs: number): CouponAnswer {
   const evaluation = evaluateCoupon(rule, itemsTotal, nowMs);
-  return evaluation.ok ? { ...evaluation, code } : evaluation;
+  if (evaluation.ok) return { ...evaluation, code };
+  if (evaluation.reason === "min_order") return evaluation;
+  return { ok: false, reason: "unknown", message: couponMessage("unknown") };
 }
 
 /** Said when only the coupon changed: why it no longer applies, or what its discount is now. */
@@ -123,7 +131,7 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
   const withinLimits = await consumeOrderLimits(
     db,
     [
-      { key: limitKey("ip", context.client), max: ORDER_LIMITS.ip },
+      { key: limitKey("ip", rateLimitSubject(context.client)), max: ORDER_LIMITS.ip },
       { key: limitKey("phone", input.phone), max: ORDER_LIMITS.phone },
     ],
     now.getTime(),

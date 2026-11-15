@@ -140,9 +140,18 @@ export const isoToDhakaLocal = (iso: string): string =>
 
 const MAX_VALUE = 10_000_000;
 
-const isoDate = z
+/**
+ * A date and time from an admin form, as ISO UTC. Capped in length, and the year must be 2000 to 9999: a later year
+ * serialises with a sign ("+010000-...") and sorts before every normal date as SQL text.
+ */
+export const isoDate = z
   .string()
+  .max(40, "Enter a date and time")
   .refine((value) => !Number.isNaN(Date.parse(value)), "Enter a date and time")
+  .refine((value) => {
+    const year = new Date(value).getUTCFullYear();
+    return Number.isNaN(year) || (year >= 2000 && year <= 9999);
+  }, "Use a year from 2000 to 9999")
   // One canonical text form, so SQL can compare dates as strings.
   .transform((value) => new Date(value).toISOString());
 

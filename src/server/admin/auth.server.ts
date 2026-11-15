@@ -11,7 +11,9 @@ import {
   type AdminIdentity,
   type AuditValue,
 } from "@/domain/admin";
+import { rateLimitSubject } from "@/domain/rate-limit-subject";
 import type { D1Database, D1PreparedStatement } from "@/server/db/d1";
+import { consumeLimits } from "@/server/db/rate-limits";
 
 export interface OwnerCredentials {
   username: string;
@@ -74,22 +76,17 @@ export function auditStatement(
  * Runs before the password check, so wrong and right guesses count alike.
  */
 async function recordLoginAttempt(db: D1Database, secret: string, client: string, username: string, now: number) {
-  const expires = now + LOGIN_WINDOW_MS;
-  const bump = (key: string) =>
-    db
-      .prepare(
-        `INSERT INTO admin_login_limits (key, attempts, expires_at) VALUES (?, 1, ?)
-         ON CONFLICT (key) DO UPDATE SET attempts = attempts + 1 RETURNING attempts`,
-      )
-      .bind(key, expires);
-  const [, ip, user] = await db.batch<{ attempts: number }>([
-    db.prepare("DELETE FROM admin_login_limits WHERE expires_at <= ?").bind(now),
-    bump(limitKey(secret, "ip", client)),
-    bump(limitKey(secret, "user", username)),
-  ]);
-  const ipAttempts = ip?.results[0]?.attempts ?? Infinity;
-  const userAttempts = user?.results[0]?.attempts ?? Infinity;
-  return ipAttempts <= LOGIN_LIMITS.ip && userAttempts <= LOGIN_LIMITS.username;
+  const [ipOk, userOk] = await consumeLimits(
+    db,
+    "admin_login_limits",
+    [
+      { key: limitKey(secret, "ip", rateLimitSubject(client)), max: LOGIN_LIMITS.ip },
+      { key: limitKey(secret, "user", username), max: LOGIN_LIMITS.username },
+    ],
+    now,
+    LOGIN_WINDOW_MS,
+  );
+  return ipOk && userOk;
 }
 
 export type SignInResult = { ok: true; token: string; identity: AdminIdentity } | { ok: false; error: string };

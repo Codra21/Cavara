@@ -3,6 +3,7 @@ import type { CouponRule } from "@/domain/coupons";
 import type { CheckoutInput, DeliveryZone } from "@/domain/orders";
 import type { Availability } from "@/lib/types";
 import type { D1Database } from "./d1";
+import { consumeLimits } from "./rate-limits";
 import { NO_SHORT_LINE, reserveStockStatements, stockLinesJson } from "./stock.repository";
 
 export interface OrderReplay {
@@ -20,28 +21,19 @@ export async function findOrderByIdempotencyKey(db: D1Database, key: string): Pr
 }
 
 /**
- * Counts this attempt against every key, then reports whether all are within their limits.
- * Runs before the catalogue lookups, so a flood of bad requests is cut off cheaply.
+ * Counts this attempt against every key, then reports whether all are within their limits. A key already at its limit
+ * is not written again (see rate-limits.ts). Runs before the catalogue lookups, so a flood of bad requests is cut off
+ * cheaply.
  */
 export async function consumeOrderLimits(
   db: D1Database,
   limits: { key: string; max: number }[],
   now: number,
   windowMs: number,
+  sweep?: boolean,
 ): Promise<boolean> {
-  const expires = now + windowMs;
-  const results = await db.batch<{ attempts: number }>([
-    db.prepare("DELETE FROM order_rate_limits WHERE expires_at <= ?").bind(now),
-    ...limits.map(({ key }) =>
-      db
-        .prepare(
-          `INSERT INTO order_rate_limits (key, attempts, expires_at) VALUES (?, 1, ?)
-           ON CONFLICT (key) DO UPDATE SET attempts = attempts + 1 RETURNING attempts`,
-        )
-        .bind(key, expires),
-    ),
-  ]);
-  return limits.every((limit, index) => (results[index + 1]?.results[0]?.attempts ?? Infinity) <= limit.max);
+  const within = await consumeLimits(db, "order_rate_limits", limits, now, windowMs, sweep);
+  return within.every(Boolean);
 }
 
 interface CouponRow {
@@ -95,6 +87,8 @@ export interface Selection {
   costPrice: number | null;
   /** The colour's count, or null when it is not counted. */
   stock: number | null;
+  /** The colour's row id. Stock is reserved by this, not by `variant`, a position a product save can renumber. */
+  variantId: number;
 }
 
 /** A line as it is saved: `unitPrice` is what is charged, `listPrice` what it cost before the sale that took the rest. */
@@ -107,7 +101,7 @@ export async function readSelections(
 ): Promise<Map<string, Selection>> {
   const { results } = await db
     .prepare(
-      `SELECT v.product_id AS productId, p.category_id AS category, v.position AS variant, p.name AS productName, v.name AS variantName,
+      `SELECT v.id AS variantId, v.product_id AS productId, p.category_id AS category, v.position AS variant, p.name AS productName, v.name AS variantName,
          p.status, v.availability, p.price AS unitPrice, p.cost_price AS costPrice, v.stock
        FROM json_each(?) j
        JOIN product_variants v
@@ -146,9 +140,13 @@ export interface NewOrder {
   createdAt: string;
 }
 
-/** True when the coupon (the bound id, or NULL for none) is on and has a use left. Two parameters, both the coupon id. */
+/**
+ * True when the coupon (the bound id, or NULL for none) is on, inside its dates and has a use left. Four parameters:
+ * the coupon id twice, then the order time (ISO UTC, as the dates are stored) twice.
+ */
 const COUPON_USABLE = `(? IS NULL OR EXISTS (SELECT 1 FROM discounts
-  WHERE id = ? AND kind = 'coupon' AND active = 1 AND (usage_limit IS NULL OR used_count < usage_limit)))`;
+  WHERE id = ? AND kind = 'coupon' AND active = 1 AND (usage_limit IS NULL OR used_count < usage_limit)
+    AND starts_at <= ? AND (ends_at IS NULL OR ends_at > ?)))`;
 
 /** Takes one use, only while one is left and only for an order that exists and names this coupon (3 parameters). */
 export const CLAIM_COUPON_USE_SQL = `UPDATE discounts SET used_count = used_count + 1
@@ -161,7 +159,7 @@ export const CLAIM_COUPON_USE_SQL = `UPDATE discounts SET used_count = used_coun
  * or the coupon has no use left.
  *
  * A coupon use is claimed in the same batch. The order INSERT is conditional on the coupon still being usable
- * (COUPON_USABLE) and the claim UPDATE follows it as the next statement of the same transaction, so two orders racing
+ * (COUPON_USABLE: on, inside its dates, a use left) and the claim UPDATE follows it as the next statement of the same transaction, so two orders racing
  * for the last use cannot both save: the second finds the count at the limit, inserts nothing and every later
  * statement (which all need the order row) does nothing.
  *
@@ -206,6 +204,8 @@ export async function insertOrder(db: D1Database, order: NewOrder): Promise<bool
         stockLinesJson(order.lines),
         order.coupon?.id ?? null,
         order.coupon?.id ?? null,
+        order.createdAt,
+        order.createdAt,
       ),
     ...(order.coupon ? [db.prepare(CLAIM_COUPON_USE_SQL).bind(order.coupon.id, order.id, order.coupon.id)] : []),
     db

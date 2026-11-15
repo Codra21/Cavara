@@ -173,19 +173,39 @@ const TIMESTAMP_COLUMN: Partial<Record<OrderStatus, string>> = {
 /** The result, plus the products whose count crossed 0 (so the caller can patch the shop's copy). */
 export type UpdateOrderOutcome = UpdateOrderResult & { crossedProducts?: number[] };
 
+/**
+ * SQL (one order-id parameter) that is true unless the order gave its coupon use back and the coupon has none left to
+ * take again. A reopen is refused while it is false, like REOPEN_FITS for stock.
+ */
+const COUPON_USE_FITS = `NOT EXISTS (SELECT 1 FROM orders o JOIN discounts d ON d.id = o.coupon_id
+  WHERE o.id = ? AND o.coupon_returned = 1 AND d.usage_limit IS NOT NULL AND d.used_count >= d.usage_limit)`;
+
 async function reopenRefusal(db: D1Database, orderId: string): Promise<string | null> {
   const short = await readReopenShortages(db, orderId);
-  if (short.length === 0) return null;
-  const parts = short.map(
-    (line) => `${line.productName} (${line.variantName}) has ${line.stock} left, the order needs ${line.qty}`,
-  );
-  return `This order cannot be reopened yet: ${parts.join("; ")}. Add stock first.`;
+  if (short.length > 0) {
+    const parts = short.map(
+      (line) => `${line.productName} (${line.variantName}) has ${line.stock} left, the order needs ${line.qty}`,
+    );
+    return `This order cannot be reopened yet: ${parts.join("; ")}. Add stock first.`;
+  }
+  const spent = await db
+    .prepare(
+      `SELECT d.code FROM orders o JOIN discounts d ON d.id = o.coupon_id
+       WHERE o.id = ? AND o.coupon_returned = 1 AND d.usage_limit IS NOT NULL AND d.used_count >= d.usage_limit`,
+    )
+    .bind(orderId)
+    .first<{ code: string }>();
+  return spent
+    ? `This order cannot be reopened: its coupon ${spent.code} has no uses left. Raise the coupon's use limit first.`
+    : null;
 }
 
 /**
  * Moves an order to a new status and/or payment status. Cancelling returns the stock the order took; reopening a
- * cancelled order takes it again and is refused while a counted colour is short. Both run in the same batch as the
- * status change, guarded on its change token.
+ * cancelled order takes it again and is refused while a counted colour is short. Cancelling an unpaid order also gives
+ * back its coupon use (orders.coupon_returned records it), and reopening claims the use again, refused when the coupon
+ * has none left. A paid or refunded order keeps its use. All run in the same batch as the status change, guarded on its
+ * change token.
  */
 export async function updateOrderStatus(
   db: D1Database,
@@ -214,6 +234,16 @@ export async function updateOrderStatus(
   const paymentChanged = current.paymentStatus !== input.paymentStatus;
   if (!statusChanged && !paymentChanged && !input.note) return { ok: true, version: current.version };
 
+  // The coupon this order used and whether it gave the use back (a cancel while unpaid).
+  const couponState = await db
+    .prepare("SELECT coupon_id, coupon_returned FROM orders WHERE id = ?")
+    .bind(input.id)
+    .first<{ coupon_id: number | null; coupon_returned: number }>();
+  const couponId = couponState?.coupon_id ?? null;
+  const returnsCouponUse =
+    cancelling && couponId !== null && couponState?.coupon_returned === 0 && input.paymentStatus === "unpaid";
+  const claimsCouponUse = reopening && couponId !== null && couponState?.coupon_returned === 1;
+
   const at = now.toISOString();
   const token = crypto.randomUUID();
   const guardSql = "EXISTS (SELECT 1 FROM orders WHERE id = ? AND change_token = ?)";
@@ -225,7 +255,7 @@ export async function updateOrderStatus(
       .prepare(
         `UPDATE orders SET status = ?, payment_status = ?, version = version + 1, change_token = ?, updated_at = ?
            ${stamp ? `, ${stamp} = ?` : ""}
-         WHERE id = ? AND version = ?${reopening ? ` AND ${REOPEN_FITS}` : ""}`,
+         WHERE id = ? AND version = ?${reopening ? ` AND ${REOPEN_FITS} AND ${COUPON_USE_FITS}` : ""}`,
       )
       .bind(
         input.status,
@@ -235,7 +265,7 @@ export async function updateOrderStatus(
         ...(stamp ? [at] : []),
         input.id,
         input.version,
-        ...(reopening ? [input.id] : []),
+        ...(reopening ? [input.id, input.id] : []),
       ),
     db
       .prepare(
@@ -288,6 +318,37 @@ export async function updateOrderStatus(
         sql: guardSql,
         params: guardParams,
       }),
+    );
+  }
+
+  // The use goes back (or is taken again) with the status change or not at all. The flag moves in the statement
+  // after the counter, which reads it, and each is guarded on the change token, so a loop of cancels and reopens
+  // returns at most the one use the order took.
+  if (returnsCouponUse) {
+    statements.push(
+      db
+        .prepare(
+          `UPDATE discounts SET used_count = MAX(used_count - 1, 0)
+           WHERE id = ? AND EXISTS (SELECT 1 FROM orders WHERE id = ? AND coupon_returned = 0) AND ${guardSql}`,
+        )
+        .bind(couponId, input.id, ...guardParams),
+      db
+        .prepare(`UPDATE orders SET coupon_returned = 1 WHERE id = ? AND coupon_returned = 0 AND ${guardSql}`)
+        .bind(input.id, ...guardParams),
+    );
+  }
+  if (claimsCouponUse) {
+    statements.push(
+      db
+        .prepare(
+          `UPDATE discounts SET used_count = used_count + 1
+           WHERE id = ? AND (usage_limit IS NULL OR used_count < usage_limit)
+             AND EXISTS (SELECT 1 FROM orders WHERE id = ? AND coupon_returned = 1) AND ${guardSql}`,
+        )
+        .bind(couponId, input.id, ...guardParams),
+      db
+        .prepare(`UPDATE orders SET coupon_returned = 0 WHERE id = ? AND coupon_returned = 1 AND ${guardSql}`)
+        .bind(input.id, ...guardParams),
     );
   }
 

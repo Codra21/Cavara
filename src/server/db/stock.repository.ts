@@ -28,8 +28,9 @@ import type { D1Database, D1PreparedStatement } from "./d1";
 const availabilitySql = (stockExpr: string) =>
   `CASE WHEN availability = 'preorder' THEN 'preorder' WHEN ${stockExpr} <= 0 THEN 'out_of_stock' ELSE 'in_stock' END`;
 
+// count_epoch is the colour's epoch when the movement was written (see HELD_BY_ORDER).
 const MOVEMENT_COLUMNS = `product_id, variant_id, variant_name, delta, reason, order_id, note, actor_username,
-  balance_after, created_at`;
+  balance_after, created_at, count_epoch`;
 
 interface MovementRow {
   id: number;
@@ -126,7 +127,7 @@ export async function adjustStock(
       db
         .prepare(
           `INSERT INTO stock_movements (${MOVEMENT_COLUMNS})
-           SELECT v.product_id, v.id, v.name, ?, ?, NULL, ?, ?, ${newStock}, ? FROM product_variants v WHERE ${predicate}`,
+           SELECT v.product_id, v.id, v.name, ?, ?, NULL, ?, ?, ${newStock}, ?, v.count_epoch FROM product_variants v WHERE ${predicate}`,
         )
         .bind(delta, reason, input.note, actor.username, ...newStockParams, at, ...predicateParams),
     );
@@ -163,7 +164,7 @@ export async function adjustStock(
 
 /**
  * Turns counting off for one colour: stock becomes NULL and availability stays as it is, so no snapshot patch is
- * needed. No movement row (a movement needs a non-zero delta); the audit row records the last count. P also names that
+ * needed. The colour's count epoch goes up, so orders placed under the old count never move the next count. No movement row (a movement needs a non-zero delta); the audit row records the last count. P also names that
  * count, so a stock change between the read and the batch refuses this one instead of recording a stale number.
  */
 export async function stopCounting(
@@ -191,7 +192,9 @@ export async function stopCounting(
       now,
       { sql: `EXISTS (SELECT 1 FROM product_variants v WHERE ${predicate})`, params },
     ),
-    db.prepare(`UPDATE product_variants AS v SET stock = NULL WHERE ${predicate}`).bind(...params),
+    db
+      .prepare(`UPDATE product_variants AS v SET stock = NULL, count_epoch = count_epoch + 1 WHERE ${predicate}`)
+      .bind(...params),
   ]);
   if (results.at(-1)?.meta.changes !== 1) {
     return { ok: false, error: "This colour's count changed in the meantime. Reload and try again." };
@@ -204,11 +207,12 @@ export async function stopCounting(
 const orderExists = "EXISTS (SELECT 1 FROM orders WHERE id = ?)";
 
 /**
- * The lines as the JSON the order statements read: [[productId, variant position, qty], ...]. D1 allows 100 bound
- * parameters per statement, and an order may hold 30 lines, so they travel as one json_each parameter.
+ * The lines as the JSON the order statements read: [[colour id, qty], ...]. D1 allows 100 bound parameters per
+ * statement, and an order may hold 30 lines, so they travel as one json_each parameter. Colours are named by id, which
+ * a product save never renumbers, not by position, which it can.
  */
-export const stockLinesJson = (lines: { productId: number; variant: number; qty: number }[]) =>
-  JSON.stringify(lines.map((line) => [line.productId, line.variant, line.qty]));
+export const stockLinesJson = (lines: { variantId: number; qty: number }[]) =>
+  JSON.stringify(lines.map((line) => [line.variantId, line.qty]));
 
 /**
  * SQL (one lines-JSON parameter) that is true when no line is short: no colour that is not on pre-order is out of
@@ -216,12 +220,12 @@ export const stockLinesJson = (lines: { productId: number; variant: number; qty:
  */
 export const NO_SHORT_LINE = `NOT EXISTS (
   SELECT 1 FROM json_each(?) j
-  JOIN product_variants v ON v.product_id = json_extract(j.value, '$[0]') AND v.position = json_extract(j.value, '$[1]')
+  JOIN product_variants v ON v.id = json_extract(j.value, '$[0]')
   WHERE v.availability <> 'preorder'
-    AND (v.availability = 'out_of_stock' OR (v.stock IS NOT NULL AND v.stock < json_extract(j.value, '$[2]'))))`;
+    AND (v.availability = 'out_of_stock' OR (v.stock IS NOT NULL AND v.stock < json_extract(j.value, '$[1]'))))`;
 
-const ORDER_LINES = `SELECT json_extract(j.value, '$[0]') AS product_id, json_extract(j.value, '$[1]') AS position,
-  json_extract(j.value, '$[2]') AS qty FROM json_each(?) j`;
+const ORDER_LINES = `SELECT json_extract(j.value, '$[0]') AS variant_id, json_extract(j.value, '$[1]') AS qty
+  FROM json_each(?) j`;
 
 /**
  * Takes the order's counted lines out of stock and records a movement for each. Both statements run only when the
@@ -231,7 +235,7 @@ const ORDER_LINES = `SELECT json_extract(j.value, '$[0]') AS product_id, json_ex
 export function reserveStockStatements(
   db: D1Database,
   orderId: string,
-  lines: { productId: number; variant: number; qty: number }[],
+  lines: { variantId: number; qty: number }[],
   at: string,
 ): D1PreparedStatement[] {
   const json = stockLinesJson(lines);
@@ -241,17 +245,16 @@ export function reserveStockStatements(
         `UPDATE product_variants SET stock = stock - m.qty,
            availability = ${availabilitySql("stock - m.qty")}
          FROM (${ORDER_LINES}) AS m
-         WHERE product_variants.product_id = m.product_id AND product_variants.position = m.position
-           AND product_variants.stock IS NOT NULL AND ${orderExists}`,
+         WHERE product_variants.id = m.variant_id AND product_variants.stock IS NOT NULL AND ${orderExists}`,
       )
       .bind(json, orderId),
     // After the UPDATE, v.stock is the balance after this order.
     db
       .prepare(
         `INSERT INTO stock_movements (${MOVEMENT_COLUMNS})
-         SELECT v.product_id, v.id, v.name, -m.qty, 'order', ?, '', NULL, v.stock, ?
+         SELECT v.product_id, v.id, v.name, -m.qty, 'order', ?, '', NULL, v.stock, ?, v.count_epoch
          FROM (${ORDER_LINES}) AS m
-         JOIN product_variants v ON v.product_id = m.product_id AND v.position = m.position
+         JOIN product_variants v ON v.id = m.variant_id
          WHERE v.stock IS NOT NULL AND ${orderExists}`,
       )
       .bind(orderId, at, json, orderId),
@@ -260,14 +263,18 @@ export function reserveStockStatements(
 
 /**
  * What a cancel returns, per colour: everything the order still holds (its order and reopen movements net of its
- * cancels). Nothing for a colour that was not counted when the order was placed.
+ * cancels). Nothing for a colour that was not counted when the order was placed, and nothing from before the colour's
+ * current count started: only movements in the colour's current count epoch (stopCounting bumps it) are counted, so
+ * stop, count again and cancel an old order cannot add stock the new count already includes.
  */
-const HELD_BY_ORDER = `SELECT variant_id, -SUM(delta) AS qty FROM stock_movements WHERE order_id = ?
-  GROUP BY variant_id HAVING -SUM(delta) > 0`;
+const HELD_BY_ORDER = `SELECT sm.variant_id, -SUM(sm.delta) AS qty FROM stock_movements sm
+  JOIN product_variants cv ON cv.id = sm.variant_id AND cv.count_epoch = sm.count_epoch
+  WHERE sm.order_id = ? GROUP BY sm.variant_id HAVING -SUM(sm.delta) > 0`;
 
-/** What a reopen takes again, per colour: the quantity its cancel returned. */
-const RETURNED_BY_CANCEL = `SELECT variant_id, MAX(delta) AS qty FROM stock_movements
-  WHERE order_id = ? AND reason = 'order_cancel' GROUP BY variant_id`;
+/** What a reopen takes again, per colour: the quantity its cancel returned, if that was under the current count. */
+const RETURNED_BY_CANCEL = `SELECT sm.variant_id, MAX(sm.delta) AS qty FROM stock_movements sm
+  JOIN product_variants cv ON cv.id = sm.variant_id AND cv.count_epoch = sm.count_epoch
+  WHERE sm.order_id = ? AND sm.reason = 'order_cancel' GROUP BY sm.variant_id`;
 
 /**
  * Cancelling returns the order's stock; reopening takes it again. Two statements, guarded on the status change's
@@ -297,7 +304,7 @@ export function orderStockStatements(
     db
       .prepare(
         `INSERT INTO stock_movements (${MOVEMENT_COLUMNS})
-         SELECT v.product_id, v.id, v.name, ${cancel ? "m.qty" : "-m.qty"}, ?, ?, '', ?, v.stock, ?
+         SELECT v.product_id, v.id, v.name, ${cancel ? "m.qty" : "-m.qty"}, ?, ?, '', ?, v.stock, ?, v.count_epoch
          FROM (${source}) AS m JOIN product_variants v ON v.id = m.variant_id
          WHERE v.stock IS NOT NULL AND ${guard.sql}`,
       )

@@ -751,3 +751,181 @@ describe("query plans (EXPLAIN QUERY PLAN on the real migrations)", () => {
     expect(details.some((detail) => /^SCAN products|TEMP B-TREE/.test(detail))).toBe(false);
   });
 });
+
+describe("a recount does not count an old order twice", () => {
+  const stop = (db: TestD1, productId: number, variantId: number) =>
+    stopCounting(db, owner, stopCountingSchema.parse({ productId, variantId }), T0);
+
+  test("order 5, stop counting, count again at 10, cancel the old order: the count stays 10", async () => {
+    const db = createTestD1();
+    const product = await makeProduct(db, ["Sage"]);
+    const sage = product.variants[0]!;
+    await count(db, product.id, sage.id, 8);
+    const placed = (await order(db, [{ productId: product.id, variant: 0, qty: 5 }])) as { reference: string };
+    const id = orderId(db, placed.reference);
+    expect(stockOf(db, sage.id).stock).toBe(3);
+
+    expect(await stop(db, product.id, sage.id)).toEqual({ ok: true });
+    // A real recount of the shelf.
+    await count(db, product.id, sage.id, 10);
+    const movements = rowsIn(db, "stock_movements");
+
+    expect(await updateOrderStatus(db, owner, change(id, 1, { status: "cancelled" }), T0)).toMatchObject({ ok: true });
+    expect(stockOf(db, sage.id)).toEqual({ stock: 10, availability: "in_stock" });
+    expect(rowsIn(db, "stock_movements")).toBe(movements);
+
+    // Reopening takes nothing either, because the cancel returned nothing under this count.
+    expect(await updateOrderStatus(db, owner, change(id, 2, { status: "new" }), T0)).toMatchObject({ ok: true });
+    expect(stockOf(db, sage.id).stock).toBe(10);
+    expect(rowsIn(db, "stock_movements")).toBe(movements);
+  });
+
+  test("an order placed after the recount is returned and taken again as usual", async () => {
+    const db = createTestD1();
+    const product = await makeProduct(db, ["Sage"]);
+    const sage = product.variants[0]!;
+    await count(db, product.id, sage.id, 8);
+    const old = (await order(db, [{ productId: product.id, variant: 0, qty: 5 }])) as { reference: string };
+    await stop(db, product.id, sage.id);
+    await count(db, product.id, sage.id, 10);
+    const fresh = (await order(db, [{ productId: product.id, variant: 0, qty: 4 }])) as { reference: string };
+    const freshId = orderId(db, fresh.reference);
+    expect(stockOf(db, sage.id).stock).toBe(6);
+
+    expect(await updateOrderStatus(db, owner, change(freshId, 1, { status: "cancelled" }), T0)).toMatchObject({
+      ok: true,
+    });
+    expect(stockOf(db, sage.id).stock).toBe(10);
+    expect(await updateOrderStatus(db, owner, change(freshId, 2, { status: "new" }), T0)).toMatchObject({ ok: true });
+    expect(stockOf(db, sage.id).stock).toBe(6);
+    // The old order still moves nothing.
+    const oldId = orderId(db, old.reference);
+    await updateOrderStatus(db, owner, change(oldId, 1, { status: "cancelled" }), T0);
+    expect(stockOf(db, sage.id).stock).toBe(6);
+  });
+
+  test("a cancel made under the old count is not taken back by a reopen under the new one", async () => {
+    const db = createTestD1();
+    const product = await makeProduct(db, ["Sage"]);
+    const sage = product.variants[0]!;
+    await count(db, product.id, sage.id, 8);
+    const placed = (await order(db, [{ productId: product.id, variant: 0, qty: 5 }])) as { reference: string };
+    const id = orderId(db, placed.reference);
+    await updateOrderStatus(db, owner, change(id, 1, { status: "cancelled" }), T0);
+    expect(stockOf(db, sage.id).stock).toBe(8);
+    await stop(db, product.id, sage.id);
+    await count(db, product.id, sage.id, 2);
+    // Reopening would have taken 5 from a count of 2 and been refused; now it has nothing to take.
+    expect(await updateOrderStatus(db, owner, change(id, 2, { status: "new" }), T0)).toMatchObject({ ok: true });
+    expect(stockOf(db, sage.id).stock).toBe(2);
+  });
+
+  test("without a recount, the epoch changes nothing: stopping once and never restarting still skips the colour", async () => {
+    const db = createTestD1();
+    const product = await makeProduct(db, ["Sage"]);
+    const sage = product.variants[0]!;
+    await count(db, product.id, sage.id, 5);
+    expect(db.sqlite.query("SELECT count_epoch FROM product_variants WHERE id = ?").get(sage.id)).toEqual({
+      count_epoch: 0,
+    });
+    await stop(db, product.id, sage.id);
+    expect(db.sqlite.query("SELECT count_epoch FROM product_variants WHERE id = ?").get(sage.id)).toEqual({
+      count_epoch: 1,
+    });
+    await count(db, product.id, sage.id, 4);
+    const movementEpochs = db.sqlite.query("SELECT DISTINCT count_epoch FROM stock_movements ORDER BY 1").all();
+    expect(movementEpochs).toEqual([{ count_epoch: 0 }, { count_epoch: 1 }]);
+  });
+});
+
+describe("stock is reserved by colour id", () => {
+  test("a product save that renumbers the colours between the read and the order saves the order on the right colour", async () => {
+    const db = createTestD1();
+    const product = await makeProduct(db, ["Sage", "Plum"]);
+    const [sage, plum] = product.variants;
+    await count(db, product.id, sage!.id, 5);
+    await count(db, product.id, plum!.id, 5);
+
+    // The shopper's read: position 0 is Sage.
+    const items = checkout([{ productId: product.id, variant: 0, qty: 2 }]).items;
+    const selection = (await readSelections(db, items as never)).get(`${product.id}:0`)!;
+    expect(selection).toMatchObject({ variantName: "Sage", variantId: sage!.id });
+
+    // The Owner swaps the colours: Plum is now position 0.
+    const current = (await getAdminProduct(db, product.id))!;
+    const saved = await saveProduct(db, {
+      actor: owner,
+      id: product.id,
+      revision: current.revision,
+      input: productInputSchema.parse({
+        ...product.values,
+        variants: [current.variants[1]!, current.variants[0]!].map((variant) => ({
+          id: variant.id,
+          name: variant.name,
+          swatch: variant.swatch,
+          availability: variant.availability,
+          images: variant.images,
+        })),
+      }),
+    });
+    expect(saved).toMatchObject({ ok: true });
+
+    const placed = await insertOrder(db, {
+      id: crypto.randomUUID(),
+      reference: "CV-BBBBBB",
+      idempotencyKey: crypto.randomUUID(),
+      payloadHash: "h",
+      input: { ...checkout([]), items: items as never, website: "" } as never,
+      zone: { id: "inside-dhaka", name: "Inside Dhaka", charge: 80 },
+      lines: [{ ...selection, qty: 2, listPrice: selection.unitPrice, discountId: null }],
+      itemsTotal: 1000,
+      coupon: null,
+      subtotal: 1000,
+      total: 1080,
+      itemCount: 2,
+      shopDay: "2026-11-15",
+      createdAt: T0.toISOString(),
+    });
+    expect(placed).toBe(true);
+    // Sage (the colour the shopper chose) lost 2; Plum, now at position 0, lost nothing.
+    expect(stockOf(db, sage!.id).stock).toBe(3);
+    expect(stockOf(db, plum!.id).stock).toBe(5);
+    const movement = db.sqlite
+      .query("SELECT variant_id, variant_name, delta FROM stock_movements WHERE reason = 'order'")
+      .get();
+    expect(movement).toEqual({ variant_id: sage!.id, variant_name: "Sage", delta: -2 });
+  });
+
+  test("the short-line check follows the colour id too", async () => {
+    const db = createTestD1();
+    const product = await makeProduct(db, ["Sage", "Plum"]);
+    const [sage, plum] = product.variants;
+    await count(db, product.id, sage!.id, 1);
+    await count(db, product.id, plum!.id, 9);
+    const items = checkout([{ productId: product.id, variant: 0, qty: 3 }]).items;
+    const selection = (await readSelections(db, items as never)).get(`${product.id}:0`)!;
+    // The read said Sage (1 left), so the insert must refuse 3 of it even if position 0 now holds Plum (9 left).
+    db.sqlite.run("UPDATE product_variants SET position = 9 WHERE id = ?", [sage!.id]);
+    db.sqlite.run("UPDATE product_variants SET position = 0 WHERE id = ?", [plum!.id]);
+    db.sqlite.run("UPDATE product_variants SET position = 1 WHERE id = ?", [sage!.id]);
+    const placed = await insertOrder(db, {
+      id: crypto.randomUUID(),
+      reference: "CV-CCCCCC",
+      idempotencyKey: crypto.randomUUID(),
+      payloadHash: "h",
+      input: { ...checkout([]), items: items as never, website: "" } as never,
+      zone: { id: "inside-dhaka", name: "Inside Dhaka", charge: 80 },
+      lines: [{ ...selection, qty: 3, listPrice: selection.unitPrice, discountId: null }],
+      itemsTotal: 1500,
+      coupon: null,
+      subtotal: 1500,
+      total: 1580,
+      itemCount: 3,
+      shopDay: "2026-11-15",
+      createdAt: T0.toISOString(),
+    });
+    expect(placed).toBe(false);
+    expect(stockOf(db, sage!.id).stock).toBe(1);
+    expect(stockOf(db, plum!.id).stock).toBe(9);
+  });
+});

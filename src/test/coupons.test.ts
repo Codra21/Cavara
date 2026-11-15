@@ -260,12 +260,12 @@ describe("checkout with a coupon", () => {
     expect(usedCount(db, coupon)).toBe(0);
   });
 
-  test("an expired, unknown or switched-off code returns price_changed with the reason", async () => {
+  test("an expired, unknown or switched-off code returns price_changed with the one generic reason", async () => {
     addCoupon(db, { code: "OLD", ends_at: iso(NOW - 1), starts_at: iso(NOW - HOUR) });
     addCoupon(db, { code: "OFF", active: 0 });
     const items = [{ productId: product.id, variant: 0, qty: 1, unitPrice: product.price }];
     for (const [code, reason] of [
-      ["OLD", "expired"],
+      ["OLD", "unknown"],
       ["OFF", "unknown"],
       ["NOPE", "unknown"],
     ] as const) {
@@ -329,7 +329,7 @@ describe("checkout with a coupon", () => {
     const lost = await submit(db, second);
     db.prepare = realPrepare;
 
-    expect(lost).toMatchObject({ ok: false, code: "price_changed", coupon: { ok: false, reason: "used_up" } });
+    expect(lost).toMatchObject({ ok: false, code: "price_changed", coupon: { ok: false, reason: "unknown" } });
     expect(count(db, "orders")).toBe(1);
     expect(count(db, "order_items")).toBe(1);
     expect(usedCount(db, coupon)).toBe(1);
@@ -349,7 +349,7 @@ describe("checkout with a coupon", () => {
     const discount = Math.floor(product.price / 10);
     expect((await submit(db, request(items, { couponCode: "SAVE10", couponDiscount: discount }))).ok).toBe(true);
     const next = await submit(db, request(items, { couponCode: "SAVE10", couponDiscount: discount }));
-    expect(next).toMatchObject({ ok: false, code: "price_changed", coupon: { ok: false, reason: "used_up" } });
+    expect(next).toMatchObject({ ok: false, code: "price_changed", coupon: { ok: false, reason: "unknown" } });
     expect(usedCount(db, coupon)).toBe(1);
     expect(count(db, "orders")).toBe(1);
   });
@@ -449,14 +449,14 @@ describe("checkout with a coupon", () => {
       couponDiscount: discount,
     });
 
-    // Cancelling takes the sale back out, with the discount, so the day nets to zero. The coupon use stays used.
+    // Cancelling takes the sale back out, with the discount, so the day nets to zero. The order was unpaid, so the cancel gives the coupon use back.
     expect((await step(2, "cancelled")).ok).toBe(true);
     expect(row(db, "SELECT revenue, profit, orders_sold FROM daily_totals")).toEqual({
       revenue: 0,
       profit: 0,
       orders_sold: 0,
     });
-    expect(usedCount(db, row<{ id: number }>(db, "SELECT id FROM discounts WHERE kind = 'coupon'").id)).toBe(1);
+    expect(usedCount(db, row<{ id: number }>(db, "SELECT id FROM discounts WHERE kind = 'coupon'").id)).toBe(0);
   });
 
   test("orders from before coupons read back with items_total = subtotal", async () => {
@@ -527,7 +527,7 @@ describe("the code check", () => {
     addCoupon(db, { code: "BIG", min_order: 1_000_000 });
     addCoupon(db, { code: "GONE", usage_limit: 1, used_count: 1 });
     expect(await check("BIG")).toMatchObject({ ok: false, reason: "min_order" });
-    expect(await check("GONE")).toMatchObject({ ok: false, reason: "used_up" });
+    expect(await check("GONE")).toMatchObject({ ok: false, reason: "unknown" });
     expect(await check("nothing")).toMatchObject({ ok: false, reason: "unknown" });
     expect(await check("no")).toMatchObject({ ok: false, reason: "unknown" });
     expect(await check("SAVE10", 1, "203.0.113.7", new Date(NOW))).toMatchObject({ ok: false, reason: "unknown" });
@@ -650,5 +650,308 @@ describe("admin coupons", () => {
     const { readLiveSales } = await import("@/server/db/catalog.repository");
     expect(await listDiscounts(db)).toEqual([]);
     expect(await readLiveSales(db, T0)).toEqual([]);
+  });
+});
+
+describe("one answer for every code a stranger could probe", () => {
+  let db: TestD1;
+  let product: { id: number; price: number };
+  beforeEach(() => {
+    db = createTestD1();
+    product = pick(db);
+  });
+  const check = (code: string, client = "203.0.113.7", at = T0) =>
+    checkCoupon(
+      db,
+      { code, items: [{ productId: product.id, variant: 0, qty: 1 }] },
+      { client, limitSecret: SECRET, now: at },
+    );
+
+  test("unknown, switched off, expired, not started and used up read the same", async () => {
+    addCoupon(db, { code: "OFF", active: 0 });
+    addCoupon(db, { code: "OLD", starts_at: iso(NOW - 2 * HOUR), ends_at: iso(NOW - HOUR) });
+    addCoupon(db, { code: "SOON", starts_at: iso(NOW + HOUR), ends_at: iso(NOW + 2 * HOUR) });
+    addCoupon(db, { code: "GONE", usage_limit: 1, used_count: 1 });
+    const answers = [];
+    for (const code of ["NOPE1", "OFF", "OLD", "SOON", "GONE"]) answers.push(await check(code));
+    for (const answer of answers) expect(answer).toEqual(answers[0]!);
+    expect(answers[0]).toEqual({ ok: false, reason: "unknown", message: "This code isn't valid right now." });
+  });
+
+  test("the minimum order stays explained, because the shopper can act on it", async () => {
+    addCoupon(db, { code: "BIG", min_order: 1_000_000 });
+    expect(await check("BIG")).toMatchObject({
+      ok: false,
+      reason: "min_order",
+      message: expect.stringContaining("at least"),
+    });
+  });
+
+  test("an IPv6 client cannot dodge the limit by changing the last 64 bits", async () => {
+    for (let attempt = 0; attempt < ORDER_LIMITS.couponIp; attempt++) {
+      expect(await check(`GUESS${attempt}`, `2001:db8:5:6:${attempt + 1}::${attempt + 7}`)).toMatchObject({
+        reason: "unknown",
+      });
+    }
+    expect(await check("GUESS99", "2001:db8:5:6:abcd:1:2:3")).toMatchObject({ ok: false, reason: "rate_limited" });
+    // Another /64 has its own budget, and the IPv4-mapped form counts as the IPv4 address.
+    expect(await check("GUESS99", "2001:db8:5:7::1")).toMatchObject({ reason: "unknown" });
+    expect(await check("GUESS99", "::ffff:198.51.100.9")).toMatchObject({ reason: "unknown" });
+    expect(await check("GUESS99", "198.51.100.9")).toMatchObject({ reason: "unknown" });
+    expect(count(db, "order_rate_limits")).toBe(3);
+  });
+
+  test("calls past the limit write nothing", async () => {
+    for (let attempt = 0; attempt < ORDER_LIMITS.couponIp; attempt++) await check(`GUESS${attempt}`);
+    const total = () => (db.sqlite.query("SELECT total_changes() AS n").get() as { n: number }).n;
+    const before = total();
+    for (let attempt = 0; attempt < 100; attempt++) {
+      expect(await check(`MORE${attempt}`)).toMatchObject({ ok: false, reason: "rate_limited" });
+    }
+    expect(total()).toBe(before);
+    expect(row<{ attempts: number }>(db, "SELECT max(attempts) AS attempts FROM order_rate_limits").attempts).toBe(
+      ORDER_LIMITS.couponIp,
+    );
+  });
+});
+
+describe("coupon use on cancel and reopen", () => {
+  let db: TestD1;
+  let product: { id: number; price: number };
+  beforeEach(() => {
+    db = createTestD1();
+    product = pick(db);
+  });
+
+  async function place(coupon: number) {
+    const items = [{ productId: product.id, variant: 0, qty: 1, unitPrice: product.price }];
+    const placed = await submit(
+      db,
+      request(items, { couponCode: "SAVE10", couponDiscount: Math.floor(product.price / 10) }),
+    );
+    if (!placed.ok) throw new Error(placed.message);
+    expect(usedCount(db, coupon)).toBeGreaterThan(0);
+    return row<{ id: string }>(db, "SELECT id FROM orders WHERE reference = ?", placed.reference).id;
+  }
+  const step = (
+    id: string,
+    status: "new" | "confirmed" | "cancelled",
+    payment: "unpaid" | "paid" | "refunded" = "unpaid",
+  ) => {
+    const { version } = row<{ version: number }>(db, "SELECT version FROM orders WHERE id = ?", id);
+    return updateOrderStatus(db, owner, { id, version, status, paymentStatus: payment, note: "" }, T0);
+  };
+  const returned = (id: string) =>
+    row<{ coupon_returned: number }>(db, "SELECT coupon_returned FROM orders WHERE id = ?", id).coupon_returned;
+
+  test("cancelling an unpaid order gives the use back, reopening takes it again", async () => {
+    const coupon = addCoupon(db, { usage_limit: 3 });
+    const id = await place(coupon);
+    expect(usedCount(db, coupon)).toBe(1);
+
+    expect((await step(id, "cancelled")).ok).toBe(true);
+    expect(usedCount(db, coupon)).toBe(0);
+    expect(returned(id)).toBe(1);
+
+    expect((await step(id, "new")).ok).toBe(true);
+    expect(usedCount(db, coupon)).toBe(1);
+    expect(returned(id)).toBe(0);
+  });
+
+  test("a cancel and reopen loop never returns more than the order took", async () => {
+    const coupon = addCoupon(db, { usage_limit: 3 });
+    const other = await place(coupon);
+    const id = await place(coupon);
+    expect(usedCount(db, coupon)).toBe(2);
+    for (let round = 0; round < 5; round++) {
+      await step(id, "cancelled");
+      expect(usedCount(db, coupon)).toBe(1);
+      await step(id, "new");
+      expect(usedCount(db, coupon)).toBe(2);
+    }
+    expect(returned(other)).toBe(0);
+    // A cancelled order cannot be cancelled again, so no second return.
+    await step(id, "cancelled");
+    expect((await step(id, "cancelled")).ok).toBe(true);
+    expect(usedCount(db, coupon)).toBe(1);
+  });
+
+  test("reopening is refused, and changes nothing, when the returned use was taken by another order", async () => {
+    const coupon = addCoupon(db, { usage_limit: 1 });
+    const id = await place(coupon);
+    expect((await step(id, "cancelled")).ok).toBe(true);
+    const items = [{ productId: product.id, variant: 0, qty: 1, unitPrice: product.price }];
+    const taken = await submit(
+      db,
+      request(items, { couponCode: "SAVE10", couponDiscount: Math.floor(product.price / 10) }),
+    );
+    expect(taken.ok).toBe(true);
+    expect(usedCount(db, coupon)).toBe(1);
+
+    const reopened = await step(id, "new");
+    expect(reopened).toMatchObject({ ok: false, error: expect.stringContaining("SAVE10 has no uses left") });
+    expect(row(db, "SELECT status, version, coupon_returned FROM orders WHERE id = ?", id)).toEqual({
+      status: "cancelled",
+      version: 2,
+      coupon_returned: 1,
+    });
+    expect(usedCount(db, coupon)).toBe(1);
+
+    // Raising the limit lets the reopen through, and it takes the use.
+    db.sqlite.run("UPDATE discounts SET usage_limit = 2 WHERE id = ?", [coupon]);
+    expect((await step(id, "new")).ok).toBe(true);
+    expect(usedCount(db, coupon)).toBe(2);
+  });
+
+  test("the claim itself refuses a reopen that lost its use after the check", async () => {
+    const coupon = addCoupon(db, { usage_limit: 1 });
+    const id = await place(coupon);
+    await step(id, "cancelled");
+    const realPrepare = db.prepare.bind(db);
+    let raced = false;
+    db.prepare = (sql: string) => {
+      if (!raced && sql.startsWith("UPDATE orders SET status")) {
+        raced = true;
+        db.sqlite.run("UPDATE discounts SET used_count = 1 WHERE id = ?", [coupon]);
+      }
+      return realPrepare(sql);
+    };
+    const result = await step(id, "new");
+    db.prepare = realPrepare;
+    expect(result.ok).toBe(false);
+    expect(row(db, "SELECT status, coupon_returned FROM orders WHERE id = ?", id)).toEqual({
+      status: "cancelled",
+      coupon_returned: 1,
+    });
+    expect(usedCount(db, coupon)).toBe(1);
+  });
+
+  test("a paid or refunded order keeps its use when cancelled, and a reopen claims nothing", async () => {
+    const coupon = addCoupon(db, { usage_limit: 5 });
+    const paid = await place(coupon);
+    const refunded = await place(coupon);
+    expect(usedCount(db, coupon)).toBe(2);
+
+    expect((await step(paid, "cancelled", "paid")).ok).toBe(true);
+    expect((await step(refunded, "cancelled", "refunded")).ok).toBe(true);
+    expect(usedCount(db, coupon)).toBe(2);
+    expect(returned(paid) + returned(refunded)).toBe(0);
+
+    expect((await step(paid, "new", "paid")).ok).toBe(true);
+    expect(usedCount(db, coupon)).toBe(2);
+  });
+
+  test("an unlimited coupon works the same, and an order without a coupon returns nothing", async () => {
+    const coupon = addCoupon(db);
+    const id = await place(coupon);
+    await step(id, "cancelled");
+    expect(usedCount(db, coupon)).toBe(0);
+    await step(id, "new");
+    expect(usedCount(db, coupon)).toBe(1);
+
+    const plain = await submit(db, request([{ productId: product.id, variant: 0, qty: 1, unitPrice: product.price }]));
+    if (!plain.ok) throw new Error(plain.message);
+    const plainId = row<{ id: string }>(db, "SELECT id FROM orders WHERE reference = ?", plain.reference).id;
+    await step(plainId, "cancelled");
+    expect(returned(plainId)).toBe(0);
+    expect(usedCount(db, coupon)).toBe(1);
+  });
+
+  test("used_count never goes below 0", async () => {
+    const coupon = addCoupon(db, { usage_limit: 3 });
+    const id = await place(coupon);
+    db.sqlite.run("UPDATE discounts SET used_count = 0 WHERE id = ?", [coupon]);
+    expect((await step(id, "cancelled")).ok).toBe(true);
+    expect(usedCount(db, coupon)).toBe(0);
+  });
+
+  test("query plans: primary key lookups, no scan", () => {
+    const plan = (sql: string) =>
+      (
+        db.sqlite.query(`EXPLAIN QUERY PLAN ${sql}`).all(...[...sql.matchAll(/\?/g)].map(() => "x")) as {
+          detail: string;
+        }[]
+      )
+        .map((r) => r.detail)
+        .join(" | ");
+    for (const sql of [
+      "SELECT coupon_id, coupon_returned FROM orders WHERE id = ?",
+      "SELECT d.code FROM orders o JOIN discounts d ON d.id = o.coupon_id WHERE o.id = ? AND o.coupon_returned = 1 AND d.usage_limit IS NOT NULL AND d.used_count >= d.usage_limit",
+      "UPDATE discounts SET used_count = MAX(used_count - 1, 0) WHERE id = ? AND EXISTS (SELECT 1 FROM orders WHERE id = ? AND coupon_returned = 0)",
+      "UPDATE discounts SET used_count = used_count + 1 WHERE id = ? AND (usage_limit IS NULL OR used_count < usage_limit) AND EXISTS (SELECT 1 FROM orders WHERE id = ? AND coupon_returned = 1)",
+      "UPDATE orders SET coupon_returned = 1 WHERE id = ? AND coupon_returned = 0",
+    ]) {
+      const details = plan(sql);
+      if (process.env.SHOW_PLANS) console.log(sql.slice(0, 70), "=>", details);
+      expect(details).not.toMatch(/SCAN (orders|discounts)(?! USING)|TEMP B-TREE/);
+    }
+  });
+});
+
+describe("write-time coupon dates", () => {
+  test("a coupon that ended after it was read saves no order and takes no use", async () => {
+    const db = createTestD1();
+    const product = pick(db);
+    const coupon = addCoupon(db, { usage_limit: 5 });
+    const items = [{ productId: product.id, variant: 0, qty: 1, unitPrice: product.price }];
+    const realPrepare = db.prepare.bind(db);
+    let raced = false;
+    db.prepare = (sql: string) => {
+      // After the shop read the coupon as live, its end date passes before the order batch runs.
+      if (!raced && sql.startsWith("INSERT INTO orders")) {
+        raced = true;
+        db.sqlite.run("UPDATE discounts SET ends_at = ? WHERE id = ?", [iso(NOW - 1), coupon]);
+      }
+      return realPrepare(sql);
+    };
+    const result = await submit(
+      db,
+      request(items, { couponCode: "SAVE10", couponDiscount: Math.floor(product.price / 10) }),
+    );
+    db.prepare = realPrepare;
+    expect(result).toMatchObject({ ok: false, code: "price_changed", coupon: { ok: false, reason: "unknown" } });
+    expect(count(db, "orders")).toBe(0);
+    expect(usedCount(db, coupon)).toBe(0);
+  });
+
+  test("the start is inclusive and the end exclusive at the order time", async () => {
+    const db = createTestD1();
+    const product = pick(db);
+    const items = [{ productId: product.id, variant: 0, qty: 1, unitPrice: product.price }];
+    const discount = Math.floor(product.price / 10);
+    const coupon = addCoupon(db, { starts_at: iso(NOW), ends_at: iso(NOW + HOUR) });
+    expect((await submit(db, request(items, { couponCode: "SAVE10", couponDiscount: discount }))).ok).toBe(true);
+    expect(usedCount(db, coupon)).toBe(1);
+    const ending = addCoupon(db, { code: "ENDS", starts_at: iso(NOW - HOUR), ends_at: iso(NOW) });
+    const ended = await submit(db, request(items, { couponCode: "ENDS", couponDiscount: discount }));
+    expect(ended.ok).toBe(false);
+    expect(usedCount(db, ending)).toBe(0);
+  });
+});
+
+describe("admin date inputs", () => {
+  const base = {
+    name: "Eid coupon",
+    code: "EID25",
+    type: "percent",
+    value: 25,
+    minOrder: null,
+    maxDiscount: null,
+    usageLimit: null,
+    startsAt: "2026-11-15T00:00:00.000Z",
+    endsAt: null,
+    active: true,
+  };
+  const ok = (over: object) => couponInputSchema.safeParse({ ...base, ...over }).success;
+
+  test("a year outside 2000 to 9999 or a long string is refused", () => {
+    expect(ok({})).toBe(true);
+    expect(ok({ startsAt: "2000-01-01T00:00:00.000Z" })).toBe(true);
+    expect(ok({ endsAt: "9999-12-31T23:59:59.000Z" })).toBe(true);
+    expect(ok({ startsAt: "1999-12-31T23:59:59.000Z" })).toBe(false);
+    expect(ok({ endsAt: "+010000-01-01T00:00:00.000Z" })).toBe(false);
+    expect(ok({ endsAt: "2026-12-01T00:00:00.000Z" + " ".repeat(40) })).toBe(false);
+    expect(ok({ startsAt: "x".repeat(10_000) })).toBe(false);
+    expect(ok({ startsAt: "not a date" })).toBe(false);
   });
 });

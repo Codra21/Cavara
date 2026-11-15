@@ -72,6 +72,30 @@ describe("signIn", () => {
     expect((await signIn(db, owner, { ...good, client: "198.51.100.2" }, T0)).ok).toBe(true);
   });
 
+  test("an IPv6 client shares one budget across its whole /64", async () => {
+    const db = createTestD1();
+    for (let i = 0; i < LOGIN_LIMITS.ip; i++) {
+      await signIn(db, owner, { ...good, password: "wrong", client: `2001:db8:1:2::${i + 1}` }, T0);
+    }
+    expect((await signIn(db, owner, { ...good, client: "2001:db8:1:2:ffff::9" }, T0)).ok).toBe(false);
+    expect((await signIn(db, owner, { ...good, client: "2001:db8:1:3::1" }, T0)).ok).toBe(true);
+  });
+
+  test("a client past the limit makes no writes", async () => {
+    const db = createTestD1();
+    for (let i = 0; i < LOGIN_LIMITS.ip; i++) await signIn(db, owner, { ...good, password: "wrong" }, T0);
+    // The username counter still has room, so it counts up to its own limit and then stops too.
+    for (let i = 0; i < LOGIN_LIMITS.username; i++) expect((await signIn(db, owner, good, T0)).ok).toBe(false);
+    const total = () => (db.sqlite.query("SELECT total_changes() AS n").get() as { n: number }).n;
+    const before = total();
+    for (let i = 0; i < 25; i++) expect((await signIn(db, owner, good, T0)).ok).toBe(false);
+    // Both counters sit at their limits, so 25 more calls write nothing (no expired rows to sweep here).
+    expect(total()).toBe(before);
+    expect(db.sqlite.query("SELECT max(attempts) AS n FROM admin_login_limits").get()).toEqual({
+      n: LOGIN_LIMITS.username,
+    });
+  });
+
   test("blocks a username across clients after the username limit", async () => {
     const db = createTestD1();
     for (let i = 0; i < LOGIN_LIMITS.username; i++)
