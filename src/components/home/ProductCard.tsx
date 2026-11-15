@@ -1,23 +1,27 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { availabilityTag, BAG_FULL_MESSAGE } from "@/domain/bag";
-import { formatPrice, getCategory, getVariant, pluralize } from "@/domain/catalog";
-import { useCatalog } from "@/lib/query";
-import type { Product } from "@/lib/types";
+import { cardImage, cardVariant, type ProductCard as Card } from "@/domain/catalog-snapshot";
+import { pluralize } from "@/domain/catalog";
 import { useStore } from "@/components/store/StoreProvider";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
+import { PriceTag } from "@/components/store/PriceTag";
 import { Icon, Swatch } from "@/components/ui/primitives";
 
-export function ProductCard({ product, index }: { product: Product; index: number }) {
-  const catalog = useCatalog();
+/**
+ * A grid card built from the summary snapshot's card shape (listing pages and home rows). A colour has one picture
+ * there, so the hover picture exists only for the default colour, which carries two.
+ */
+export function ProductCard({ product, categoryName, index }: { product: Card; categoryName: string; index: number }) {
   const { selectedVariant, selectVariant, addToBag, showToast, openBag, openQuickView } = useStore();
   const openProduct = useOpenProduct();
   const [added, setAdded] = useState(false);
   const selected = selectedVariant(product.id);
-  const variant = getVariant(product, selected);
+  const variant = cardVariant(product, selected);
   const visible = product.variants.slice(0, 5);
   const hiddenCount = product.variants.length - visible.length;
-  const altImage = variant.images[1];
+  const image = cardImage(product, selected);
+  const altImage = selected === 0 ? product.images[1] : undefined;
   const stockTag = availabilityTag(variant.availability);
 
   useEffect(() => {
@@ -43,17 +47,17 @@ export function ProductCard({ product, index }: { product: Product; index: numbe
         >
           <img
             className="product-image"
-            src={variant.images[0]}
+            src={image}
             alt={`${product.name}, ${variant.name}`}
             loading="lazy"
             decoding="async"
             width={800}
             height={1000}
           />
-          {product.variants.some((item) => item.images[1]) ? (
+          {product.images[1] ? (
             <img
               className="product-image-alt"
-              src={altImage ?? variant.images[0]}
+              src={altImage ?? image}
               hidden={!altImage}
               alt=""
               loading="lazy"
@@ -65,6 +69,8 @@ export function ProductCard({ product, index }: { product: Product; index: numbe
         </Link>
         {stockTag ? (
           <span className="product-badge is-sold-out">{stockTag}</span>
+        ) : product.sale ? (
+          <span className="product-badge is-sale">{product.sale.badge}</span>
         ) : product.variants.length > 1 ? (
           <span className="product-badge">{pluralize(product.variants.length, "colour")}</span>
         ) : null}
@@ -114,13 +120,15 @@ export function ProductCard({ product, index }: { product: Product; index: numbe
         </div>
       </div>
       <div className="product-info">
-        <p className="product-meta">{getCategory(catalog, product).name}</p>
+        <p className="product-meta">{categoryName}</p>
         <h3 className="product-name">
           <Link to="/products/$slug" params={{ slug: product.slug }}>
             {product.name}
           </Link>
         </h3>
-        <p className="product-price">{formatPrice(product.price)}</p>
+        <p className="product-price">
+          <PriceTag price={product.price} regularPrice={product.regularPrice} sale={product.sale} />
+        </p>
         <div className="product-swatches" role="group" aria-label={`${product.name} colours`}>
           {visible.map((item, itemIndex) => (
             <Swatch

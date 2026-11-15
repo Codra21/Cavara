@@ -62,9 +62,14 @@ export function AdminShell({
                 Products
               </Link>
               {admin.role === "owner" ? (
-                <Link to="/admin/zones" className={navClass} activeProps={{ className: activeNavClass }}>
-                  Delivery
-                </Link>
+                <>
+                  <Link to="/admin/discounts" className={navClass} activeProps={{ className: activeNavClass }}>
+                    Sales
+                  </Link>
+                  <Link to="/admin/zones" className={navClass} activeProps={{ className: activeNavClass }}>
+                    Delivery
+                  </Link>
+                </>
               ) : null}
             </nav>
           </div>

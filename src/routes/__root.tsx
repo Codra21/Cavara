@@ -21,7 +21,7 @@ import { BagDrawer } from "@/components/store/BagDrawer";
 import { ProductDialog } from "@/components/store/ProductDialog";
 import { StoreProvider } from "@/components/store/StoreProvider";
 import { THEME_BOOT, THEME_COLORS } from "@/lib/theme";
-import { catalogQueryOptions } from "@/lib/query";
+import { categoriesQueryOptions } from "@/lib/query";
 
 /** Self-hosted Plus Jakarta Sans (declared in site.css). A font preload must be crossorigin even when same-origin. */
 const PRIMARY_FONT = "/fonts/plus-jakarta-sans-latin-wght-normal.woff2";
@@ -29,10 +29,11 @@ const OG_IMAGE = `${SITE_URL}/og-image.jpg`;
 const OG_ALT = "Cavara logo beside hand-painted ceramic cups and a yellow serving dish";
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  // Every page needs the catalogue (header bag, footer collections, product lookups); load it once here.
+  // The footer links, the home page's collection tiles and the admin editor's image origin need the categories on
+  // every page; they come from the summary snapshot, so this reads no D1.
   loader: async ({ context }) => {
     try {
-      await context.queryClient.query(catalogQueryOptions());
+      await context.queryClient.query(categoriesQueryOptions());
     } catch (error) {
       // Router writes a failed loader's error message into the page's hydration data. A database error message
       // ("D1_ERROR: no such table…") must not reach the HTML, so log the real one and rethrow a generic one.
@@ -130,12 +131,12 @@ function RootLayout() {
   if (isAdmin) return <Outlet />;
   return (
     <StoreProvider>
-      <a className="skip-link" href="#shop">
-        Skip to products
+      <a className="skip-link" href="#main">
+        Skip to content
       </a>
       <Announcement />
       <SiteHeader />
-      <main>
+      <main id="main" tabIndex={-1}>
         <Outlet />
       </main>
       <SiteFooter />
@@ -156,7 +157,7 @@ function NotFound() {
         <div className="empty-state">
           <h3>We couldn't find that page</h3>
           <p>The piece may have moved. Browse the full collection instead.</p>
-          <Link className="button" to="/" hash="shop">
+          <Link className="button" to="/products">
             Browse the collection
           </Link>
         </div>

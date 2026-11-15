@@ -41,6 +41,7 @@ const summary = (...products: ProductSummary[]): CatalogSummary => ({
   gen: newGeneration(),
   categories: [{ id: "drinkware", name: "Drinkware", description: "", image: "product-images/c.webp" }],
   zones: [{ id: "inside-dhaka", name: "Inside Dhaka", charge: 80 }],
+  sales: [],
   products,
 });
 

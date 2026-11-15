@@ -4,7 +4,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { orderListSchema, saveZonesSchema, updateOrderSchema } from "@/domain/orders";
 import { getOrder, listOrders, listZones, saveZones, updateOrderStatus } from "@/server/db/admin-orders.repository";
-import { refreshZones } from "@/server/catalog-cache.server";
+import { refreshProducts, refreshZones } from "@/server/catalog-cache.server";
 import { catalogSources } from "@/server/catalog-sources.server";
 import { getDb } from "@/server/env";
 import { adminAuthMiddleware, ownerAuthMiddleware } from "@/server/middleware/auth";
@@ -19,9 +19,12 @@ export const getOrderFn = createServerFn({ method: "GET" })
   .validator(z.object({ id: z.uuid() }))
   .handler(async ({ data, context }) => {
     const order = await getOrder(getDb(), data.id);
-    // Cost prices are Owner-only; Staff see the order without them.
+    // Cost prices and the sale taken off a line are Owner-only; Staff see the order without them.
     if (order && context.admin.role !== "owner") {
-      return { ...order, lines: order.lines.map((line) => ({ ...line, costPrice: null })) };
+      return {
+        ...order,
+        lines: order.lines.map((line) => ({ ...line, costPrice: null, listPrice: null, discountId: null })),
+      };
     }
     return order;
   });
@@ -29,7 +32,21 @@ export const getOrderFn = createServerFn({ method: "GET" })
 export const updateOrderFn = createServerFn({ method: "POST" })
   .middleware([adminAuthMiddleware])
   .validator(updateOrderSchema)
-  .handler(({ data, context }) => updateOrderStatus(getDb(), context.admin, data));
+  .handler(async ({ data, context }) => {
+    const { crossedProducts, ...result } = await updateOrderStatus(getDb(), context.admin, data);
+    // Cancelling or reopening can take a colour across 0; the shop's copy then needs that product patched.
+    if (result.ok && crossedProducts?.length) {
+      const refreshed = await refreshProducts(catalogSources(), crossedProducts);
+      if (!refreshed) {
+        return {
+          ...result,
+          warning:
+            "Saved, but the shop's copy of the stock could not be updated. It will catch up within a few minutes.",
+        };
+      }
+    }
+    return result;
+  });
 
 export const listZonesFn = createServerFn({ method: "GET" })
   .middleware([ownerAuthMiddleware])

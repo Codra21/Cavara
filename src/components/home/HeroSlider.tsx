@@ -1,24 +1,31 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { formatPrice, getCategory, getVariant } from "@/domain/catalog";
-import { useCatalog } from "@/lib/query";
+import { Link } from "@tanstack/react-router";
+import { formatPrice } from "@/domain/catalog";
+import { useHome } from "@/lib/query";
 import { HERO_SLIDES, SLIDE_INTERVAL } from "@/lib/config";
 import { prefersReducedMotion } from "@/lib/dom";
-import { useShopNavigation } from "@/components/layout/useShopNavigation";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
 import { Icon, RoundBadge } from "@/components/ui/primitives";
 
 export function HeroSlider() {
-  const catalog = useCatalog();
+  const home = useHome();
   const slides = useMemo(
     () =>
       HERO_SLIDES.flatMap((slide) => {
-        const product = catalog.productById.get(slide.id);
-        return product ? [{ ...slide, product, category: getCategory(catalog, product) }] : [];
+        const product = home.hero.find((item) => item.id === slide.id);
+        return product
+          ? [
+              {
+                ...slide,
+                product,
+                category: { id: product.category, name: home.categoryNames[product.category] ?? "" },
+              },
+            ]
+          : [];
       }),
-    [catalog],
+    [home],
   );
   const openProduct = useOpenProduct();
-  const goToShop = useShopNavigation();
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [held, setHeld] = useState(false);
@@ -85,7 +92,7 @@ export function HeroSlider() {
                     }}
                   >
                     <img
-                      src={getVariant(slide.product).images[0]}
+                      src={slide.product.images[0]}
                       alt={slide.product.name}
                       {...(slideIndex === 0 ? { fetchPriority: "high" as const } : { loading: "lazy" as const })}
                       width={800}
@@ -109,13 +116,9 @@ export function HeroSlider() {
                       <button className="button" type="button" onClick={() => openProduct(slide.product)}>
                         Shop now <Icon name="fa-solid fa-arrow-right" />
                       </button>
-                      <button
-                        className="text-link"
-                        type="button"
-                        onClick={() => goToShop({ category: slide.category.id })}
-                      >
+                      <Link className="text-link" to="/collections/$category" params={{ category: slide.category.id }}>
                         View {slide.category.name.toLowerCase()}
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </article>

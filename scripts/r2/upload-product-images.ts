@@ -3,6 +3,8 @@
 // under the same keys ("product-images/…"). The originals on disk are not changed.
 // Run before applying migrations/0005_images_to_r2.sql to that environment's D1, or images break.
 //
+//   bun scripts/r2/upload-product-images.ts local              → the local cavara-images-dev that `bun run dev` reads
+//                                                                (Miniflare state in .wrangler/; bun run r2:seed:local)
 //   bun scripts/r2/upload-product-images.ts dev                → cavara-images-dev
 //   bun scripts/r2/upload-product-images.ts production         → cavara-images-prod
 //   bun scripts/r2/upload-product-images.ts dev --dry-run      → report sizes only, upload nothing
@@ -16,11 +18,13 @@ import { join, relative, sep } from "node:path";
 import { contentTypeForKey, IMAGE_CACHE_CONTROL, isImageKey } from "../../src/domain/media";
 import { optimizeWithBun } from "./optimize";
 
-const BUCKETS = { dev: "cavara-images-dev", production: "cavara-images-prod" } as const;
+// "local" writes the top-level IMAGES bucket into Miniflare's state, the same store `bun run dev` reads; nothing leaves
+// the machine and no Cloudflare request is made.
+const BUCKETS = { local: "cavara-images-dev", dev: "cavara-images-dev", production: "cavara-images-prod" } as const;
 const target = process.argv[2] as keyof typeof BUCKETS | undefined;
 const dryRun = process.argv.includes("--dry-run");
 if (!target || !(target in BUCKETS)) {
-  console.error("Usage: bun scripts/r2/upload-product-images.ts <dev|production> [--dry-run]");
+  console.error("Usage: bun scripts/r2/upload-product-images.ts <local|dev|production> [--dry-run]");
   process.exit(1);
 }
 const bucket = BUCKETS[target];
@@ -43,7 +47,7 @@ const skipped = files.filter((file) => !isImageKey(file.key) || !contentTypeForK
 const uploads = files.filter((file) => !skipped.includes(file));
 
 console.log(
-  `${dryRun ? "Dry run for" : "Uploading"} ${uploads.length} files to ${bucket} (skipping ${skipped.length}).`,
+  `${dryRun ? "Dry run for" : "Uploading"} ${uploads.length} files to ${target === "local" ? "local " : ""}${bucket} (skipping ${skipped.length}).`,
 );
 let failed = 0;
 let before = 0;
@@ -78,7 +82,7 @@ try {
       `${bucket}/${file.key}`,
       "--file",
       temp,
-      "--remote",
+      target === "local" ? "--local" : "--remote",
       "--content-type",
       type,
       "--cache-control",

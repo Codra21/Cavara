@@ -22,6 +22,41 @@ export function productUrl(siteUrl: string, product: Pick<Product, "slug">): str
   return `${siteUrl.replace(/\/+$/, "")}/products/${product.slug}`;
 }
 
+const trimSlash = (siteUrl: string) => siteUrl.replace(/\/+$/, "");
+
+/** The all-products page. Filters, sort and page numbers are never part of the canonical URL. */
+export const productsUrl = (siteUrl: string) => `${trimSlash(siteUrl)}/products`;
+
+export const collectionUrl = (siteUrl: string, categoryId: string) =>
+  `${trimSlash(siteUrl)}/collections/${encodeURIComponent(categoryId)}`;
+
+export interface ListingSeo {
+  title: string;
+  description: string;
+  /** Canonical and og:url. */
+  url: string;
+  /** Absolute image for og:image, when the page has its own. */
+  image?: string;
+}
+
+/** Title, description and canonical for `/products` (no category) or `/collections/<category>`. */
+export function listingSeo(siteUrl: string, category: Category | null, fallbackDescription: string): ListingSeo {
+  if (!category)
+    return {
+      title: "All products — Cavara",
+      description:
+        "Browse every Cavara piece: ceramics, serveware, kitchen storage and home accessories, delivered across Bangladesh.",
+      url: productsUrl(siteUrl),
+    };
+  const description = category.description.replace(/\s+/g, " ").trim() || fallbackDescription;
+  return {
+    title: `${category.name} — Cavara`,
+    description,
+    url: collectionUrl(siteUrl, category.id),
+    ...(category.image ? { image: absoluteUrl(siteUrl, category.image) } : {}),
+  };
+}
+
 const SCHEMA_AVAILABILITY: Record<Availability, string> = {
   in_stock: "https://schema.org/InStock",
   preorder: "https://schema.org/PreOrder",
@@ -70,10 +105,9 @@ export function productJsonLd(product: SeoProduct, category: Category | undefine
 }
 
 export function breadcrumbJsonLd(product: SeoProduct, category: Category | undefined, siteUrl: string) {
-  const base = siteUrl.replace(/\/+$/, "");
   const items = [
-    { name: "Home", item: `${base}/` },
-    ...(category ? [{ name: category.name, item: `${base}/?category=${encodeURIComponent(category.id)}` }] : []),
+    { name: "Home", item: `${trimSlash(siteUrl)}/` },
+    ...(category ? [{ name: category.name, item: collectionUrl(siteUrl, category.id) }] : []),
     { name: product.name, item: productUrl(siteUrl, product) },
   ];
   return {
@@ -89,10 +123,21 @@ const escapeXml = (value: string) =>
     (char) => ({ "<": "&lt;", ">": "&gt;", "&": "&amp;", "'": "&apos;", '"': "&quot;" })[char]!,
   );
 
-/** sitemap.xml for the home page and every published product (https://www.sitemaps.org/protocol.html). */
-export function sitemapXml(siteUrl: string, products: Pick<Product, "slug">[]): string {
-  const base = siteUrl.replace(/\/+$/, "");
-  const urls = [`${base}/`, ...products.map((product) => productUrl(siteUrl, product))];
+/**
+ * sitemap.xml for the home page, the all-products page, each category's page and every published product
+ * (https://www.sitemaps.org/protocol.html).
+ */
+export function sitemapXml(
+  siteUrl: string,
+  products: Pick<Product, "slug">[],
+  categories: Pick<Category, "id">[] = [],
+): string {
+  const urls = [
+    `${trimSlash(siteUrl)}/`,
+    productsUrl(siteUrl),
+    ...categories.map((category) => collectionUrl(siteUrl, category.id)),
+    ...products.map((product) => productUrl(siteUrl, product)),
+  ];
   return [
     '<?xml version="1.0" encoding="UTF-8"?>',
     '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',

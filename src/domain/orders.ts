@@ -1,5 +1,6 @@
 // Guest order rules shared by the checkout form, the server function and the admin. Pure: no React, no D1.
 import { z } from "zod";
+import { type CouponAnswer, normalizeCouponCode } from "@/domain/coupons";
 import { MAX_QTY } from "@/lib/config";
 
 export const ORDER_STATUSES = ["new", "confirmed", "dispatched", "delivered", "cancelled"] as const;
@@ -17,7 +18,7 @@ export const MAX_ORDER_LINES = 30;
 
 /** Submissions allowed per 15 minutes, counted in D1 so every Worker isolate shares them. */
 export const ORDER_LIMIT_WINDOW_MS = 15 * 60 * 1000;
-export const ORDER_LIMITS = { ip: 10, phone: 5 } as const;
+export const ORDER_LIMITS = { ip: 10, phone: 5, couponIp: 20 } as const;
 
 export interface DeliveryZone {
   id: string;
@@ -89,6 +90,22 @@ export const checkoutSchema = z
       .array(checkoutItemSchema)
       .min(1, "Your bag is empty")
       .max(MAX_ORDER_LINES, `An order can hold up to ${MAX_ORDER_LINES} different pieces`),
+    /** The coupon the shopper applied ("" for none), upper case. One per order. */
+    couponCode: z
+      .string()
+      .max(40)
+      .default("")
+      .transform((value, ctx) => {
+        if (value.trim() === "") return "";
+        const code = normalizeCouponCode(value);
+        if (!code) {
+          ctx.addIssue({ code: "custom", message: "Enter a valid code" });
+          return z.NEVER;
+        }
+        return code;
+      }),
+    /** The discount the shopper saw for that code, so a change is reported instead of silently charged. */
+    couponDiscount: z.number().int().min(0).default(0),
     /** Honeypot: hidden from people, so anything here means a bot. */
     website: z.string().max(200).default(""),
   })
@@ -104,7 +121,7 @@ export const checkoutSchema = z
 export type CheckoutInput = z.output<typeof checkoutSchema>;
 export type CheckoutRequest = z.input<typeof checkoutSchema>;
 
-export type CheckoutField = "name" | "phone" | "zoneId" | "address" | "note" | "items";
+export type CheckoutField = "name" | "phone" | "zoneId" | "address" | "note" | "items" | "couponCode";
 
 export type SubmitOrderResult =
   | { ok: true; reference: string; total: number; replayed: boolean }
@@ -117,6 +134,8 @@ export type SubmitOrderResult =
       /** Current prices, so the form can show the new total. */
       prices: { productId: number; variant: number; unitPrice: number }[];
       deliveryCharge: number;
+      /** The coupon as it stands now (a changed discount, or why it stopped applying); null when none was sent. */
+      coupon: CouponAnswer | null;
     };
 
 /** Asia/Dhaka calendar day (UTC+6 all year, no daylight saving) as YYYY-MM-DD. */
@@ -143,6 +162,8 @@ export function canonicalCheckout(input: CheckoutInput): string {
     input.note,
     input.deliveryCharge,
     input.items.map((item) => [item.productId, item.variant, item.qty, item.unitPrice]),
+    // Only when a code is sent, so the hash of an order without one is the same as before coupons existed.
+    ...(input.couponCode ? [input.couponCode, input.couponDiscount] : []),
   ]);
 }
 
@@ -151,7 +172,8 @@ export function checkoutFieldErrors(issues: { path: PropertyKey[]; message: stri
   const errors: Partial<Record<CheckoutField, string>> = {};
   for (const issue of issues) {
     const field = String(issue.path[0] ?? "items") as CheckoutField;
-    if (["name", "phone", "zoneId", "address", "note", "items"].includes(field)) errors[field] ??= issue.message;
+    if (["name", "phone", "zoneId", "address", "note", "items", "couponCode"].includes(field))
+      errors[field] ??= issue.message;
     else errors.items ??= issue.message;
   }
   return errors;
@@ -215,7 +237,9 @@ export const updateOrderSchema = z
 
 export type UpdateOrderInput = z.output<typeof updateOrderSchema>;
 
-export type UpdateOrderResult = { ok: true; version: number } | { ok: false; error: string; conflict?: boolean };
+export type UpdateOrderResult =
+  | { ok: true; version: number; warning?: string }
+  | { ok: false; error: string; conflict?: boolean };
 
 export const ORDER_PAGE_SIZE = 50;
 
@@ -258,7 +282,11 @@ export interface AdminOrderLine {
   productName: string;
   variantName: string;
   availability: string;
+  /** What was charged per piece. */
   unitPrice: number;
+  /** The price before the sale, and the sale that took the difference. Null on orders placed before P9.2. */
+  listPrice: number | null;
+  discountId: number | null;
   costPrice: number | null;
   qty: number;
   lineTotal: number;
@@ -280,21 +308,34 @@ export interface AdminOrderDetail extends AdminOrderSummary {
   note: string;
   zoneId: string;
   deliveryCharge: number;
+  /** The item total after the coupon (what revenue counts). */
   subtotal: number;
+  /** The item total before the coupon; equals `subtotal` on orders without one and on orders placed before P9.3. */
+  itemsTotal: number;
+  couponCode: string | null;
+  couponDiscount: number;
   version: number;
   shopDay: string;
   lines: AdminOrderLine[];
   history: AdminOrderEvent[];
 }
 
-/** Sales effect of one order on its day's totals: profit from lines that have a cost price. */
-export function orderSales(lines: Pick<AdminOrderLine, "unitPrice" | "costPrice" | "qty">[], subtotal: number) {
+/**
+ * Sales effect of one order on its day's totals. Revenue is the item subtotal after the coupon. Profit is the margin
+ * on lines that have a cost price, less the coupon discount (the coupon comes out of the shop's margin).
+ */
+export function orderSales(
+  lines: Pick<AdminOrderLine, "unitPrice" | "costPrice" | "qty">[],
+  subtotal: number,
+  couponDiscount = 0,
+) {
   return {
     revenue: subtotal,
-    profit: lines.reduce(
-      (sum, line) => sum + (line.costPrice === null ? 0 : (line.unitPrice - line.costPrice) * line.qty),
-      0,
-    ),
+    profit:
+      lines.reduce(
+        (sum, line) => sum + (line.costPrice === null ? 0 : (line.unitPrice - line.costPrice) * line.qty),
+        0,
+      ) - couponDiscount,
     linesWithoutCost: lines.filter((line) => line.costPrice === null).length,
   };
 }

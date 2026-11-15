@@ -38,6 +38,7 @@ const row = (id: number, name: string): AdminProductSummary => ({
   sort: id,
   variantCount: 1,
   outOfStockColours: 0,
+  lowStockColours: 0,
   thumbnail: null,
   updatedAt: "2026-11-01T00:00:00Z",
 });

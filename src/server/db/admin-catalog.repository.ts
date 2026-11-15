@@ -37,6 +37,7 @@ interface VariantRow {
   name: string;
   swatch: string;
   availability: Availability;
+  stock: number | null;
 }
 
 interface ImageRow {
@@ -71,7 +72,9 @@ export async function getAdminProduct(db: D1Database, id: number): Promise<Admin
       )
       .bind(id),
     db
-      .prepare("SELECT id, name, swatch, availability FROM product_variants WHERE product_id = ? ORDER BY position")
+      .prepare(
+        "SELECT id, name, swatch, availability, stock FROM product_variants WHERE product_id = ? ORDER BY position",
+      )
       .bind(id),
     db
       .prepare(
@@ -233,10 +236,23 @@ export async function saveProduct(db: D1Database, options: SaveProductOptions): 
       statements.push(
         db
           .prepare(
-            `UPDATE product_variants SET position = ?, name = ?, swatch = ?, availability = ?
+            // Stock is never written here: it has its own functions, so a save cannot overwrite a count. A counted
+            // colour (stock not NULL) takes its availability from the count; only pre-order is chosen by hand.
+            `UPDATE product_variants SET position = ?, name = ?, swatch = ?,
+               availability = CASE WHEN stock IS NULL THEN ?
+                 WHEN ? = 'preorder' THEN 'preorder' WHEN stock <= 0 THEN 'out_of_stock' ELSE 'in_stock' END
              WHERE id = ? AND product_id = ? AND ${guardSql}`,
           )
-          .bind(position, variant.name, variant.swatch, variant.availability, variant.id, id, ...guardParams),
+          .bind(
+            position,
+            variant.name,
+            variant.swatch,
+            variant.availability,
+            variant.availability,
+            variant.id,
+            id,
+            ...guardParams,
+          ),
       );
     }
   });

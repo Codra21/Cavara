@@ -1,4 +1,5 @@
 import { useId, useRef, useState } from "react";
+import { type CouponAnswer, normalizeCouponCode } from "@/domain/coupons";
 import type { BuyableLine } from "@/domain/bag";
 import { formatPrice } from "@/domain/catalog";
 import {
@@ -9,6 +10,7 @@ import {
   type SubmitOrderResult,
 } from "@/domain/orders";
 import { WHATSAPP_DISPLAY } from "@/lib/config";
+import { checkCouponFn } from "@/server/functions/coupons.functions";
 import { submitOrderFn } from "@/server/functions/orders.functions";
 
 export interface PlacedOrder {
@@ -58,6 +60,12 @@ export function CheckoutForm({
   /** Prices the server reported after a price change, used until the bag lookup catches up. */
   const [serverPrices, setServerPrices] = useState<Map<string, number>>(new Map());
   const [serverCharge, setServerCharge] = useState<{ zoneId: string; charge: number } | null>(null);
+  /** The applied coupon and the discount the server last confirmed; the server checks both again on send. */
+  const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
+  const [couponOpen, setCouponOpen] = useState(false);
+  const [couponText, setCouponText] = useState("");
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponPending, setCouponPending] = useState(false);
   /** The key is reused only for an identical retry, so a lost response cannot create a second order. */
   const attempt = useRef<{ key: string; payload: string } | null>(null);
   const errorSummary = useRef<HTMLDivElement>(null);
@@ -70,7 +78,43 @@ export function CheckoutForm({
   const deliveryCharge =
     serverCharge && serverCharge.zoneId === draft.zoneId ? serverCharge.charge : (zone?.charge ?? 0);
   const subtotal = lines.reduce((sum, line) => sum + line.unitPrice * line.item.qty, 0);
-  const total = subtotal + deliveryCharge;
+  const couponDiscount = coupon?.discount ?? 0;
+  const total = subtotal - couponDiscount + deliveryCharge;
+
+  const applyAnswer = (answer: CouponAnswer) => {
+    if (answer.ok) {
+      setCoupon({ code: answer.code, discount: answer.discount });
+      setCouponError(null);
+      setCouponText("");
+    } else {
+      setCoupon(null);
+      setCouponError(answer.message);
+    }
+  };
+
+  async function applyCoupon() {
+    if (couponPending) return;
+    const code = normalizeCouponCode(couponText);
+    if (!code) {
+      setCouponError(couponText.trim() ? "Codes are 3 to 20 letters, digits or hyphens." : "Enter your code.");
+      return;
+    }
+    setCouponPending(true);
+    setCouponError(null);
+    try {
+      const answer = await checkCouponFn({
+        data: {
+          code,
+          items: lines.map((line) => ({ productId: line.item.id, variant: line.item.variant, qty: line.item.qty })),
+        },
+      });
+      if (answer.ok) applyAnswer(answer);
+      else setCouponError(answer.message);
+    } catch {
+      setCouponError("We couldn't reach the shop. Check your connection and try again.");
+    }
+    setCouponPending(false);
+  }
 
   const update = (field: keyof Draft) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const value = event.target.value;
@@ -85,6 +129,8 @@ export function CheckoutForm({
     const body: Omit<CheckoutRequest, "idempotencyKey"> = {
       ...draft,
       deliveryCharge,
+      couponCode: coupon?.code ?? "",
+      couponDiscount,
       items: lines.map((line) => ({
         productId: line.item.id,
         variant: line.item.variant,
@@ -122,6 +168,11 @@ export function CheckoutForm({
         new Map(result.prices.map((price) => [priceKey(price.productId, price.variant), price.unitPrice])),
       );
       setServerCharge({ zoneId: draft.zoneId, charge: result.deliveryCharge });
+      // A coupon that changed or stopped applying: show its new discount, or drop it and say why next to the field.
+      if (result.coupon) {
+        applyAnswer(result.coupon);
+        if (!result.coupon.ok) setCouponOpen(true);
+      }
     }
     setMessage({ tone: result.code === "price_changed" ? "notice" : "error", text: result.message });
     window.requestAnimationFrame(() => errorSummary.current?.focus());
@@ -252,11 +303,85 @@ export function CheckoutForm({
         />
       </div>
 
+      <div className="checkout-coupon">
+        {coupon ? (
+          <div className="checkout-coupon-applied">
+            <span>
+              Code <strong>{coupon.code}</strong> applied
+            </span>
+            <button
+              className="text-button"
+              type="button"
+              onClick={() => {
+                setCoupon(null);
+                setCouponError(null);
+              }}
+            >
+              Remove<span className="sr-only"> code {coupon.code}</span>
+            </button>
+          </div>
+        ) : (
+          <details open={couponOpen} onToggle={(event) => setCouponOpen(event.currentTarget.open)}>
+            <summary>Have a code?</summary>
+            <div className="checkout-field">
+              <label htmlFor={`${id}-coupon`}>Coupon code</label>
+              <div className="checkout-coupon-row">
+                <input
+                  id={`${id}-coupon`}
+                  className="checkout-coupon-input"
+                  name="coupon"
+                  autoComplete="off"
+                  autoCapitalize="characters"
+                  spellCheck={false}
+                  maxLength={40}
+                  placeholder="Enter code"
+                  value={couponText}
+                  aria-invalid={couponError ? true : undefined}
+                  aria-describedby={couponError ? `${id}-coupon-error` : undefined}
+                  onChange={(event) => {
+                    setCouponText(event.target.value);
+                    if (couponError) setCouponError(null);
+                  }}
+                  onKeyDown={(event) => {
+                    // Enter applies the code; it must not place the order.
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      void applyCoupon();
+                    }
+                  }}
+                />
+                <button
+                  className="button button-outline"
+                  type="button"
+                  disabled={couponPending}
+                  onClick={() => void applyCoupon()}
+                >
+                  {couponPending ? "Checking…" : "Apply"}
+                </button>
+              </div>
+              <div aria-live="polite">
+                {couponError ? (
+                  <p className="checkout-error" id={`${id}-coupon-error`}>
+                    {couponError}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          </details>
+        )}
+      </div>
+
       <dl className="checkout-summary">
         <div>
           <dt>Subtotal</dt>
           <dd>{formatPrice(subtotal)}</dd>
         </div>
+        {coupon ? (
+          <div className="checkout-discount">
+            <dt>Code {coupon.code}</dt>
+            <dd>−{formatPrice(coupon.discount)}</dd>
+          </div>
+        ) : null}
         <div>
           <dt>Delivery{zone ? ` (${zone.name})` : ""}</dt>
           <dd>{formatPrice(deliveryCharge)}</dd>

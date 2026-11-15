@@ -99,6 +99,8 @@ export interface AdminVariant {
   name: string;
   swatch: string;
   availability: Availability;
+  /** The colour's count, or null when it is not counted. Read-only here: stock has its own functions. */
+  stock: number | null;
   images: string[];
 }
 
@@ -134,6 +136,8 @@ export interface AdminProductSummary {
   variantCount: number;
   /** Colours marked out of stock. */
   outOfStockColours: number;
+  /** Counted colours with a few left (or none). */
+  lowStockColours: number;
   thumbnail: string | null;
   updatedAt: string;
 }
@@ -214,6 +218,12 @@ export function productToForm(product: AdminProduct): ProductFormValues {
     status: product.status,
     featured: product.featured,
     sort: product.sort,
-    variants: product.variants.map((variant) => ({ ...variant, images: [...variant.images] })),
+    // The form holds neither the count (it changes without a save) nor an availability the count decided: a counted
+    // colour shows as in stock unless it is on pre-order, so a stock change never makes the form look edited.
+    variants: product.variants.map(({ stock, ...variant }) => ({
+      ...variant,
+      availability: stock !== null && variant.availability !== "preorder" ? "in_stock" : variant.availability,
+      images: [...variant.images],
+    })),
   };
 }

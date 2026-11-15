@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { pluralize } from "@/domain/catalog";
-import { useCatalog } from "@/lib/query";
+import { useCategories } from "@/lib/query";
 import {
   CONTACT_EMAIL,
   FACEBOOK_URL,
@@ -39,8 +39,7 @@ export function Announcement() {
 }
 
 export function SiteFooter() {
-  const catalog = useCatalog();
-  const goToShop = useShopNavigation();
+  const { categories } = useCategories();
   const [year, setYear] = useState(2026);
   useEffect(() => setYear(new Date().getFullYear()), []);
 
@@ -65,11 +64,14 @@ export function SiteFooter() {
             <div>
               <h2 className="footer-title">Shop</h2>
               <ul className="footer-links">
-                {catalog.categories.map((category) => (
+                <li>
+                  <Link to="/products">All products</Link>
+                </li>
+                {categories.map((category) => (
                   <li key={category.id}>
-                    <button type="button" onClick={() => goToShop({ category: category.id })}>
+                    <Link to="/collections/$category" params={{ category: category.id }}>
                       {category.name}
-                    </button>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -151,9 +153,9 @@ export function QuickDock() {
         <Icon name="fa-solid fa-magnifying-glass" />
         <span>Search</span>
       </button>
-      <Link to="/" hash="shop">
+      <Link to="/products">
         <Icon name="fa-solid fa-table-cells-large" />
-        <span>Shop</span>
+        <span>Products</span>
       </Link>
       <a href={WHATSAPP_URL} target="_blank" rel="noopener">
         <Icon name="fa-brands fa-whatsapp" />

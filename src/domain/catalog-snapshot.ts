@@ -8,12 +8,19 @@
 //
 // Snapshots hold R2 image keys, never URLs (code-standards: Images). Public function output turns keys into URLs with
 // resolve*() below, so a changed IMAGE_BASE_URL never leaves wrong URLs in a stored object.
+import { bestSale, type SaleRule, saleBadge, strikePrice } from "@/domain/discounts";
 import { mediaUrl } from "@/domain/media";
 import type { DeliveryZone } from "@/domain/orders";
 import type { Availability, Catalog, Category, Product, Variant } from "@/lib/types";
 
-/** Bump with the edge cache paths and object keys in src/server/catalog-cache.server.ts when a stored shape changes. */
+/**
+ * Version of the detail and legacy documents. Bump with the edge cache paths and object keys in
+ * src/server/catalog-cache.server.ts when their stored shape changes.
+ */
 export const SNAPSHOT_VERSION = 2;
+
+/** Version of the summary document alone: 3 added the sales list (P9.2). The detail shape did not change. */
+export const SUMMARY_VERSION = 3;
 
 const AVAILABILITY_CODES: readonly Availability[] = ["in_stock", "out_of_stock", "preorder"];
 
@@ -43,6 +50,17 @@ export interface ProductSummary {
   /** Card pictures: the first one or two of the default colour. */
   images: string[];
   variants: SummaryVariant[];
+  /**
+   * Set by priceSummary() on products a sale applies to, never stored. `price` is then the charged price and
+   * `regularPrice` the struck-through one; `sale.listPrice` is what the product costs without the sale.
+   */
+  sale?: ProductSale | null;
+}
+
+/** What the storefront needs to show a sale: the badge text. The struck price is `regularPrice`. */
+export interface ProductSale {
+  listPrice: number;
+  badge: string;
 }
 
 export interface CatalogSummary {
@@ -51,6 +69,8 @@ export interface CatalogSummary {
   /** Image keys. */
   categories: Category[];
   zones: DeliveryZone[];
+  /** Sales that are on or still to come (active, not yet ended when written). Dates are checked again at read time. */
+  sales: SaleRule[];
   /** Display order: `sort`, then id. */
   products: ProductSummary[];
 }
@@ -89,6 +109,7 @@ export interface FullCatalog {
   categories: Category[];
   products: ProductDetail[];
   zones: DeliveryZone[];
+  sales: SaleRule[];
 }
 
 let generationCount = 0;
@@ -169,6 +190,7 @@ export function toSummary(full: FullCatalog, gen: string): CatalogSummary {
     gen,
     categories: full.categories,
     zones: full.zones,
+    sales: full.sales,
     products: full.products.map(toProductSummary),
   };
 }
@@ -201,6 +223,7 @@ interface StoredSummary {
   gen: string;
   categories: Category[];
   zones: DeliveryZone[];
+  sales: SaleRule[];
   products: StoredProduct[];
 }
 
@@ -227,10 +250,11 @@ export function encodeSummary(summary: CatalogSummary): string {
     ];
   });
   const stored: StoredSummary = {
-    v: SNAPSHOT_VERSION,
+    v: SUMMARY_VERSION,
     gen: summary.gen,
     categories: summary.categories,
     zones: summary.zones,
+    sales: summary.sales,
     products,
   };
   return JSON.stringify(stored);
@@ -243,9 +267,10 @@ function bad(what: string): never {
 /** Throws on a malformed or other-version document; callers treat that as a miss and rebuild. */
 export function decodeSummary(json: string): CatalogSummary {
   const stored = JSON.parse(json) as Partial<StoredSummary>;
-  if (stored.v !== SNAPSHOT_VERSION) bad("version");
+  if (stored.v !== SUMMARY_VERSION) bad("version");
   if (typeof stored.gen !== "string" || !Array.isArray(stored.categories) || !Array.isArray(stored.zones))
     bad("header");
+  if (!Array.isArray(stored.sales) || !stored.sales.every(isStoredSale)) bad("sales");
   if (!Array.isArray(stored.products)) bad("products");
   const products = stored.products.map((row): ProductSummary => {
     if (!Array.isArray(row) || row.length !== 11) bad("product row");
@@ -281,7 +306,21 @@ export function decodeSummary(json: string): CatalogSummary {
       }),
     };
   });
-  return { gen: stored.gen, categories: stored.categories, zones: stored.zones, products };
+  return { gen: stored.gen, categories: stored.categories, zones: stored.zones, sales: stored.sales, products };
+}
+
+function isStoredSale(value: unknown): value is SaleRule {
+  const sale = value as Partial<SaleRule> | null;
+  return (
+    typeof sale === "object" &&
+    sale !== null &&
+    typeof sale.id === "number" &&
+    (sale.scope === "all" || sale.scope === "category" || sale.scope === "product") &&
+    (sale.type === "percent" || sale.type === "amount") &&
+    typeof sale.value === "number" &&
+    typeof sale.startsAt === "string" &&
+    (sale.endsAt === null || typeof sale.endsAt === "string")
+  );
 }
 
 export const encodeDetail = (doc: ProductDetailDoc): string => JSON.stringify({ v: SNAPSHOT_VERSION, ...doc });
@@ -318,6 +357,11 @@ export function patchSummaryProduct(summary: CatalogSummary, id: number, next: P
 export const patchSummaryZones = (summary: CatalogSummary, zones: DeliveryZone[]): CatalogSummary => ({
   ...summary,
   zones,
+});
+
+export const patchSummarySales = (summary: CatalogSummary, sales: SaleRule[]): CatalogSummary => ({
+  ...summary,
+  sales,
 });
 
 /** The product listed just before `id` in display order, or null when it is first (or absent). */
@@ -381,11 +425,68 @@ export function summaryIndex(summary: CatalogSummary): SummaryIndex {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
+// Sale prices
+
+/** One product with the best active sale applied (see src/domain/discounts.ts), or unchanged when none applies. */
+export function priceProduct(product: ProductSummary, sales: readonly SaleRule[], nowMs: number): ProductSummary {
+  const best = bestSale(sales, product, product.price, nowMs);
+  if (!best) return product;
+  const strike = strikePrice(product.price, product.regularPrice);
+  return {
+    ...product,
+    price: best.price,
+    regularPrice: strike,
+    sale: { listPrice: product.price, badge: saleBadge(strike, best.price) },
+  };
+}
+
+const pricedSummaries = new WeakMap<CatalogSummary, { minute: number; value: CatalogSummary }>();
+
+/**
+ * The summary with sale prices applied at `nowMs`, so the listing's price sort and price filter, the cards and the
+ * detail all see the charged price. Cached per summary value and minute, so a sale starts or ends within a minute of
+ * its date without a rebuild, and the lookup maps are not rebuilt on every request. A summary with no sales comes
+ * back as the same object.
+ */
+export function priceSummary(summary: CatalogSummary, nowMs = Date.now()): CatalogSummary {
+  if (summary.sales.length === 0) return summary;
+  const minute = Math.floor(nowMs / 60_000);
+  const hit = pricedSummaries.get(summary);
+  if (hit && hit.minute === minute) return hit.value;
+  const value: CatalogSummary = {
+    ...summary,
+    products: summary.products.map((product) => priceProduct(product, summary.sales, minute * 60_000)),
+  };
+  pricedSummaries.set(summary, { minute, value });
+  return value;
+}
+
+/** A product's detail priced like its summary entry (the detail snapshot holds the list price only). */
+export function priceDetail(
+  detail: ProductDetail,
+  pricedEntry: ProductSummary,
+): ProductDetail & { sale?: ProductSale } {
+  return pricedEntry.sale
+    ? { ...detail, price: pricedEntry.price, regularPrice: pricedEntry.regularPrice, sale: pricedEntry.sale }
+    : detail;
+}
+
+// ---------------------------------------------------------------------------------------------------------------
 // Public shapes: what the server functions return. Image keys are already URLs; `sort` and any cost data are gone.
 
 export type ProductCard = Omit<ProductSummary, "sort">;
 
-export type PublicProduct = Omit<ProductDetail, "sort">;
+export type PublicProduct = Omit<ProductDetail, "sort"> & { sale?: ProductSale | null };
+
+const NO_COLOUR: SummaryVariant = { name: "", swatch: "", availability: "in_stock", image: null };
+
+/** The colour at `index` of a card, or its first colour when the index is out of range. */
+export const cardVariant = (card: Pick<ProductCard, "variants">, index = 0): SummaryVariant =>
+  card.variants[index] ?? card.variants[0] ?? NO_COLOUR;
+
+/** The picture a card shows for a colour: that colour's own, else the card's first. */
+export const cardImage = (card: Pick<ProductCard, "images" | "variants">, index = 0): string | undefined =>
+  cardVariant(card, index).image ?? card.images[0];
 
 export function resolveCard(product: ProductSummary, imageBase: string): ProductCard {
   const { sort: _sort, ...rest } = product;
@@ -399,7 +500,10 @@ export function resolveCard(product: ProductSummary, imageBase: string): Product
   };
 }
 
-export function resolveProduct(product: ProductDetail, imageBase: string): PublicProduct {
+export function resolveProduct(
+  product: ProductDetail & { sale?: ProductSale | null },
+  imageBase: string,
+): PublicProduct {
   const { sort: _sort, ...rest } = product;
   const [first, ...others] = product.variants.map((variant) => ({
     ...variant,

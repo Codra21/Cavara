@@ -19,7 +19,6 @@ export const STORAGE_KEYS = {
 
 export const MAX_QTY = 20;
 export const RECENT_LIMIT = 8;
-export const SHOP_PAGE_SIZE = 8;
 export const SLIDE_INTERVAL = 6500;
 
 export const HERO_SLIDES = [
@@ -48,10 +47,11 @@ export const LOOKBOOK = {
   ],
 };
 
-export const NAV_LINKS = [
-  { hash: "shop", label: "Shop" },
-  { hash: "collections", label: "Collections" },
-  { hash: "story", label: "Our story" },
-  { hash: "ordering", label: "How to order" },
-  { hash: "contact", label: "Contact" },
+/** The header menu. "Products" is its own page; the others scroll to a section of the home page. */
+export const NAV_LINKS: readonly ({ label: string; to: "/products" } | { label: string; hash: string })[] = [
+  { label: "Products", to: "/products" },
+  { label: "Collections", hash: "collections" },
+  { label: "Our story", hash: "story" },
+  { label: "How to order", hash: "ordering" },
+  { label: "Contact", hash: "contact" },
 ];

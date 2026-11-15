@@ -28,6 +28,7 @@ import {
 } from "@/domain/orders";
 import { auditStatement } from "@/server/admin/auth.server";
 import type { D1Database, D1PreparedStatement } from "./d1";
+import { orderStockStatements, readCrossedProducts, readReopenShortages, REOPEN_FITS } from "./stock.repository";
 
 interface OrderRow {
   id: string;
@@ -110,6 +111,9 @@ interface DetailRow extends OrderRow {
   zone_id: string;
   delivery_charge: number;
   subtotal: number;
+  items_total: number | null;
+  coupon_code: string | null;
+  coupon_discount: number;
   version: number;
   shop_day: string;
 }
@@ -118,15 +122,16 @@ export async function getOrder(db: D1Database, id: string): Promise<AdminOrderDe
   const [orderResult, lineResult, historyResult] = await db.batch([
     db
       .prepare(
-        `SELECT ${SUMMARY_COLUMNS}, address, note, zone_id, delivery_charge, subtotal, version, shop_day
+        `SELECT ${SUMMARY_COLUMNS}, address, note, zone_id, delivery_charge, subtotal, items_total, coupon_code,
+           coupon_discount, version, shop_day
          FROM orders WHERE id = ?`,
       )
       .bind(id),
     db
       .prepare(
         `SELECT line, product_id AS productId, variant_position AS variantPosition, product_name AS productName,
-           variant_name AS variantName, availability, unit_price AS unitPrice, cost_price AS costPrice, qty,
-           line_total AS lineTotal
+           variant_name AS variantName, availability, unit_price AS unitPrice, list_price AS listPrice,
+           discount_id AS discountId, cost_price AS costPrice, qty, line_total AS lineTotal
          FROM order_items WHERE order_id = ? ORDER BY line`,
       )
       .bind(id),
@@ -147,6 +152,10 @@ export async function getOrder(db: D1Database, id: string): Promise<AdminOrderDe
     zoneId: row.zone_id,
     deliveryCharge: row.delivery_charge,
     subtotal: row.subtotal,
+    // NULL on orders placed before coupons existed, which had no discount.
+    itemsTotal: row.items_total ?? row.subtotal,
+    couponCode: row.coupon_code,
+    couponDiscount: row.coupon_discount,
     version: row.version,
     shopDay: row.shop_day,
     lines: (lineResult?.results ?? []) as AdminOrderLine[],
@@ -161,12 +170,29 @@ const TIMESTAMP_COLUMN: Partial<Record<OrderStatus, string>> = {
   cancelled: "cancelled_at",
 };
 
+/** The result, plus the products whose count crossed 0 (so the caller can patch the shop's copy). */
+export type UpdateOrderOutcome = UpdateOrderResult & { crossedProducts?: number[] };
+
+async function reopenRefusal(db: D1Database, orderId: string): Promise<string | null> {
+  const short = await readReopenShortages(db, orderId);
+  if (short.length === 0) return null;
+  const parts = short.map(
+    (line) => `${line.productName} (${line.variantName}) has ${line.stock} left, the order needs ${line.qty}`,
+  );
+  return `This order cannot be reopened yet: ${parts.join("; ")}. Add stock first.`;
+}
+
+/**
+ * Moves an order to a new status and/or payment status. Cancelling returns the stock the order took; reopening a
+ * cancelled order takes it again and is refused while a counted colour is short. Both run in the same batch as the
+ * status change, guarded on its change token.
+ */
 export async function updateOrderStatus(
   db: D1Database,
   actor: AdminIdentity,
   input: UpdateOrderInput,
   now = new Date(),
-): Promise<UpdateOrderResult> {
+): Promise<UpdateOrderOutcome> {
   const current = await getOrder(db, input.id);
   if (!current) return { ok: false, error: "This order no longer exists." };
   if (current.version !== input.version) {
@@ -179,6 +205,12 @@ export async function updateOrderStatus(
     };
   }
   const statusChanged = current.status !== input.status;
+  const cancelling = statusChanged && input.status === "cancelled";
+  const reopening = statusChanged && current.status === "cancelled";
+  if (reopening) {
+    const refusal = await reopenRefusal(db, input.id);
+    if (refusal) return { ok: false, error: refusal };
+  }
   const paymentChanged = current.paymentStatus !== input.paymentStatus;
   if (!statusChanged && !paymentChanged && !input.note) return { ok: true, version: current.version };
 
@@ -193,9 +225,18 @@ export async function updateOrderStatus(
       .prepare(
         `UPDATE orders SET status = ?, payment_status = ?, version = version + 1, change_token = ?, updated_at = ?
            ${stamp ? `, ${stamp} = ?` : ""}
-         WHERE id = ? AND version = ?`,
+         WHERE id = ? AND version = ?${reopening ? ` AND ${REOPEN_FITS}` : ""}`,
       )
-      .bind(input.status, input.paymentStatus, token, at, ...(stamp ? [at] : []), input.id, input.version),
+      .bind(
+        input.status,
+        input.paymentStatus,
+        token,
+        at,
+        ...(stamp ? [at] : []),
+        input.id,
+        input.version,
+        ...(reopening ? [input.id] : []),
+      ),
     db
       .prepare(
         `INSERT INTO order_status_history (order_id, from_status, to_status, from_payment_status, to_payment_status,
@@ -218,7 +259,7 @@ export async function updateOrderStatus(
   // Entering or leaving the "sold" set moves this order's revenue and profit on the day it was placed.
   const soldDelta = Number(isSold(input.status)) - Number(isSold(current.status));
   if (soldDelta !== 0) {
-    const sales = orderSales(current.lines, current.subtotal);
+    const sales = orderSales(current.lines, current.subtotal, current.couponDiscount);
     statements.push(
       db
         .prepare(
@@ -241,6 +282,15 @@ export async function updateOrderStatus(
     );
   }
 
+  if (cancelling || reopening) {
+    statements.push(
+      ...orderStockStatements(db, cancelling ? "cancel" : "reopen", input.id, actor, at, {
+        sql: guardSql,
+        params: guardParams,
+      }),
+    );
+  }
+
   const details: Record<string, AuditValue> = {
     reference: current.reference,
     status: input.status,
@@ -252,9 +302,13 @@ export async function updateOrderStatus(
 
   const [claim] = await db.batch(statements);
   if (claim?.meta.changes !== 1) {
+    // A reopen's claim also fails when a colour ran short after the check above.
+    const refusal = reopening ? await reopenRefusal(db, input.id) : null;
+    if (refusal) return { ok: false, error: refusal };
     return { ok: false, conflict: true, error: "This order changed since you opened it. Reload to see the latest." };
   }
-  return { ok: true, version: current.version + 1 };
+  const crossedProducts = cancelling || reopening ? await readCrossedProducts(db, input.id, at) : [];
+  return { ok: true, version: current.version + 1, ...(crossedProducts.length ? { crossedProducts } : {}) };
 }
 
 // Delivery zones -------------------------------------------------------------------------------------------------

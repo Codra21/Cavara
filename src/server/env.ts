@@ -1,5 +1,5 @@
 // Request-time access to Worker bindings. Import only from server-only modules (*.server.ts, server function handlers).
-import { env } from "cloudflare:workers";
+import { env, waitUntil } from "cloudflare:workers";
 import { ownerCredentials } from "./admin/auth.server";
 import type { D1Database, R2Bucket } from "./db/d1";
 import { alertSettings, type AlertSettings } from "./services/order-notifications.service";
@@ -44,4 +44,13 @@ export function getAlertSettings(): AlertSettings | null {
 /** Owner credentials, or null when ADMIN_SECRET is not set (admin disabled). */
 export function getOwnerCredentials() {
   return ownerCredentials(env);
+}
+
+/** Runs work after the response is sent (Workers `waitUntil`). A failure is logged and never reaches the caller. */
+export function runAfterResponse(label: string, work: () => Promise<unknown>): void {
+  waitUntil(
+    work().catch((error: unknown) => {
+      console.error(`${label} failed`, error);
+    }),
+  );
 }

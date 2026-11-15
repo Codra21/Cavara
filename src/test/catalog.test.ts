@@ -1,10 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { existsSync } from "node:fs";
 import { join } from "node:path";
-import { filterProducts, formatPrice, getVariant, indexCatalog, isProductSlug } from "@/domain/catalog";
+import { formatPrice, getVariant, isCategorySlug, isProductSlug } from "@/domain/catalog";
 import { CATEGORIES, PRODUCTS } from "../../scripts/seed/catalog-data";
-
-const catalog = indexCatalog({ categories: CATEGORIES, products: PRODUCTS, imageBase: "", deliveryZones: [] });
 
 // The seed source for migrations/0002_seed_catalog.sql; checked before it reaches D1.
 describe("catalogue data", () => {
@@ -50,11 +48,9 @@ describe("catalogue helpers", () => {
     expect(getVariant(product, 999)).toBe(product.variants[0]);
   });
 
-  test("filterProducts narrows by category", () => {
-    const category = CATEGORIES[0]!.id;
-    const result = filterProducts(catalog, { category, query: "", sort: "featured" });
-    expect(result.length).toBeGreaterThan(0);
-    expect(result.every((p) => p.category === category)).toBe(true);
+  test("isCategorySlug accepts ids shaped like the seeded ones and nothing else", () => {
+    for (const category of CATEGORIES) expect(isCategorySlug(category.id)).toBe(true);
+    for (const bad of ["", "Bad Id", "a/b", "x".repeat(65), 5, null]) expect(isCategorySlug(bad)).toBe(false);
   });
 
   test("isProductSlug accepts what the editor writes and nothing else", () => {

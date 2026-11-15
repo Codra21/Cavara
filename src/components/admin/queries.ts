@@ -6,6 +6,9 @@ import type { AdminProductQuery } from "@/domain/admin-product-list";
 import type { AdminOrderPage, OrderStatus } from "@/domain/orders";
 import type { AdminProductName } from "@/domain/product-admin";
 import { getDashboardFn } from "@/server/functions/admin-dashboard.functions";
+import { listStockMovementsFn } from "@/server/functions/admin-stock.functions";
+import type { StockMovementPage } from "@/domain/stock";
+import { listCouponsFn, listDiscountsFn } from "@/server/functions/admin-discounts.functions";
 import { getOrderFn, listOrdersFn, listZonesFn } from "@/server/functions/admin-orders.functions";
 import { listAuditFn } from "@/server/functions/admin-auth.functions";
 import {
@@ -96,6 +99,17 @@ export const adminProductQuery = (id: number) =>
     queryFn: ({ signal }) => getAdminProductFn({ data: { id }, signal }),
   });
 
+/** A product's movements, newest first, 50 per page. Dropped and refetched after every stock change. */
+export const adminStockMovementsQuery = (productId: number) =>
+  infiniteQueryOptions({
+    queryKey: [...ADMIN_QUERY_KEY, "stock-movements", productId],
+    queryFn: ({ signal, pageParam }) => listStockMovementsFn({ data: { productId, after: pageParam }, signal }),
+    initialPageParam: null as StockMovementPage["next"],
+    getNextPageParam: (page) => page.next,
+    staleTime: 60_000,
+    refetchOnWindowFocus: false,
+  });
+
 export const adminOrdersQuery = (status: OrderStatusFilter, search: string) =>
   infiniteQueryOptions({
     queryKey: [...ADMIN_QUERY_KEY, "orders", status, search],
@@ -114,6 +128,18 @@ export const adminZonesQuery = () =>
   queryOptions({
     queryKey: [...ADMIN_QUERY_KEY, "zones"],
     queryFn: ({ signal }) => listZonesFn({ signal }),
+  });
+
+export const adminDiscountsQuery = () =>
+  queryOptions({
+    queryKey: [...ADMIN_QUERY_KEY, "discounts"],
+    queryFn: ({ signal }) => listDiscountsFn({ signal }),
+  });
+
+export const adminCouponsQuery = () =>
+  queryOptions({
+    queryKey: [...ADMIN_QUERY_KEY, "coupons"],
+    queryFn: ({ signal }) => listCouponsFn({ signal }),
   });
 
 export const adminDashboardQuery = () =>

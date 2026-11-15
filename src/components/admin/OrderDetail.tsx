@@ -53,10 +53,12 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
   const next = STATUS_TRANSITIONS[order.status];
   const dirty = status !== order.status || payment !== order.paymentStatus || note.trim() !== "";
   const knownCost = order.lines.every((line) => line.costPrice !== null);
-  const margin = order.lines.reduce(
-    (sum, line) => sum + (line.costPrice === null ? 0 : (line.unitPrice - line.costPrice) * line.qty),
-    0,
-  );
+  // The coupon comes out of the margin, the same figure the dashboard's profit uses (orderSales).
+  const margin =
+    order.lines.reduce(
+      (sum, line) => sum + (line.costPrice === null ? 0 : (line.unitPrice - line.costPrice) * line.qty),
+      0,
+    ) - order.couponDiscount;
 
   const save = useMutation({
     mutationFn: () =>
@@ -245,6 +247,11 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
                   <TableCell className="text-right tabular-nums">{line.qty}</TableCell>
                   <TableCell className="hidden text-right tabular-nums sm:table-cell">
                     {formatPrice(line.unitPrice)}
+                    {isOwner && line.listPrice !== null && line.listPrice > line.unitPrice ? (
+                      <div className="text-xs text-muted-foreground">
+                        Listed {formatPrice(line.listPrice)}, sale #{line.discountId}
+                      </div>
+                    ) : null}
                   </TableCell>
                   {isOwner ? (
                     <TableCell className="hidden text-right tabular-nums sm:table-cell">
@@ -262,10 +269,20 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
             <TableFooter>
               <TableRow>
                 <TableCell className="pl-4 whitespace-normal" colSpan={isOwner ? 4 : 3}>
-                  Subtotal
+                  {order.couponCode ? "Items" : "Subtotal"}
                 </TableCell>
-                <TableCell className="pr-4 text-right tabular-nums">{formatPrice(order.subtotal)}</TableCell>
+                <TableCell className="pr-4 text-right tabular-nums">
+                  {formatPrice(order.couponCode ? order.itemsTotal : order.subtotal)}
+                </TableCell>
               </TableRow>
+              {order.couponCode ? (
+                <TableRow>
+                  <TableCell className="pl-4 whitespace-normal" colSpan={isOwner ? 4 : 3}>
+                    Coupon <span className="font-medium text-foreground">{order.couponCode}</span>
+                  </TableCell>
+                  <TableCell className="pr-4 text-right tabular-nums">−{formatPrice(order.couponDiscount)}</TableCell>
+                </TableRow>
+              ) : null}
               <TableRow>
                 <TableCell className="pl-4 whitespace-normal" colSpan={isOwner ? 4 : 3}>
                   Delivery ({order.zoneName})
@@ -281,7 +298,8 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
               {isOwner ? (
                 <TableRow>
                   <TableCell className="pl-4 whitespace-normal text-muted-foreground" colSpan={4}>
-                    Margin on items{knownCost ? "" : " (some lines have no cost price)"}
+                    Margin on items{order.couponCode ? " after the coupon" : ""}
+                    {knownCost ? "" : " (some lines have no cost price)"}
                   </TableCell>
                   <TableCell className="pr-4 text-right tabular-nums text-muted-foreground">
                     {formatPrice(margin)}

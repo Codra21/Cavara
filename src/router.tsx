@@ -12,6 +12,9 @@ export function getRouter() {
     context: { queryClient },
     scrollRestoration: true,
     defaultPreload: "intent",
+    // A hover must last 250 ms (default 50) before the next page's loader runs. Each product preload costs two Worker
+    // requests, and a mouse passing over a grid of cards should not spend them. Touch still preloads at touchstart.
+    defaultPreloadDelay: 250,
     // Child routes that fail render inside the storefront layout; the root route has its own boundary (__root.tsx).
     defaultErrorComponent: RouteErrorPage,
   });

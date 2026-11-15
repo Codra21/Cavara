@@ -12,6 +12,7 @@ import { CheckoutForm, type PlacedOrder } from "./CheckoutForm";
 import { formatPhone } from "@/domain/orders";
 import { useBagLines } from "./useBagLines";
 import { useStore } from "./StoreProvider";
+import { PriceTag } from "./PriceTag";
 
 /** A line whose details are still loading. Same grid as `.bag-item`, so the drawer does not jump when they arrive. */
 function BagLineSkeleton() {
@@ -183,7 +184,9 @@ export function BagDrawer() {
                       <div>
                         <h3>{product.name}</h3>
                         <p className="bag-item-variant">
-                          {variant.name} · {formatPrice(product.price)} each
+                          {variant.name} ·{" "}
+                          <PriceTag price={product.price} regularPrice={product.regularPrice} sale={product.sale} />{" "}
+                          each
                         </p>
                         <div className="bag-item-controls">
                           {line.status === "ok" ? (

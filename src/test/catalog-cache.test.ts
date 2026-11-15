@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { decodeSummary, encodeSummary, newGeneration } from "@/domain/catalog-snapshot";
+import { PROMO_PRODUCT_ID } from "@/lib/config";
 import {
   type CatalogSources,
   getCachedCatalog,
@@ -9,7 +10,14 @@ import {
   rebuildCatalog,
   snapshotKeys,
 } from "@/server/catalog-cache.server";
-import { getProductBySlug, getProductsByIds, getRelatedProducts } from "@/server/catalog-queries.server";
+import {
+  getCategories,
+  getHome,
+  getProductBySlug,
+  getProductsByIds,
+  getRelatedProducts,
+  listProductsPage,
+} from "@/server/catalog-queries.server";
 import { FakeCache, FakeStore, installFakeCache, meteredD1, removeFakeCache } from "./helpers/catalog-doubles";
 
 const keys = snapshotKeys("snapshots/catalog-v1.json");
@@ -40,10 +48,10 @@ afterEach(() => {
 });
 
 describe("snapshot keys", () => {
-  test("the v2 objects sit next to the legacy one", () => {
-    expect(keys.summary).toBe("snapshots/catalog-v2.json");
+  test("the summary and detail objects sit next to the legacy one", () => {
+    expect(keys.summary).toBe("snapshots/catalog-v3.json");
     expect(keys.detail(7)).toBe("snapshots/products/v2/7.json");
-    expect(snapshotKeys("catalog-v1.json").summary).toBe("catalog-v2.json");
+    expect(snapshotKeys("catalog-v1.json").summary).toBe("catalog-v3.json");
   });
 });
 
@@ -51,7 +59,7 @@ describe("getCatalogSummary", () => {
   test("the first read goes to D1 and writes both objects and the edge copy; the next comes from memory", async () => {
     const first = await getCatalogSummary(sources());
     expect(first.products.length).toBe(24);
-    expect(d1.reads()).toBe(4); // one batch: categories, products, variants, zones
+    expect(d1.reads()).toBe(5); // one batch: categories, products, variants, zones, sales
     expect(store.objects.has(keys.summary)).toBe(true);
     expect(store.objects.has(keys.legacy)).toBe(true);
     expect(edge.entries.size).toBe(2);
@@ -64,7 +72,7 @@ describe("getCatalogSummary", () => {
     await getCatalogSummary(sources());
     await invalidateCatalogCache("");
     edge.entries.set(
-      new URL("/__cache/catalog/v2", "https://cavarabd.com").toString(),
+      new URL("/__cache/catalog/v3", "https://cavarabd.com").toString(),
       store.objects.get(keys.summary)!.json,
     );
     store.resetCounts();
@@ -143,7 +151,7 @@ describe("getCachedCatalog (legacy v1)", () => {
   test("a miss rebuilds both objects from one D1 read; the next read needs no D1", async () => {
     const catalog = await getCachedCatalog(sources());
     expect(catalog.products.length).toBe(24);
-    expect(d1.reads()).toBe(4);
+    expect(d1.reads()).toBe(5);
     expect(store.objects.has(keys.summary)).toBe(true);
     await freshDataCenter();
     d1.clear();
@@ -257,5 +265,62 @@ describe("getProductDetail and the public lookups", () => {
     for (const card of related.products) expect(related.categoryNames[card.category]).toBeTruthy();
     expect((await getRelatedProducts(sources(), "nope")).products).toEqual([]);
     expect(d1.log.length).toBe(0);
+  });
+
+  test("listProductsPage: filters, sorts and pages the summary with no D1 read, and resolves images", async () => {
+    await getCatalogSummary(sources());
+    d1.clear();
+    const all = await listProductsPage(sources({ imageBase: "https://images.cavarabd.com" }), {});
+    expect(all.total).toBe(24);
+    expect(all.products).toHaveLength(24);
+    expect(all.pageCount).toBe(1);
+    expect(all.category).toBeNull();
+    expect(all.products[0]!.images[0]).toStartWith("https://images.cavarabd.com/");
+    expect(all.products[0]).not.toHaveProperty("sort");
+    expect(all.facets.categories.length).toBeGreaterThan(1);
+    for (const card of all.products) expect(all.categoryNames[card.category]).toBeTruthy();
+
+    const drinkware = await listProductsPage(sources(), { category: "drinkware", sort: "price-asc" });
+    expect(drinkware.category?.id).toBe("drinkware");
+    expect(drinkware.products.every((card) => card.category === "drinkware")).toBe(true);
+    const prices = drinkware.products.map((card) => card.price);
+    expect(prices).toEqual([...prices].sort((a, b) => a - b));
+
+    expect((await listProductsPage(sources(), { category: "nope" })).category).toBeNull();
+    expect((await listProductsPage(sources(), { q: "zzzzzz" })).total).toBe(0);
+    expect((await listProductsPage(sources(), { page: 5 })).products).toEqual([]);
+    expect(d1.log.length).toBe(0);
+  });
+
+  test("getCategories and getHome come from the summary with no D1 read", async () => {
+    const summary = await getCatalogSummary(sources());
+    await getProductDetail(sources(), summary, PROMO_PRODUCT_ID);
+    d1.clear();
+    const chrome = await getCategories(sources({ imageBase: "https://images.cavarabd.com" }));
+    expect(chrome.imageBase).toBe("https://images.cavarabd.com");
+    expect(chrome.categories.reduce((sum, category) => sum + category.count, 0)).toBe(24);
+    expect(chrome.categories[0]!.image).toStartWith("https://images.cavarabd.com/");
+
+    const home = await getHome(sources());
+    expect(home.featured.length).toBeLessThanOrEqual(8);
+    expect(home.featured.every((card) => card.featured)).toBe(true);
+    expect(home.newest).toHaveLength(8);
+    expect(home.hero.length).toBeGreaterThan(0);
+    expect(home.carousel.every((card) => card.category === "drinkware")).toBe(true);
+    expect(home.promo?.summary).toBeTruthy();
+    expect(d1.reads()).toBe(0);
+  });
+
+  test("getHome leaves the promo band out when its detail cannot be read", async () => {
+    await getCatalogSummary(sources());
+    const broken: CatalogSources = {
+      ...sources(),
+      db: () => {
+        throw new Error("D1 down");
+      },
+    };
+    const home = await getHome(broken);
+    expect(home.promo).toBeNull();
+    expect(home.newest).toHaveLength(8);
   });
 });

@@ -18,8 +18,15 @@ const ACTION_LABELS: Record<string, string> = {
   "product.bulk_unfeature": "Unfeatured products",
   "product.bulk_set_category": "Changed product category",
   "image.uploaded": "Uploaded picture",
+  "stock.started": "Started counting stock",
+  "stock.adjusted": "Changed stock",
+  "stock.stopped": "Stopped counting stock",
   "order.updated": "Updated order",
   "zones.updated": "Updated delivery areas",
+  "discount.created": "Added sale",
+  "discount.updated": "Updated sale",
+  "coupon.created": "Added coupon",
+  "coupon.updated": "Updated coupon",
 };
 
 // Fixed time zone so every admin sees shop time, whatever their device says.
@@ -32,7 +39,7 @@ export const adminTimeFormat = new Intl.DateTimeFormat("en-GB", {
 function describe(entry: AdminAuditEntry): string | null {
   const { status, price } = entry.details;
   // Products carry a name, orders a reference.
-  const name = entry.details.name ?? entry.details.reference;
+  const name = entry.details.name ?? entry.details.reference ?? entry.details.colour;
   if (typeof name !== "string") return null;
   const parts = [name];
   if (typeof status === "string") parts.push(status);

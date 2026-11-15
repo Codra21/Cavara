@@ -4,10 +4,14 @@ import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, setResponseHeader } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { getCachedCatalog } from "@/server/catalog-cache.server";
+import { AVAILABILITY_FILTERS, MAX_PAGE, MAX_PRICE, MAX_SEARCH_LENGTH, SORT_KEYS } from "@/domain/product-listing";
 import {
+  getCategories,
+  getHome,
   getProductBySlug,
   getProductsByIds,
   getRelatedProducts,
+  listProductsPage,
   MAX_IDS_PER_LOOKUP,
 } from "@/server/catalog-queries.server";
 import { catalogSources } from "@/server/catalog-sources.server";
@@ -25,17 +29,17 @@ function cacheForBrowserCalls() {
   if (getRequestHeader("x-tsr-serverFn") === "true") setResponseHeader("Cache-Control", PUBLIC_CACHE_CONTROL);
 }
 
-/** The full v1 catalogue. Kept for the storefront as it is today; new code uses the two functions below. */
+/** The full v1 catalogue. No storefront code reads it any more (P3.3); it stays until the legacy snapshot is removed. */
 export const getCatalogFn = createServerFn({ method: "GET" }).handler(() => getCachedCatalog(catalogSources()));
 
+const slugText = z
+  .string()
+  .min(1)
+  .max(80)
+  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/);
+
 /** Slug input shared by the two per-product lookups. */
-const slugInput = z.object({
-  slug: z
-    .string()
-    .min(1)
-    .max(80)
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/),
-});
+const slugInput = z.object({ slug: slugText });
 
 /**
  * Cards for the product ids in a bag, checkout or recently-viewed list, from the summary snapshot, plus the active
@@ -77,3 +81,40 @@ export const getRelatedProductsFn = createServerFn({ method: "GET" })
     cacheForBrowserCalls();
     return result;
   });
+
+const listingInput = z.object({
+  category: slugText.optional(),
+  q: z.string().max(MAX_SEARCH_LENGTH).optional(),
+  sort: z.enum(SORT_KEYS).optional(),
+  min: z.number().int().min(0).max(MAX_PRICE).optional(),
+  max: z.number().int().min(0).max(MAX_PRICE).optional(),
+  availability: z.enum(AVAILABILITY_FILTERS).optional(),
+  page: z.number().int().min(1).max(MAX_PAGE).optional(),
+});
+
+/**
+ * One page (24 products) of the product listing, filtered, sorted and searched in memory over the summary
+ * snapshot, with the facet counts the page uses to hide filters that offer one choice. Reads no D1.
+ */
+export const listProductsFn = createServerFn({ method: "GET" })
+  .validator(listingInput)
+  .handler(async ({ data }) => {
+    const result = await listProductsPage(catalogSources(), data);
+    // Only a successful answer may be cached: a thrown error still goes out as a 200 with these headers.
+    cacheForBrowserCalls();
+    return result;
+  });
+
+/** Categories with their image and product count: the footer links and the home page's collection tiles. */
+export const getCategoriesFn = createServerFn({ method: "GET" }).handler(async () => {
+  const result = await getCategories(catalogSources());
+  cacheForBrowserCalls();
+  return result;
+});
+
+/** Every product the home page shows (rows, hero, lookbook, promo, carousel), from the summary. */
+export const getHomeFn = createServerFn({ method: "GET" }).handler(async () => {
+  const result = await getHome(catalogSources());
+  cacheForBrowserCalls();
+  return result;
+});

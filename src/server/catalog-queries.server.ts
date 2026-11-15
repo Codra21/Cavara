@@ -1,17 +1,38 @@
 // Public product lookups over the cached snapshots. Server-only. None of these touches D1 unless a snapshot is missing
 // (see catalog-cache.server.ts), and none returns cost_price: it is not in any snapshot.
 import type { DeliveryZone } from "@/domain/orders";
+import {
+  listProducts,
+  type ListPage,
+  type ListQuery,
+  LISTING_PAGE_SIZE,
+  selectFeatured,
+  selectNewest,
+} from "@/domain/product-listing";
 import { selectRelated } from "@/domain/related-products";
 import {
+  priceDetail,
+  priceSummary,
   type ProductCard,
+  type ProductSummary,
   type PublicProduct,
   resolveCard,
   resolveCategory,
   resolveProduct,
   summaryIndex,
 } from "@/domain/catalog-snapshot";
+import { CAROUSEL_CATEGORY, HERO_SLIDES, LOOKBOOK, PROMO_PRODUCT_ID } from "@/lib/config";
 import type { Category } from "@/lib/types";
 import { type CatalogSources, getCatalogSummary, getProductDetail } from "@/server/catalog-cache.server";
+
+/**
+ * The summary with the sales that are active now applied (price, struck price, badge), so every public read below
+ * shows the charged price. Sales are checked against the clock here, not when the snapshot was written, so one starts
+ * or ends without a rebuild (within a minute, and edge copies lag up to 5 minutes).
+ */
+async function getPricedSummary(sources: CatalogSources) {
+  return priceSummary(await getCatalogSummary(sources));
+}
 
 /** Most ids one call looks up. A bag holds one line per product and colour, so 50 is far past a real bag. */
 export const MAX_IDS_PER_LOOKUP = 50;
@@ -40,7 +61,7 @@ function namesFor(index: ReturnType<typeof summaryIndex>, cards: { category: str
 
 /** Cards for a bag, checkout or recently-viewed list. Reads the summary only. */
 export async function getProductsByIds(sources: CatalogSources, ids: number[]): Promise<ProductsByIds> {
-  const summary = await getCatalogSummary(sources);
+  const summary = await getPricedSummary(sources);
   const index = summaryIndex(summary);
   const products: ProductCard[] = [];
   const missing: number[] = [];
@@ -66,7 +87,7 @@ export interface RelatedProducts {
 
 /** Suggestions for a product page: same category first, from the summary (see selectRelated). Unknown slug: none. */
 export async function getRelatedProducts(sources: CatalogSources, slug: string): Promise<RelatedProducts> {
-  const summary = await getCatalogSummary(sources);
+  const summary = await getPricedSummary(sources);
   const index = summaryIndex(summary);
   const current = index.bySlug.get(slug);
   const products = (current ? selectRelated(summary.products, current) : []).map((product) =>
@@ -84,7 +105,7 @@ export interface ProductPageData {
 
 /** The product page's data: found by slug in the summary (no D1 for an unknown slug), then its detail snapshot. */
 export async function getProductBySlug(sources: CatalogSources, slug: string): Promise<ProductPageData> {
-  const summary = await getCatalogSummary(sources);
+  const summary = await getPricedSummary(sources);
   const index = summaryIndex(summary);
   const found = index.bySlug.get(slug);
   const detail = found ? await getProductDetail(sources, summary, found.id) : undefined;
@@ -92,7 +113,106 @@ export async function getProductBySlug(sources: CatalogSources, slug: string): P
   const category = index.categoryById.get(detail.category);
   return {
     imageBase: sources.imageBase,
-    product: resolveProduct(detail, sources.imageBase),
+    product: resolveProduct(priceDetail(detail, found as ProductSummary), sources.imageBase),
     category: category ? resolveCategory(category, sources.imageBase) : null,
+  };
+}
+
+export interface ProductListing extends Omit<ListPage, "items"> {
+  imageBase: string;
+  /** One page of cards, images as URLs. */
+  products: ProductCard[];
+  categoryNames: Record<string, string>;
+  /** The category the query asked for; null when none was asked for or no such category exists. */
+  category: Category | null;
+}
+
+/** One page of the product listing: filtered, sorted and paged in memory over the summary. No D1. */
+export async function listProductsPage(sources: CatalogSources, query: ListQuery): Promise<ProductListing> {
+  const summary = await getPricedSummary(sources);
+  const index = summaryIndex(summary);
+  const { items, ...page } = listProducts(summary, query);
+  const products = items.map((product) => resolveCard(product, sources.imageBase));
+  const category = query.category ? index.categoryById.get(query.category) : undefined;
+  return {
+    ...page,
+    imageBase: sources.imageBase,
+    products,
+    categoryNames: namesFor(index, products),
+    category: category ? resolveCategory(category, sources.imageBase) : null,
+  };
+}
+
+export interface CategoriesData {
+  imageBase: string;
+  /** Every category with its image as a URL and the number of published products in it. */
+  categories: (Category & { count: number })[];
+}
+
+/** What the header, footer and collection tiles need on every page. Summary only. */
+export async function getCategories(sources: CatalogSources): Promise<CategoriesData> {
+  const summary = await getPricedSummary(sources);
+  const counts = new Map<string, number>();
+  for (const product of summary.products) counts.set(product.category, (counts.get(product.category) ?? 0) + 1);
+  return {
+    imageBase: sources.imageBase,
+    categories: summary.categories.map((category) => ({
+      ...resolveCategory(category, sources.imageBase),
+      count: counts.get(category.id) ?? 0,
+    })),
+  };
+}
+
+export interface HomeData {
+  imageBase: string;
+  categoryNames: Record<string, string>;
+  /** Featured products in display order. */
+  featured: ProductCard[];
+  /** Newest products first. */
+  newest: ProductCard[];
+  /** The hero slides' products, in slide order (a product that is no longer published is left out). */
+  hero: ProductCard[];
+  lookbook: ProductCard | null;
+  /** The promo band's product with its summary text and every picture. */
+  promo: PublicProduct | null;
+  /** Products of the carousel's category, in display order. */
+  carousel: ProductCard[];
+}
+
+/** Everything the home page shows, from the summary plus one detail snapshot for the promo band. */
+export async function getHome(sources: CatalogSources): Promise<HomeData> {
+  const summary = await getPricedSummary(sources);
+  const index = summaryIndex(summary);
+  const card = (product: ProductSummary) => resolveCard(product, sources.imageBase);
+  const hero = HERO_SLIDES.flatMap((slide) => {
+    const product = index.byId.get(slide.id);
+    return product ? [card(product)] : [];
+  });
+  const lookbook = index.byId.get(LOOKBOOK.productId);
+  const promoSummary = index.byId.get(PROMO_PRODUCT_ID);
+  // The promo band needs the summary text, which only the detail snapshot has. A cold detail reads that one product
+  // from D1 (about 13 rows, once); if that fails the band is left out instead of taking the home page down.
+  const promoDetail = promoSummary
+    ? await getProductDetail(sources, summary, promoSummary.id).catch((error: unknown) => {
+        console.error("promo product detail failed:", error);
+        return undefined;
+      })
+    : undefined;
+  const carousel = summary.products
+    .filter((product) => product.category === CAROUSEL_CATEGORY)
+    .slice(0, LISTING_PAGE_SIZE)
+    .map(card);
+  const featured = selectFeatured(summary.products).map(card);
+  const newest = selectNewest(summary.products).map(card);
+  return {
+    imageBase: sources.imageBase,
+    categoryNames: namesFor(index, [...featured, ...newest, ...hero, ...carousel]),
+    featured,
+    newest,
+    hero,
+    lookbook: lookbook ? card(lookbook) : null,
+    promo:
+      promoDetail && promoSummary ? resolveProduct(priceDetail(promoDetail, promoSummary), sources.imageBase) : null,
+    carousel,
   };
 }

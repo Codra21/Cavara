@@ -9,6 +9,7 @@ import { copyText, singleOrderMessage, whatsappUrl } from "@/lib/order";
 import { ModalDialog } from "@/components/ui/ModalDialog";
 import { Icon, Quantity, SrOnly, Swatch } from "@/components/ui/primitives";
 import { type QuickViewTarget, useStore } from "./StoreProvider";
+import { PriceTag } from "./PriceTag";
 
 const BLANK = "data:image/gif;base64,R0lGODlhAQABAIAAAAAAACH5BAEAAAAALAAAAAABAAEAAAICRAEAOw==";
 
@@ -145,7 +146,10 @@ export function ProductDialog() {
           <div className="product-dialog-info">
             <p className="product-dialog-category">{categoryName}</p>
             <h2 id="product-dialog-title">{product.name}</h2>
-            <p className="product-dialog-price">{formatPrice(product.price)}</p>
+            <p className="product-dialog-price">
+              <PriceTag price={product.price} regularPrice={product.regularPrice} sale={product.sale} />
+              {product.sale ? <span className="sale-badge">{product.sale.badge}</span> : null}
+            </p>
             <p className="product-dialog-summary">{product.summary}</p>
 
             <fieldset className="variant-picker">

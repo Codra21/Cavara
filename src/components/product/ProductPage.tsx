@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { Link } from "@tanstack/react-router";
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@ui-sdk/react/tabs";
 import { useEffect, useRef, useState } from "react";
 import { availabilityTag, BAG_FULL_MESSAGE } from "@/domain/bag";
@@ -10,9 +10,9 @@ import { MAX_QTY, MESSENGER_URL, SITE_URL, WHATSAPP_URL } from "@/lib/config";
 import { finePointer } from "@/lib/dom";
 import { copyText, singleOrderMessage, whatsappUrl } from "@/lib/order";
 import type { Category } from "@/lib/types";
-import { useShopNavigation } from "@/components/layout/useShopNavigation";
 import { useStore } from "@/components/store/StoreProvider";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
+import { PriceTag } from "@/components/store/PriceTag";
 import { Icon, Quantity, Swatch } from "@/components/ui/primitives";
 
 const TABS = [
@@ -39,7 +39,9 @@ function PageCard({ product, categoryName }: { product: ProductCard; categoryNam
         </span>
         <span className="eyebrow">{categoryName}</span>
         <span className="studio-carousel-name">{product.name}</span>
-        <span className="studio-carousel-price">{formatPrice(product.price)}</span>
+        <span className="studio-carousel-price">
+          <PriceTag price={product.price} regularPrice={product.regularPrice} sale={product.sale} />
+        </span>
       </button>
     </li>
   );
@@ -115,8 +117,6 @@ export function ProductPage({
   initialVariant?: number | undefined;
 }) {
   const { selectedVariant, selectVariant, addToBag, showToast, openBag, recent, rememberViewed } = useStore();
-  const navigate = useNavigate();
-  const goToShop = useShopNavigation();
   const [quantity, setQuantity] = useState(1);
   const [tab, setTab] = useState<TabId>("description");
   const [barVisible, setBarVisible] = useState(false);
@@ -205,14 +205,12 @@ export function ProductPage({
         <nav className="pdp-crumbs" aria-label="Breadcrumb">
           <ol>
             <li>
-              <button type="button" onClick={() => navigate({ to: "/" })}>
-                Home
-              </button>
+              <Link to="/">Home</Link>
             </li>
             <li>
-              <button type="button" onClick={() => goToShop({ category: category.id })}>
+              <Link to="/collections/$category" params={{ category: category.id }}>
                 {category.name}
-              </button>
+              </Link>
             </li>
             <li aria-current="page">{product.name}</li>
           </ol>
@@ -230,7 +228,10 @@ export function ProductPage({
               <h1 id="pdp-title" tabIndex={-1} ref={titleRef}>
                 {product.name}
               </h1>
-              <p className="pdp-price">{formatPrice(product.price)}</p>
+              <p className="pdp-price">
+                <PriceTag price={product.price} regularPrice={product.regularPrice} sale={product.sale} />
+                {product.sale ? <span className="sale-badge">{product.sale.badge}</span> : null}
+              </p>
               <p className="pdp-summary">{product.summary}</p>
               {product.details.length ? (
                 <ul className="pdp-specs">

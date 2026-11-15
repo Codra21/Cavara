@@ -21,6 +21,8 @@ export interface AdminProductSearch {
   category?: string;
   /** Only products with at least one out-of-stock colour. Absent means no filter. */
   outOfStock?: boolean;
+  /** Only products with a counted colour holding LOW_STOCK_LIMIT or fewer. Absent means no filter. */
+  lowStock?: boolean;
   sort?: AdminProductSort;
   /** The next page: rows after this cursor. */
   after?: string;
@@ -107,6 +109,7 @@ const listFields = {
   status: z.enum(PRODUCT_STATUSES).optional(),
   category: z.string().trim().min(1).max(40).optional(),
   outOfStock: z.boolean().optional(),
+  lowStock: z.boolean().optional(),
   sort: sortSchema.default("updated"),
   after: tokenSchema.optional(),
   before: tokenSchema.optional(),
@@ -145,6 +148,7 @@ export function parseAdminProductSearch(raw: Record<string, unknown>): AdminProd
   if (status) search.status = status;
   if (category) search.category = category;
   if (raw.outOfStock === true) search.outOfStock = true;
+  if (raw.lowStock === true) search.lowStock = true;
   if (sort && sort !== "updated") search.sort = sort;
   const after = pick(tokenSchema, raw.after);
   const before = pick(tokenSchema, raw.before);

@@ -5,13 +5,14 @@ import { afterEach, expect, test, vi } from "vitest";
 import type { PublicProduct } from "@/domain/catalog-snapshot";
 
 vi.mock("@tanstack/react-query", () => ({ useQuery: () => ({ data: undefined }) }));
-vi.mock("@tanstack/react-router", () => ({ useNavigate: () => vi.fn() }));
+vi.mock("@tanstack/react-router", () => ({
+  Link: ({ children, to }: { children: unknown; to: string }) => <a href={to}>{children as never}</a>,
+}));
 vi.mock("@/lib/query", () => ({
   lookupIds: () => [],
   productsByIdsQueryOptions: () => ({}),
   relatedQueryOptions: () => ({}),
 }));
-vi.mock("@/components/layout/useShopNavigation", () => ({ useShopNavigation: () => vi.fn() }));
 vi.mock("@/components/store/useOpenProduct", () => ({ useOpenProduct: () => vi.fn() }));
 vi.mock("@/components/store/StoreProvider", () => ({
   useStore: () => ({

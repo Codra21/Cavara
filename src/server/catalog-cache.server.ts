@@ -43,6 +43,7 @@ import {
   patchLegacyProduct,
   patchLegacyZones,
   patchSummaryProduct,
+  patchSummarySales,
   patchSummaryZones,
   predecessorId,
   type ProductDetail,
@@ -57,6 +58,7 @@ import type { Catalog } from "@/lib/types";
 import type { D1Database } from "@/server/db/d1";
 import {
   readActiveZones,
+  readLiveSales,
   readPublishedCatalog,
   readSnapshotProduct,
   readSnapshotProducts,
@@ -71,7 +73,7 @@ const PATCH_ATTEMPTS = 3;
 // matching stored shape changes so old entries are ignored (and change the object keys in snapshotKeys, the migration
 // scripts and wrangler.jsonc with them).
 const EDGE_LEGACY_PATH = "/__cache/catalog/v1";
-const EDGE_SUMMARY_PATH = "/__cache/catalog/v2";
+const EDGE_SUMMARY_PATH = "/__cache/catalog/v3";
 const edgeDetailPath = (id: number) => `/__cache/catalog/v2/product/${id}`;
 
 /** Object names inside the IMAGES bucket. */
@@ -82,13 +84,14 @@ export interface SnapshotKeys {
 }
 
 /**
- * From the CATALOG_SNAPSHOT_KEY var (the legacy object's key): the v2 objects live in the same folder. Change
- * `catalog-v2.json` and `products/v2/` together with SNAPSHOT_OBJECTS in scripts/db/migrate-prod.ts and the package.json
- * db:migrate scripts.
+ * From the CATALOG_SNAPSHOT_KEY var (the legacy object's key): the summary and detail objects live in the same folder.
+ * The summary is `catalog-v3.json` since P9.2 added the sales list; the details stayed `products/v2/` because their
+ * shape did not change. Change `catalog-v3.json` together with SUMMARY_VERSION, EDGE_SUMMARY_PATH, SNAPSHOT_OBJECTS in
+ * scripts/db/migrate-prod.ts and the package.json db:migrate scripts.
  */
 export function snapshotKeys(legacyKey: string): SnapshotKeys {
   const dir = legacyKey.slice(0, legacyKey.lastIndexOf("/") + 1);
-  return { legacy: legacyKey, summary: `${dir}catalog-v2.json`, detail: (id) => `${dir}products/v2/${id}.json` };
+  return { legacy: legacyKey, summary: `${dir}catalog-v3.json`, detail: (id) => `${dir}products/v2/${id}.json` };
 }
 
 export interface StoredObject {
@@ -566,6 +569,34 @@ export async function refreshZones(sources: CatalogSources): Promise<boolean> {
     if (summaryPatch.status === "conflict" || legacyPatch.status === "conflict") return await rebuildCatalog(sources);
     if (summaryPatch.status === "unusable") await store.remove(keys.summary);
     if (legacyPatch.status === "unusable") await store.remove(keys.legacy);
+  } catch (error) {
+    console.error("catalogue snapshot patch failed; rebuilding", error);
+    return rebuildCatalog(sources);
+  }
+  await invalidateCatalogCache(sources.imageBase);
+  return true;
+}
+
+/**
+ * After a sale is saved: the sales list is the only part of the summary that changes (the legacy catalogue holds list
+ * prices and no sales, so it is left alone). Reads just the live discount rows, patches the summary in place and purges
+ * this data center's copies, as refreshZones does. No summary object means the next read rebuilds from D1.
+ */
+export async function refreshSales(sources: CatalogSources): Promise<boolean> {
+  const { store, keys } = sources;
+  if (!store || !keys) {
+    await invalidateCatalogCache(sources.imageBase);
+    return true;
+  }
+  try {
+    const sales = await readLiveSales(sources.db(), new Date());
+    const patch = await patchObject(store, keys.summary, {
+      decode: decodeSummary,
+      encode: encodeSummary,
+      patch: (summary) => patchSummarySales(summary, sales),
+    });
+    if (patch.status === "conflict") return await rebuildCatalog(sources);
+    if (patch.status === "unusable") await store.remove(keys.summary);
   } catch (error) {
     console.error("catalogue snapshot patch failed; rebuilding", error);
     return rebuildCatalog(sources);

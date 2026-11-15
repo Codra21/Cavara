@@ -26,13 +26,17 @@ export function scrollBehavior(): ScrollBehavior {
   return prefersReducedMotion() ? "auto" : "smooth";
 }
 
-/** Scrolls to the shop section and optionally focuses the search field. */
-export function scrollToShop({ focusSearch = false } = {}) {
-  const shop = document.getElementById("shop");
-  if (!shop) return false;
-  shop.scrollIntoView({ behavior: scrollBehavior(), block: "start" });
-  const search = document.getElementById("product-search");
-  if (focusSearch && search) search.focus({ preventScroll: true });
-  else shop.focus({ preventScroll: true });
-  return true;
+/**
+ * Focuses the product search field on a listing page. Returns false when the page has none yet. With `retryFrames`
+ * it keeps trying for that many animation frames, for a page that is still rendering after a navigation.
+ */
+export function focusProductSearch({ retryFrames = 0 } = {}): boolean {
+  const field = document.getElementById("product-search");
+  if (field) {
+    field.scrollIntoView({ behavior: scrollBehavior(), block: "center" });
+    field.focus({ preventScroll: true });
+    return true;
+  }
+  if (retryFrames > 0) window.requestAnimationFrame(() => focusProductSearch({ retryFrames: retryFrames - 1 }));
+  return false;
 }

@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from "react";
-import { countInCategory, formatPrice, getVariant, pluralize } from "@/domain/catalog";
+import { Link } from "@tanstack/react-router";
+import { cardImage, cardVariant } from "@/domain/catalog-snapshot";
+import { formatPrice, pluralize } from "@/domain/catalog";
 import { mediaUrl } from "@/domain/media";
-import { useCatalog } from "@/lib/query";
-import { CAROUSEL_CATEGORY, LOOKBOOK, PROMO_PRODUCT_ID } from "@/lib/config";
+import { useCategories, useHome } from "@/lib/query";
+import { CAROUSEL_CATEGORY, LOOKBOOK } from "@/lib/config";
 import { scrollBehavior } from "@/lib/dom";
-import { useShopNavigation } from "@/components/layout/useShopNavigation";
+import { PriceTag } from "@/components/store/PriceTag";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
 import { Icon, RoundBadge } from "@/components/ui/primitives";
 
 const delay = (ms: number) => ({ "--reveal-delay": `${ms}ms` }) as React.CSSProperties;
 
 export function CollectionsSection() {
-  const catalog = useCatalog();
-  const goToShop = useShopNavigation();
+  const { categories } = useCategories();
   return (
     <section className="section collections" id="collections" aria-labelledby="collections-title">
       <div className="container-wide">
@@ -21,19 +22,17 @@ export function CollectionsSection() {
           <h2 id="collections-title">Our collections</h2>
         </div>
         <ul className="studio-category-row" aria-label="Collections">
-          {catalog.categories.map((category, index) => (
+          {categories.map((category, index) => (
             <li key={category.id} data-reveal="" style={delay(index * 90)}>
-              <button className="studio-category" type="button" onClick={() => goToShop({ category: category.id })}>
+              <Link className="studio-category" to="/collections/$category" params={{ category: category.id }}>
                 <span className="studio-category-media">
                   <img src={category.image} alt="" loading="lazy" width={800} height={1000} />
                 </span>
                 <span className="studio-category-label">
                   <span className="studio-category-name">{category.name}</span>
-                  <span className="studio-category-count">
-                    {pluralize(countInCategory(catalog, category.id), "piece")}
-                  </span>
+                  <span className="studio-category-count">{pluralize(category.count, "piece")}</span>
                 </span>
-              </button>
+              </Link>
             </li>
           ))}
         </ul>
@@ -46,8 +45,8 @@ export function LookbookSection() {
   const openProduct = useOpenProduct();
   const [openSpot, setOpenSpot] = useState<number | null>(null);
   const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
-  const catalog = useCatalog();
-  const product = catalog.productById.get(LOOKBOOK.productId);
+  const { imageBase } = useCategories();
+  const product = useHome().lookbook;
 
   useEffect(() => {
     if (openSpot === null) return;
@@ -68,7 +67,6 @@ export function LookbookSection() {
   }, [openSpot]);
 
   if (!product) return null;
-  const lead = getVariant(product);
 
   return (
     <section className="studio-lookbook" aria-labelledby="studio-lookbook-title">
@@ -76,14 +74,14 @@ export function LookbookSection() {
         <div className="studio-lookbook-grid">
           <div className="studio-lookbook-media" data-reveal="">
             <img
-              src={mediaUrl(catalog.imageBase, LOOKBOOK.image)}
+              src={mediaUrl(imageBase, LOOKBOOK.image)}
               alt={`${product.name} in ${product.variants.length} glazes, styled on a breakfast table`}
               loading="lazy"
               width={800}
               height={800}
             />
             {LOOKBOOK.spots.map((spot, index) => {
-              const variant = getVariant(product, spot.variant);
+              const variant = cardVariant(product, spot.variant);
               const open = openSpot === index;
               const side = spot.x < 35 ? " is-start" : spot.x > 65 ? " is-end" : "";
               return (
@@ -106,7 +104,7 @@ export function LookbookSection() {
                     <span aria-hidden="true" />
                   </button>
                   <div className="studio-spot-card" id={`lookbook-spot-${index}`} hidden={!open}>
-                    <img src={variant.images[0]} alt="" loading="lazy" width={160} height={160} />
+                    <img src={cardImage(product, spot.variant)} alt="" loading="lazy" width={160} height={160} />
                     <div>
                       <p className="studio-spot-name">{product.name}</p>
                       <p className="studio-spot-meta">
@@ -132,7 +130,7 @@ export function LookbookSection() {
             </p>
             <button className="studio-lookbook-card" type="button" onClick={() => openProduct(product)}>
               <span className="studio-lookbook-card-media">
-                <img src={lead.images[0]} alt="" loading="lazy" width={400} height={400} />
+                <img src={cardImage(product)} alt="" loading="lazy" width={400} height={400} />
               </span>
               <span className="studio-lookbook-card-name">{product.name}</span>
               <span className="studio-lookbook-card-price">{formatPrice(product.price)} each</span>
@@ -151,9 +149,8 @@ export function CarouselSection() {
   const openProduct = useOpenProduct();
   const trackRef = useRef<HTMLUListElement>(null);
   const [edges, setEdges] = useState({ start: true, end: false });
-  const catalog = useCatalog();
-  const category = catalog.categoryById.get(CAROUSEL_CATEGORY);
-  const products = catalog.products.filter((product) => product.category === CAROUSEL_CATEGORY);
+  const category = useCategories().categoryById.get(CAROUSEL_CATEGORY);
+  const products = useHome().carousel;
 
   const updateEdges = () => {
     const track = trackRef.current;
@@ -254,18 +251,20 @@ export function CarouselSection() {
         onScroll={updateEdges}
       >
         {products.map((product) => {
-          const variant = getVariant(product);
+          const variant = cardVariant(product);
           return (
             <li className="studio-carousel-item" key={product.id}>
               <button className="studio-carousel-card" type="button" onClick={() => openProduct(product)}>
                 <span className="studio-carousel-media">
-                  <img src={variant.images[0]} alt="" loading="lazy" width={800} height={800} draggable={false} />
+                  <img src={product.images[0]} alt="" loading="lazy" width={800} height={800} draggable={false} />
                 </span>
                 <span className="eyebrow">
                   {product.variants.length > 1 ? pluralize(product.variants.length, "colour") : variant.name}
                 </span>
                 <span className="studio-carousel-name">{product.name}</span>
-                <span className="studio-carousel-price">{formatPrice(product.price)}</span>
+                <span className="studio-carousel-price">
+                  <PriceTag price={product.price} regularPrice={product.regularPrice} sale={product.sale} />
+                </span>
               </button>
             </li>
           );
@@ -277,7 +276,7 @@ export function CarouselSection() {
 
 export function PromoSection() {
   const openProduct = useOpenProduct();
-  const promo = useCatalog().productById.get(PROMO_PRODUCT_ID);
+  const promo = useHome().promo;
   if (!promo) return null;
   const images = promo.variants.flatMap((variant) => variant.images);
   return (
@@ -316,7 +315,7 @@ export function PromoSection() {
 }
 
 export function StorySection() {
-  const { imageBase } = useCatalog();
+  const { imageBase } = useCategories();
   return (
     <section className="section story" id="story" aria-labelledby="story-title">
       <div className="container story-grid">

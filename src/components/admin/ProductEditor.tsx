@@ -31,7 +31,7 @@ import {
   slugify,
   unitMargin,
 } from "@/domain/product-admin";
-import { useCatalog } from "@/lib/query";
+import { useCategories } from "@/lib/query";
 import type { Availability } from "@/lib/types";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -46,6 +46,7 @@ import { uploadImageFn } from "@/server/functions/admin-media.functions";
 import { STATUS_LABELS } from "./ProductList";
 import { DuplicateDialog } from "./ProductActions";
 import { ADMIN_QUERY_KEY, invalidateProductData, patchProductNames } from "./queries";
+import { StockControls, StockHistory } from "./StockControls";
 
 type FormVariant = ProductFormValues["variants"][number];
 
@@ -209,6 +210,8 @@ function VariantCard({
   onAddImages,
   productId,
   imageBase,
+  stock,
+  savedProductId,
 }: {
   variant: FormVariant;
   index: number;
@@ -219,8 +222,13 @@ function VariantCard({
   onAddImages: (keys: string[]) => void;
   productId: string;
   imageBase: string;
+  /** The saved count of this colour (null: not counted, or a colour not saved yet). */
+  stock: number | null;
+  /** Set once the product is saved; a colour added in this edit cannot be counted until it is. */
+  savedProductId: number | null;
 }) {
   const id = useId();
+  const counted = stock !== null;
   const images = variant.images ?? [];
   const label = variant.name || `Colour ${index + 1}`;
   // Preview only values that pass the server's swatch rule shape (no url()).
@@ -291,24 +299,49 @@ function VariantCard({
             />
           </div>
         </Field>
-        <Field label="Availability" htmlFor={`${id}-availability`}>
-          <Select
-            value={variant.availability}
-            onValueChange={(value) => onChange({ ...variant, availability: value as Availability })}
-          >
-            <SelectTrigger id={`${id}-availability`} className="w-full">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {AVAILABILITIES.map((value) => (
-                <SelectItem key={value} value={value}>
-                  {AVAILABILITY_LABELS[value]}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Field>
+        {counted ? (
+          <div className="grid content-start gap-1.5">
+            <Label htmlFor={`${id}-preorder`}>Availability</Label>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id={`${id}-preorder`}
+                checked={variant.availability === "preorder"}
+                onCheckedChange={(checked) =>
+                  onChange({ ...variant, availability: checked === true ? "preorder" : "in_stock" })
+                }
+              />
+              <Label htmlFor={`${id}-preorder`}>Pre-order</Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Follows the count: in stock above 0, out of stock at 0. Pre-order keeps taking orders below 0.
+            </p>
+          </div>
+        ) : (
+          <Field label="Availability" htmlFor={`${id}-availability`}>
+            <Select
+              value={variant.availability}
+              onValueChange={(value) => onChange({ ...variant, availability: value as Availability })}
+            >
+              <SelectTrigger id={`${id}-availability`} className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {AVAILABILITIES.map((value) => (
+                  <SelectItem key={value} value={value}>
+                    {AVAILABILITY_LABELS[value]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Field>
+        )}
       </div>
+
+      {savedProductId !== null && variant.id !== null ? (
+        <StockControls productId={savedProductId} variantId={variant.id} colour={label} stock={stock} />
+      ) : (
+        <p className="text-sm text-muted-foreground">Save the product to count this colour's stock.</p>
+      )}
 
       <div className="grid gap-2">
         <span className="text-sm font-medium">Pictures</span>
@@ -376,7 +409,7 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
   const id = useId();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { imageBase } = useCatalog();
+  const { imageBase } = useCategories();
   const initial = useMemo(
     () => (product ? productToForm(product) : emptyProductForm(categories[0]?.id)),
     [product, categories],
@@ -688,6 +721,8 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
                 onAddImages={(keys) => addImages(index, keys)}
                 productId={product ? String(product.id) : "new"}
                 imageBase={imageBase}
+                stock={product?.variants.find((saved) => saved.id === variant.id)?.stock ?? null}
+                savedProductId={product?.id ?? null}
               />
             ))}
           </ul>
@@ -708,6 +743,8 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
           </div>
         </CardContent>
       </Card>
+
+      {product ? <StockHistory productId={product.id} /> : null}
 
       <Card>
         <CardHeader>

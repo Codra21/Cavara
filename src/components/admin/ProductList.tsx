@@ -120,7 +120,7 @@ export function ProductList() {
   );
   const rows = products.data?.products ?? [];
   const selectedRows = rows.filter((row) => selected.has(row.id));
-  const filtered = Boolean(query.status || query.category || query.outOfStock);
+  const filtered = Boolean(query.status || query.category || query.outOfStock || query.lowStock);
   const searching = term.trim() !== "";
 
   const goTo = (next: AdminProductSearch) => navigate({ to: "/admin/products", search: next });
@@ -203,6 +203,14 @@ export function ProductList() {
               onClick={() => changeFilter({ outOfStock: query.outOfStock ? undefined : true })}
             >
               Has an out-of-stock colour
+            </Button>
+            <Button
+              size="sm"
+              variant={query.lowStock ? "secondary" : "outline"}
+              aria-pressed={Boolean(query.lowStock)}
+              onClick={() => changeFilter({ lowStock: query.lowStock ? undefined : true })}
+            >
+              Low stock
             </Button>
             <Select
               value={query.sort}
@@ -332,6 +340,7 @@ export function ProductList() {
                             {product.variantCount === 1 ? "colour" : "colours"}
                             {product.featured ? " · Featured" : ""}
                             {product.outOfStockColours > 0 ? ` · ${product.outOfStockColours} out of stock` : ""}
+                            {product.lowStockColours > 0 ? ` · ${product.lowStockColours} low` : ""}
                           </div>
                           {/* Phones: the status column is hidden, so the badge sits under the name. */}
                           <div className="mt-1 sm:hidden">

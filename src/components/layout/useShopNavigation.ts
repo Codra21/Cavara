@@ -1,31 +1,23 @@
-import { useNavigate, useRouterState } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
-import { scrollToShop } from "@/lib/dom";
+import { focusProductSearch } from "@/lib/dom";
 
 /**
- * Jumps to the shop section (optionally with a collection filter or focused search),
- * navigating home first when the visitor is on another route.
+ * Goes to the product listing: `/products`, or `/collections/<category>` with a category. With `focusSearch`, moves
+ * focus into the listing's search field, as soon as the page has rendered it. Already on a listing, a search focus
+ * keeps the page and its filters.
  */
 export function useShopNavigation() {
   const navigate = useNavigate();
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
 
   return useCallback(
     async ({ category, focusSearch = false }: { category?: string; focusSearch?: boolean } = {}) => {
-      if (pathname !== "/" || category !== undefined) {
-        await navigate({
-          to: "/",
-          search: (prev: Record<string, unknown>) => ({
-            ...(pathname === "/" ? prev : {}),
-            category: category === "all" ? undefined : (category ?? (prev.category as string | undefined)),
-          }),
-          hashScrollIntoView: false,
-          resetScroll: false,
-          replace: pathname === "/",
-        });
+      if (!(focusSearch && !category && focusProductSearch())) {
+        if (category && category !== "all") await navigate({ to: "/collections/$category", params: { category } });
+        else await navigate({ to: "/products" });
+        if (focusSearch) focusProductSearch({ retryFrames: 30 });
       }
-      window.requestAnimationFrame(() => scrollToShop({ focusSearch }));
     },
-    [navigate, pathname],
+    [navigate],
   );
 }

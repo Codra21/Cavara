@@ -3,7 +3,9 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, setResponseHeader } from "@tanstack/react-start/server";
 import type { SubmitOrderResult } from "@/domain/orders";
-import { getAlertSettings, getDb, getOrderLimitSecret } from "@/server/env";
+import { refreshProducts } from "@/server/catalog-cache.server";
+import { catalogSources } from "@/server/catalog-sources.server";
+import { getAlertSettings, getDb, getOrderLimitSecret, runAfterResponse } from "@/server/env";
 import { deliverOrderAlerts } from "@/server/services/order-notifications.service";
 import { submitOrder } from "@/server/services/orders.service";
 
@@ -35,8 +37,14 @@ export const submitOrderFn = createServerFn({ method: "POST" })
         });
       }
       if (!result.ok) return result;
-      // The order id stays on the server.
-      const { orderId: _orderId, ...reply } = result;
+      // A colour this order sold out shows "Out of stock" from the shop's copy of the catalogue. Patch it after the
+      // reply, so the shopper does not wait for it; a failed patch is logged and the 5-minute copies catch up.
+      if (result.soldOutProducts?.length) {
+        const ids = result.soldOutProducts;
+        runAfterResponse("sold-out catalogue refresh", () => refreshProducts(catalogSources(), ids));
+      }
+      // The order id and the product ids stay on the server.
+      const { orderId: _orderId, soldOutProducts: _soldOut, ...reply } = result;
       return reply;
     } catch (error) {
       console.error("order submission failed", error);

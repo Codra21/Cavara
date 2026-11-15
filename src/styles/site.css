@@ -308,6 +308,7 @@
     text-align: center;
   }
 
+  .section-head h1,
   .section-head h2 {
     margin-top: 14px;
     font-size: clamp(2rem, 1.4rem + 1.9vw, 2.85rem);
@@ -1084,7 +1085,9 @@
     padding: 0;
     border: 0;
     background: none;
+    color: inherit;
     text-align: left;
+    text-decoration: none;
   }
 
   .studio-category-media {
@@ -1152,7 +1155,8 @@
     scroll-margin-top: 0;
   }
 
-  .shop:focus {
+  .shop:focus,
+  #main:focus {
     outline: none;
   }
 
@@ -1175,7 +1179,9 @@
 
   .filter-chip {
     position: relative;
+    display: inline-block;
     padding: 8px 0;
+    text-decoration: none;
     border: 0;
     background: none;
     color: var(--body);
@@ -1197,11 +1203,13 @@
   }
 
   .filter-chip:hover,
-  .filter-chip[aria-pressed="true"] {
+  .filter-chip[aria-pressed="true"],
+  .filter-chip[aria-current="page"] {
     color: var(--ink);
   }
 
-  .filter-chip[aria-pressed="true"]::after {
+  .filter-chip[aria-pressed="true"]::after,
+  .filter-chip[aria-current="page"]::after {
     transform: scaleX(1);
   }
 
@@ -1296,8 +1304,110 @@
     gap: 48px clamp(14px, 2vw, 30px);
   }
 
-  .product-grid.is-collapsed > .product-card:nth-child(n + 9) {
-    display: none;
+  .listing .section-head {
+    margin-bottom: clamp(24px, 3vw, 36px);
+  }
+
+  .listing .section-head .section-note {
+    max-width: 56ch;
+    margin-top: 10px;
+  }
+
+  .listing-crumbs ol {
+    padding-top: 8px;
+  }
+
+  /* Second toolbar row on listing pages: availability, price and "Clear filters". */
+  .shop-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 14px;
+    margin: -22px 0 36px;
+  }
+
+  .price-field {
+    gap: 8px;
+    padding-right: 14px;
+  }
+
+  .price-field input {
+    width: 84px;
+    min-height: 42px;
+    padding: 0 4px;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+    appearance: textfield;
+    -moz-appearance: textfield;
+  }
+
+  .price-field input::-webkit-outer-spin-button,
+  .price-field input::-webkit-inner-spin-button {
+    margin: 0;
+    -webkit-appearance: none;
+  }
+
+  .price-field input::placeholder {
+    color: var(--body);
+    font-weight: 500;
+  }
+
+  .price-field input:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
+
+  .pager {
+    margin-top: 40px;
+  }
+
+  .pager ul {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 6px;
+  }
+
+  .pager li {
+    min-width: 44px;
+    display: grid;
+    place-items: center;
+    color: var(--body);
+  }
+
+  .pager a {
+    min-width: 44px;
+    min-height: 44px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: var(--radius-sm);
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+    text-decoration: none;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease;
+  }
+
+  .pager a:hover {
+    border-color: var(--line-strong);
+  }
+
+  .pager a[aria-current="page"] {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--bg);
+  }
+
+  .home-row-more {
+    display: flex;
+    justify-content: center;
+    margin-top: 48px;
   }
 
   .product-card {
@@ -1663,6 +1773,7 @@
   }
 
   .empty-state h3,
+  .empty-state h2,
   .empty-state h1 {
     margin-top: 16px;
     font-size: 24px;
@@ -3302,6 +3413,86 @@
     color: var(--ink);
   }
 
+  /* "Have a code?" disclosure and the applied-code row */
+  .checkout-coupon summary {
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
+  .checkout-coupon summary {
+    justify-content: space-between;
+    list-style: none;
+  }
+
+  .checkout-coupon summary::-webkit-details-marker {
+    display: none;
+  }
+
+  .checkout-coupon summary::after {
+    content: "+";
+    font-size: 18px;
+    font-weight: 400;
+  }
+
+  .checkout-coupon details[open] > summary::after {
+    content: "2";
+  }
+
+  .checkout-coupon summary:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 1px;
+  }
+
+  .checkout-coupon-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 8px;
+  }
+
+  .checkout-coupon-row .button {
+    min-height: 44px;
+    padding: 0 20px;
+  }
+
+  .checkout-coupon-row .button:disabled {
+    opacity: 0.6;
+    cursor: progress;
+  }
+
+  .checkout-coupon-input {
+    text-transform: uppercase;
+  }
+
+  .checkout-coupon-input::placeholder {
+    text-transform: none;
+  }
+
+  .checkout-coupon-applied {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 6px 6px 6px 14px;
+    border: 1px solid var(--brand);
+    border-radius: var(--radius-sm);
+    background: var(--surface-alt);
+    color: var(--ink);
+    font-size: 14px;
+  }
+
+  .checkout-coupon-applied strong {
+    overflow-wrap: anywhere;
+  }
+
+  .checkout-discount dd {
+    color: var(--brand);
+  }
+
   .checkout-summary {
     display: grid;
     gap: 6px;
@@ -3400,14 +3591,17 @@
     color: var(--line-strong);
   }
 
+  .pdp-crumbs a,
   .pdp-crumbs button {
     padding: 4px 0;
     border: 0;
     background: none;
     color: var(--body);
     font: inherit;
+    text-decoration: none;
   }
 
+  .pdp-crumbs a:hover,
   .pdp-crumbs button:hover {
     color: var(--ink);
     text-decoration: underline;
@@ -4740,5 +4934,45 @@
     .swatch span {
       forced-color-adjust: none;
     }
+  }
+
+  /* Sales (P9.2): the charged price, the struck-through price beside it, and a badge. */
+  .price-sale {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    justify-content: inherit;
+    gap: 0 0.5em;
+  }
+
+  .price-now {
+    color: var(--brand);
+    font-weight: 700;
+  }
+
+  .price-was {
+    color: var(--body);
+    font-size: 0.85em;
+    font-weight: 500;
+    text-decoration: line-through;
+  }
+
+  .product-badge.is-sale,
+  .sale-badge {
+    background: var(--brand);
+    color: var(--on-brand);
+  }
+
+  .sale-badge {
+    display: inline-block;
+    margin-left: 12px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.5;
+    text-transform: uppercase;
+    vertical-align: middle;
   }
 } /* @layer components */

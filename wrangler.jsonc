@@ -2,8 +2,10 @@
   "$schema": "node_modules/wrangler/config-schema.json",
   // Top level = development: Worker cavara-web-dev, D1 cavara-dev.
   // `bun run dev` uses a local D1 (Miniflare; `bun run db:migrate:local` applies migrations and the seed), so dev
-  // never spends the account's daily D1 limits. `bun run dev:remote` switches DB to the real cavara-dev and turns
-  // the catalogue snapshot on (vite.config.ts). R2 stays remote in both, so pictures load.
+  // never spends the account's daily D1 limits. R2 is local too (`bun run r2:seed:local` copies the product images
+  // in once), because a remote binding sends every R2 call through a proxy Worker that counts against the account's
+  // daily Worker requests. `bun run dev:remote` switches DB and IMAGES to the real cavara-dev and cavara-images-dev
+  // and turns the catalogue snapshot on (vite.config.ts).
   "name": "cavara-web-dev",
   "account_id": "7b55798e5a2b91035dece6c8411564e4",
   "compatibility_date": "2026-11-05",
@@ -25,7 +27,6 @@
     {
       "binding": "IMAGES",
       "bucket_name": "cavara-images-dev",
-      "remote": true,
     },
   ],
   "env": {
@@ -42,7 +43,7 @@
       "workers_dev": false,
       "preview_urls": false,
       "vars": {
-        // R2 key (in IMAGES) of the legacy full catalogue JSON. Its folder also holds catalog-v2.json (the summary)
+        // R2 key (in IMAGES) of the legacy full catalogue JSON. Its folder also holds catalog-v3.json (the summary)
         // and products/v2/<id>.json (one detail per product); snapshotKeys() in src/server/catalog-cache.server.ts
         // derives them. A blank value turns snapshots off. Change the names together with SNAPSHOT_OBJECTS in
         // scripts/db/migrate-prod.ts, the package.json db:migrate scripts and the edge cache paths in

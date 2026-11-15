@@ -3,6 +3,8 @@ import {
   absoluteUrl,
   breadcrumbJsonLd,
   canonicalRedirect,
+  collectionUrl,
+  listingSeo,
   metaDescription,
   productAvailability,
   productJsonLd,
@@ -85,7 +87,7 @@ describe("product structured data", () => {
     const ld = breadcrumbJsonLd(product, category, SITE);
     expect(ld.itemListElement.map((item) => [item.position, item.name, item.item])).toEqual([
       [1, "Home", "https://cavarabd.com/"],
-      [2, "Drinkware", "https://cavarabd.com/?category=drinkware"],
+      [2, "Drinkware", "https://cavarabd.com/collections/drinkware"],
       [3, "Red Polka Cup & Plate", "https://cavarabd.com/products/red-polka-cup"],
     ]);
   });
@@ -98,8 +100,11 @@ describe("product structured data", () => {
   });
 });
 
-test("sitemap lists home and products, escaped", () => {
-  const xml = sitemapXml(SITE, [{ slug: "a" }, { slug: "b&c" }]);
+test("sitemap lists home, the products page, each collection and every product, escaped", () => {
+  const xml = sitemapXml(SITE, [{ slug: "a" }, { slug: "b&c" }], [{ id: "drinkware" }, { id: "jars" }]);
+  expect(xml).toContain("<loc>https://cavarabd.com/products</loc>");
+  expect(xml).toContain("<loc>https://cavarabd.com/collections/drinkware</loc>");
+  expect(xml).toContain("<loc>https://cavarabd.com/collections/jars</loc>");
   expect(xml).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');
   expect(xml).toContain("<loc>https://cavarabd.com/</loc>");
   expect(xml).toContain("<loc>https://cavarabd.com/products/a</loc>");
@@ -112,4 +117,33 @@ test("www redirects to the bare domain, keeping path and query; other hosts are 
   );
   expect(canonicalRedirect(new URL("https://cavarabd.com/"), "cavarabd.com")).toBeNull();
   expect(canonicalRedirect(new URL("http://localhost:3000/"), "cavarabd.com")).toBeNull();
+});
+
+describe("listing pages", () => {
+  test("/products has its own title, description and a clean canonical", () => {
+    const seo = listingSeo(SITE, null, "Fallback");
+    expect(seo.title).toBe("All products — Cavara");
+    expect(seo.description.length).toBeGreaterThan(40);
+    expect(seo.url).toBe("https://cavarabd.com/products");
+    expect(seo.image).toBeUndefined();
+  });
+  test("a collection uses its name, description, own URL and image", () => {
+    const seo = listingSeo(
+      SITE,
+      { id: "drinkware", name: "Drinkware", description: "Cups and mugs.", image: "/media/drink.webp" },
+      "Fallback",
+    );
+    expect(seo).toEqual({
+      title: "Drinkware — Cavara",
+      description: "Cups and mugs.",
+      url: "https://cavarabd.com/collections/drinkware",
+      image: "https://cavarabd.com/media/drink.webp",
+    });
+  });
+  test("a collection without a description falls back", () => {
+    expect(listingSeo(SITE, category, "Fallback").description).toBe("Fallback");
+  });
+  test("collection URLs encode the id", () => {
+    expect(collectionUrl(`${SITE}/`, "a b")).toBe("https://cavarabd.com/collections/a%20b");
+  });
 });

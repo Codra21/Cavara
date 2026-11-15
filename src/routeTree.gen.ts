@@ -14,8 +14,11 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as HealthzRouteImport } from './routes/healthz'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminDiscountsRouteImport } from './routes/admin.discounts'
 import { Route as AdminZonesRouteImport } from './routes/admin.zones'
+import { Route as CollectionsCategoryRouteImport } from './routes/collections.$category'
 import { Route as MediaSplatRouteImport } from './routes/media.$'
+import { Route as ProductsIndexRouteImport } from './routes/products.index'
 import { Route as ProductsSlugRouteImport } from './routes/products.$slug'
 import { Route as AdminOrdersIndexRouteImport } from './routes/admin.orders.index'
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin.orders.$orderId'
@@ -47,14 +50,29 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminDiscountsRoute = AdminDiscountsRouteImport.update({
+  id: '/discounts',
+  path: '/discounts',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminZonesRoute = AdminZonesRouteImport.update({
   id: '/zones',
   path: '/zones',
   getParentRoute: () => AdminRoute,
 } as any)
+const CollectionsCategoryRoute = CollectionsCategoryRouteImport.update({
+  id: '/collections/$category',
+  path: '/collections/$category',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const MediaSplatRoute = MediaSplatRouteImport.update({
   id: '/media/$',
   path: '/media/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ProductsIndexRoute = ProductsIndexRouteImport.update({
+  id: '/products/',
+  path: '/products/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ProductsSlugRoute = ProductsSlugRouteImport.update({
@@ -88,10 +106,13 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/healthz': typeof HealthzRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/zones': typeof AdminZonesRoute
+  '/collections/$category': typeof CollectionsCategoryRoute
   '/media/$': typeof MediaSplatRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/products/': typeof ProductsIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/admin/products/$productId': typeof AdminProductsProductIdRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
@@ -101,10 +122,13 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/healthz': typeof HealthzRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/zones': typeof AdminZonesRoute
+  '/collections/$category': typeof CollectionsCategoryRoute
   '/media/$': typeof MediaSplatRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/admin': typeof AdminIndexRoute
+  '/products': typeof ProductsIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/admin/products/$productId': typeof AdminProductsProductIdRoute
   '/admin/orders': typeof AdminOrdersIndexRoute
@@ -116,10 +140,13 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/healthz': typeof HealthzRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/zones': typeof AdminZonesRoute
+  '/collections/$category': typeof CollectionsCategoryRoute
   '/media/$': typeof MediaSplatRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/products/': typeof ProductsIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/admin/products/$productId': typeof AdminProductsProductIdRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
@@ -132,10 +159,13 @@ export interface FileRouteTypes {
     | '/admin'
     | '/healthz'
     | '/sitemap.xml'
+    | '/admin/discounts'
     | '/admin/zones'
+    | '/collections/$category'
     | '/media/$'
     | '/products/$slug'
     | '/admin/'
+    | '/products/'
     | '/admin/orders/$orderId'
     | '/admin/products/$productId'
     | '/admin/orders/'
@@ -145,10 +175,13 @@ export interface FileRouteTypes {
     | '/'
     | '/healthz'
     | '/sitemap.xml'
+    | '/admin/discounts'
     | '/admin/zones'
+    | '/collections/$category'
     | '/media/$'
     | '/products/$slug'
     | '/admin'
+    | '/products'
     | '/admin/orders/$orderId'
     | '/admin/products/$productId'
     | '/admin/orders'
@@ -159,10 +192,13 @@ export interface FileRouteTypes {
     | '/admin'
     | '/healthz'
     | '/sitemap.xml'
+    | '/admin/discounts'
     | '/admin/zones'
+    | '/collections/$category'
     | '/media/$'
     | '/products/$slug'
     | '/admin/'
+    | '/products/'
     | '/admin/orders/$orderId'
     | '/admin/products/$productId'
     | '/admin/orders/'
@@ -174,8 +210,10 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   HealthzRoute: typeof HealthzRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  CollectionsCategoryRoute: typeof CollectionsCategoryRoute
   MediaSplatRoute: typeof MediaSplatRoute
   ProductsSlugRoute: typeof ProductsSlugRoute
+  ProductsIndexRoute: typeof ProductsIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -215,6 +253,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminIndexRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/discounts': {
+      id: '/admin/discounts'
+      path: '/discounts'
+      fullPath: '/admin/discounts'
+      preLoaderRoute: typeof AdminDiscountsRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/zones': {
       id: '/admin/zones'
       path: '/zones'
@@ -222,11 +267,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminZonesRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/collections/$category': {
+      id: '/collections/$category'
+      path: '/collections/$category'
+      fullPath: '/collections/$category'
+      preLoaderRoute: typeof CollectionsCategoryRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/media/$': {
       id: '/media/$'
       path: '/media/$'
       fullPath: '/media/$'
       preLoaderRoute: typeof MediaSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/products/': {
+      id: '/products/'
+      path: '/products'
+      fullPath: '/products/'
+      preLoaderRoute: typeof ProductsIndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/products/$slug': {
@@ -268,6 +327,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminDiscountsRoute: typeof AdminDiscountsRoute
   AdminZonesRoute: typeof AdminZonesRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminOrdersOrderIdRoute: typeof AdminOrdersOrderIdRoute
@@ -277,6 +337,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminDiscountsRoute: AdminDiscountsRoute,
   AdminZonesRoute: AdminZonesRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminOrdersOrderIdRoute: AdminOrdersOrderIdRoute,
@@ -292,8 +353,10 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   HealthzRoute: HealthzRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  CollectionsCategoryRoute: CollectionsCategoryRoute,
   MediaSplatRoute: MediaSplatRoute,
   ProductsSlugRoute: ProductsSlugRoute,
+  ProductsIndexRoute: ProductsIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

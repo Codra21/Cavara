@@ -113,11 +113,17 @@ export function SiteHeader() {
         </div>
 
         <nav className="primary-nav" aria-label="Primary">
-          {NAV_LINKS.map((link) => (
-            <Link key={link.hash} to="/" hash={link.hash}>
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) =>
+            "to" in link ? (
+              <Link key={link.label} to={link.to}>
+                {link.label}
+              </Link>
+            ) : (
+              <Link key={link.label} to="/" hash={link.hash}>
+                {link.label}
+              </Link>
+            ),
+          )}
         </nav>
 
         <div className="header-actions">
@@ -137,11 +143,17 @@ export function SiteHeader() {
 
       <nav className="mobile-nav" id="mobile-nav" aria-label="Mobile" hidden={!menuOpen}>
         <div className="container">
-          {NAV_LINKS.map((link) => (
-            <Link key={link.hash} to="/" hash={link.hash} onClick={() => setMenuOpen(false)}>
-              {link.label}
-            </Link>
-          ))}
+          {NAV_LINKS.map((link) =>
+            "to" in link ? (
+              <Link key={link.label} to={link.to} onClick={() => setMenuOpen(false)}>
+                {link.label}
+              </Link>
+            ) : (
+              <Link key={link.label} to="/" hash={link.hash} onClick={() => setMenuOpen(false)}>
+                {link.label}
+              </Link>
+            ),
+          )}
         </div>
       </nav>
     </header>

@@ -7,6 +7,7 @@
 // D1 bills rows read, index entries included; every query here starts from an index (see catalog-snapshot.test.ts,
 // which checks the plans). Request paths never call this file: they go through src/server/catalog-cache.server.ts.
 import { type FullCatalog, type ProductDetail, toLegacyCatalog } from "@/domain/catalog-snapshot";
+import type { SaleRule } from "@/domain/discounts";
 import type { DeliveryZone } from "@/domain/orders";
 import type { Availability, Catalog, Category } from "@/lib/types";
 import type { D1Database, D1PreparedStatement } from "./d1";
@@ -108,6 +109,9 @@ function buildProducts(productRows: ProductRow[], variantRows: VariantImageRow[]
   });
 }
 
+// A handful of rows; sorted here (by id) so the stored list is stable and the query needs no temp B-tree.
+const sortSales = (rows: SaleRule[]): SaleRule[] => [...rows].sort((a, b) => a.id - b.id);
+
 function zonesFrom(rows: (DeliveryZone & { sort: number })[]): DeliveryZone[] {
   // A handful of rows; sorted here so the query needs no index or temp B-tree.
   return [...rows]
@@ -138,16 +142,37 @@ export const ONE_VARIANTS_SQL = `SELECT v.id, v.product_id, v.position, v.name, 
 // A handful of rows, sorted below so the query needs no temp B-tree.
 export const CATEGORIES_SQL = "SELECT id, name, description, image, sort FROM categories";
 
+const SALE_COLUMNS = `id, scope, category_id AS categoryId, product_id AS productId, type, value, starts_at AS startsAt,
+    ends_at AS endsAt`;
+
+/**
+ * Sales that are on or still to come: active, and open-ended or ending after `now` (bind `now` once). Two probes on
+ * idx_discounts_live (migration 0011), one for `ends_at > ?` and one for NULL, so sales that already ended are never
+ * read. It is a UNION ALL because SQLite will not split `ends_at IS NULL OR ends_at > ?` into two probes and scans the
+ * index instead. The WHERE text must match the partial index. Checkout reads the same rows and the dates are checked
+ * again by the pure rule.
+ */
+export const LIVE_SALES_SQL = `SELECT ${SALE_COLUMNS} FROM discounts WHERE kind = 'sale' AND active = 1 AND ends_at > ?1
+  UNION ALL
+  SELECT ${SALE_COLUMNS} FROM discounts WHERE kind = 'sale' AND active = 1 AND ends_at IS NULL`;
+
+export async function readLiveSales(db: D1Database, now: Date): Promise<SaleRule[]> {
+  const at = now.toISOString();
+  const { results } = await db.prepare(LIVE_SALES_SQL).bind(at).all<SaleRule>();
+  return sortSales(results);
+}
+
 /**
  * The published catalogue in display order, with image keys left as keys. One batch = one round trip and a consistent
  * snapshot.
  */
-export async function readPublishedCatalog(db: D1Database): Promise<FullCatalog> {
-  const [categoryResult, productResult, variantResult, zoneResult] = await db.batch([
+export async function readPublishedCatalog(db: D1Database, now = new Date()): Promise<FullCatalog> {
+  const [categoryResult, productResult, variantResult, zoneResult, saleResult] = await db.batch([
     db.prepare(CATEGORIES_SQL),
     db.prepare(ALL_PRODUCTS_SQL),
     db.prepare(ALL_VARIANTS_SQL),
     db.prepare(ZONES_SQL),
+    db.prepare(LIVE_SALES_SQL).bind(now.toISOString()),
   ]);
   const categories: Category[] = ((categoryResult?.results ?? []) as CategoryRow[])
     .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
@@ -159,6 +184,7 @@ export async function readPublishedCatalog(db: D1Database): Promise<FullCatalog>
       (variantResult?.results ?? []) as VariantImageRow[],
     ),
     zones: zonesFrom((zoneResult?.results ?? []) as (DeliveryZone & { sort: number })[]),
+    sales: sortSales((saleResult?.results ?? []) as SaleRule[]),
   };
 }
 

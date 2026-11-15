@@ -1,7 +1,9 @@
 // Guest order writes and lookups. Server-only. Every query is a primary-key or indexed lookup (D1 read budget).
+import type { CouponRule } from "@/domain/coupons";
 import type { CheckoutInput, DeliveryZone } from "@/domain/orders";
 import type { Availability } from "@/lib/types";
 import type { D1Database } from "./d1";
+import { NO_SHORT_LINE, reserveStockStatements, stockLinesJson } from "./stock.repository";
 
 export interface OrderReplay {
   id: string;
@@ -42,23 +44,71 @@ export async function consumeOrderLimits(
   return limits.every((limit, index) => (results[index + 1]?.results[0]?.attempts ?? Infinity) <= limit.max);
 }
 
+interface CouponRow {
+  id: number;
+  code: string;
+  type: CouponRule["type"];
+  value: number;
+  min_order: number | null;
+  max_discount: number | null;
+  usage_limit: number | null;
+  used_count: number;
+  active: number;
+  starts_at: string;
+  ends_at: string | null;
+}
+
+export const COUPON_BY_CODE_SQL = `SELECT id, code, type, value, min_order, max_discount, usage_limit, used_count, active,
+  starts_at, ends_at FROM discounts WHERE code = ? AND kind = 'coupon'`;
+
+/** One coupon by its code, through the UNIQUE index on discounts.code (one row read). */
+export async function readCouponByCode(db: D1Database, code: string): Promise<CouponRule | null> {
+  const row = await db.prepare(COUPON_BY_CODE_SQL).bind(code).first<CouponRow>();
+  return row
+    ? {
+        id: row.id,
+        code: row.code,
+        type: row.type,
+        value: row.value,
+        minOrder: row.min_order,
+        maxDiscount: row.max_discount,
+        usageLimit: row.usage_limit,
+        usedCount: row.used_count,
+        active: row.active === 1,
+        startsAt: row.starts_at,
+        endsAt: row.ends_at,
+      }
+    : null;
+}
+
 export interface Selection {
   productId: number;
+  /** The product's category id, which a category sale is matched against. */
+  category: string;
   variant: number;
   productName: string;
   variantName: string;
   status: string;
   availability: Availability;
+  /** The product's list price (`products.price`), before any sale. */
   unitPrice: number;
   costPrice: number | null;
+  /** The colour's count, or null when it is not counted. */
+  stock: number | null;
 }
 
+/** A line as it is saved: `unitPrice` is what is charged, `listPrice` what it cost before the sale that took the rest. */
+export type OrderLine = Selection & { qty: number; listPrice: number; discountId: number | null };
+
 /** Current product and colour data for each bag line, by primary key and UNIQUE (product_id, position). */
-export async function readSelections(db: D1Database, items: CheckoutInput["items"]): Promise<Map<string, Selection>> {
+export async function readSelections(
+  db: D1Database,
+  items: Pick<CheckoutInput["items"][number], "productId" | "variant">[],
+): Promise<Map<string, Selection>> {
   const { results } = await db
     .prepare(
-      `SELECT v.product_id AS productId, v.position AS variant, p.name AS productName, v.name AS variantName,
-         p.status, v.availability, p.price AS unitPrice, p.cost_price AS costPrice
+      `SELECT v.product_id AS productId, p.category_id AS category, v.position AS variant, p.name AS productName, v.name AS variantName,
+         p.status, v.availability, p.price AS unitPrice, p.cost_price AS costPrice, v.stock
        FROM json_each(?) j
        JOIN product_variants v
          ON v.product_id = json_extract(j.value, '$[0]') AND v.position = json_extract(j.value, '$[1]')
@@ -83,7 +133,12 @@ export interface NewOrder {
   payloadHash: string;
   input: CheckoutInput;
   zone: DeliveryZone;
-  lines: (Selection & { qty: number })[];
+  lines: OrderLine[];
+  /** The item total before the coupon (the sum of the line totals). */
+  itemsTotal: number;
+  /** The coupon this order claims a use of, with the discount taken off `itemsTotal`; null for none. */
+  coupon: { id: number; code: string; discount: number } | null;
+  /** The item total after the coupon, the revenue (orders.subtotal). */
   subtotal: number;
   total: number;
   itemCount: number;
@@ -91,18 +146,40 @@ export interface NewOrder {
   createdAt: string;
 }
 
+/** True when the coupon (the bound id, or NULL for none) is on and has a use left. Two parameters, both the coupon id. */
+const COUPON_USABLE = `(? IS NULL OR EXISTS (SELECT 1 FROM discounts
+  WHERE id = ? AND kind = 'coupon' AND active = 1 AND (usage_limit IS NULL OR used_count < usage_limit)))`;
+
+/** Takes one use, only while one is left and only for an order that exists and names this coupon (3 parameters). */
+export const CLAIM_COUPON_USE_SQL = `UPDATE discounts SET used_count = used_count + 1
+  WHERE id = ? AND (usage_limit IS NULL OR used_count < usage_limit)
+    AND EXISTS (SELECT 1 FROM orders WHERE id = ? AND coupon_id = ?)`;
+
 /**
- * Saves the order, its lines, the first history row and the day's "received" count as one transaction.
- * Throws D1's UNIQUE error for a reused idempotency key or reference; the caller decides what that means.
+ * Saves the order, its lines, the first history row and the day's "received" count as one transaction, and takes the
+ * counted colours out of stock. Returns false, with nothing saved, when a counted colour holds fewer than a line wants
+ * or the coupon has no use left.
+ *
+ * A coupon use is claimed in the same batch. The order INSERT is conditional on the coupon still being usable
+ * (COUPON_USABLE) and the claim UPDATE follows it as the next statement of the same transaction, so two orders racing
+ * for the last use cannot both save: the second finds the count at the limit, inserts nothing and every later
+ * statement (which all need the order row) does nothing.
+ *
+ * The order INSERT is conditional (NO_SHORT_LINE), and every later statement runs only when the order row exists, so a
+ * short colour saves nothing even if its stock changed after the caller read it. Throws D1's UNIQUE error for a reused
+ * idempotency key or reference; the caller decides what that means.
  */
-export async function insertOrder(db: D1Database, order: NewOrder): Promise<void> {
+export async function insertOrder(db: D1Database, order: NewOrder): Promise<boolean> {
   const { input } = order;
-  await db.batch([
+  const orderExists = "EXISTS (SELECT 1 FROM orders WHERE id = ?)";
+  const [placed] = await db.batch([
     db
       .prepare(
         `INSERT INTO orders (id, reference, idempotency_key, payload_hash, customer_name, phone, address, note,
-           zone_id, zone_name, delivery_charge, subtotal, total, item_count, shop_day, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+           zone_id, zone_name, delivery_charge, subtotal, total, item_count, shop_day, created_at, updated_at,
+           items_total, coupon_code, coupon_id, coupon_discount)
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         WHERE ${NO_SHORT_LINE} AND ${COUPON_USABLE}`,
       )
       .bind(
         order.id,
@@ -122,17 +199,26 @@ export async function insertOrder(db: D1Database, order: NewOrder): Promise<void
         order.shopDay,
         order.createdAt,
         order.createdAt,
+        order.itemsTotal,
+        order.coupon?.code ?? null,
+        order.coupon?.id ?? null,
+        order.coupon?.discount ?? 0,
+        stockLinesJson(order.lines),
+        order.coupon?.id ?? null,
+        order.coupon?.id ?? null,
       ),
+    ...(order.coupon ? [db.prepare(CLAIM_COUPON_USE_SQL).bind(order.coupon.id, order.id, order.coupon.id)] : []),
     db
       .prepare(
         `INSERT INTO order_items (order_id, line, product_id, variant_position, product_name, variant_name,
-           availability, unit_price, cost_price, qty, line_total)
+           availability, unit_price, cost_price, qty, line_total, list_price, discount_id)
          SELECT ?, j.key, json_extract(j.value, '$.productId'), json_extract(j.value, '$.variant'),
            json_extract(j.value, '$.productName'), json_extract(j.value, '$.variantName'),
            json_extract(j.value, '$.availability'), json_extract(j.value, '$.unitPrice'),
            json_extract(j.value, '$.costPrice'), json_extract(j.value, '$.qty'),
-           json_extract(j.value, '$.unitPrice') * json_extract(j.value, '$.qty')
-         FROM json_each(?) j`,
+           json_extract(j.value, '$.unitPrice') * json_extract(j.value, '$.qty'),
+           json_extract(j.value, '$.listPrice'), json_extract(j.value, '$.discountId')
+         FROM json_each(?) j WHERE ${orderExists}`,
       )
       .bind(
         order.id,
@@ -146,30 +232,35 @@ export async function insertOrder(db: D1Database, order: NewOrder): Promise<void
             unitPrice: line.unitPrice,
             costPrice: line.costPrice,
             qty: line.qty,
+            listPrice: line.listPrice,
+            discountId: line.discountId,
           })),
         ),
+        order.id,
       ),
     db
       .prepare(
         `INSERT INTO order_status_history (order_id, from_status, to_status, from_payment_status, to_payment_status,
            actor_username, created_at)
-         VALUES (?, NULL, 'new', NULL, 'unpaid', NULL, ?)`,
+         SELECT ?, NULL, 'new', NULL, 'unpaid', NULL, ? WHERE ${orderExists}`,
       )
-      .bind(order.id, order.createdAt),
+      .bind(order.id, order.createdAt, order.id),
     db
       .prepare(
-        `INSERT INTO daily_totals (shop_day, orders_received) VALUES (?, 1)
+        `INSERT INTO daily_totals (shop_day, orders_received) SELECT ?, 1 WHERE ${orderExists}
          ON CONFLICT (shop_day) DO UPDATE SET orders_received = orders_received + 1`,
       )
-      .bind(order.shopDay),
+      .bind(order.shopDay, order.id),
     // The Telegram alert is queued with the order, so it can never be lost (unit 8).
     db
       .prepare(
         `INSERT INTO order_notification_outbox (order_id, next_attempt_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?)`,
+         SELECT ?, ?, ?, ? WHERE ${orderExists}`,
       )
-      .bind(order.id, Date.parse(order.createdAt), order.createdAt, order.createdAt),
+      .bind(order.id, Date.parse(order.createdAt), order.createdAt, order.createdAt, order.id),
+    ...reserveStockStatements(db, order.id, order.lines, order.createdAt),
   ]);
+  return placed?.meta.changes === 1;
 }
 
 export async function listActiveZones(db: D1Database): Promise<DeliveryZone[]> {
