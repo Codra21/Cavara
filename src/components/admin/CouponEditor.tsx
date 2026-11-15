@@ -140,7 +140,7 @@ export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
             A coupon is a code the shopper types at checkout. It takes money off the item total after any sale prices,
-            once per order. Cancelling an order does not give its use back.
+            once per order. Cancelling an unpaid order gives its use back; reopening it takes the use again.
           </p>
         </div>
         <Button
