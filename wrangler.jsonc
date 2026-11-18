@@ -53,9 +53,8 @@
         // Attack mode (P10.3, src/server/attack-mode.server.ts): the zone, the zone's WAF custom rules ruleset and the
         // prepared rule it switches. Rule "ATTACK MODE: challenge page loads" (created 2026-11-18, starts disabled); see docs/abuse-defense-plan.md. The
         // token is the secret CF_WAF_TOKEN (wrangler secret put), never a var.
-        // "off" skips the Turnstile Siteverify check on orders and coupons (src/server/env.ts isTurnstileEnforced).
-        // Off since 2026-11-18 until the widget's real site key is in .env.production; then delete this line.
-        "TURNSTILE_MODE": "off",
+        // Set "TURNSTILE_MODE": "off" here to skip the Turnstile Siteverify check on orders and coupons if the widget
+        // breaks (src/server/env.ts isTurnstileEnforced). Unset means the check runs.
         "WAF_ZONE_ID": "f65e55d799ed9d39e29157147137c620",
         "WAF_RULESET_ID": "f031f9024361480c8e9692e98bb2c24c",
         "ATTACK_RULE_ID": "6cbef788d6ea4f3696a8afff9e1e217c",

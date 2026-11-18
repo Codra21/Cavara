@@ -4,7 +4,7 @@
 //   1. Validate (Zod). A filled honeypot is rejected like a validation error.
 //   2. Replay: the same idempotency key with the same order returns the saved reference (a retried tap, a lost
 //      response). The same key with a different order is refused.
-//   3. A blocked phone gets the rate-limit refusal and a phone with MAX_OPEN_ORDERS orders still 'new' gets the
+//   3. A blocked phone gets its own refusal (PHONE_BLOCKED) and a phone with MAX_OPEN_ORDERS orders still 'new' gets the
 //      open-order refusal. Both are read first, so nothing is written. Then rate limits per client IP and per phone
 //      number (HMAC keys, 15-minute windows).
 //   4. Re-read prices, availability, the live sales and the delivery zone from D1. The charged price is the list price
@@ -65,7 +65,14 @@ const FAILED: SubmitOutcome = {
   message: "Your order could not be saved. Your bag is unchanged. Please try again, or message us on WhatsApp.",
 };
 
-// A blocked number gets the rate-limit answer word for word, so a blocked caller cannot tell it from a busy window.
+// A blocked number gets its own answer: the rate-limit one told the shopper to wait 15 minutes, which never helps.
+// It does not say "blocked"; it points to WhatsApp, where staff can sort out a number blocked by mistake.
+const PHONE_BLOCKED: SubmitOutcome = {
+  ok: false,
+  code: "phone_blocked",
+  message: "We can't take online orders from this number. Please message us on WhatsApp to place your order.",
+};
+
 const RATE_LIMITED: SubmitOutcome = {
   ok: false,
   code: "rate_limited",
@@ -147,7 +154,7 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
   const now = context.now ?? new Date();
   // Before the rate limits, so a blocked or capped number writes nothing at all (not even a limit counter).
   const standing = await readPhoneStanding(db, input.phone);
-  if (standing.blocked) return RATE_LIMITED;
+  if (standing.blocked) return PHONE_BLOCKED;
   if (standing.openOrders >= MAX_OPEN_ORDERS) return OPEN_ORDERS;
   const limitKey = (kind: string, value: string) => orderLimitKey(context.limitSecret, kind, value);
   const withinLimits = await consumeOrderLimits(
@@ -288,7 +295,7 @@ async function refusedAfterRead(
 ): Promise<SubmitOutcome> {
   // The insert also refuses a phone that was blocked or reached the cap after the first read.
   const standing = await readPhoneStanding(db, input.phone);
-  if (standing.blocked) return RATE_LIMITED;
+  if (standing.blocked) return PHONE_BLOCKED;
   if (standing.openOrders >= MAX_OPEN_ORDERS) return OPEN_ORDERS;
   const selections = await readSelections(db, input.items);
   for (const item of input.items) {

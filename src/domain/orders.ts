@@ -131,7 +131,7 @@ export type SubmitOrderResult =
   | { ok: false; code: "validation"; message: string; fieldErrors: Partial<Record<CheckoutField, string>> }
   | {
       ok: false;
-      code: "rate_limited" | "open_orders" | "unavailable" | "idempotency_conflict" | "failed";
+      code: "rate_limited" | "open_orders" | "phone_blocked" | "unavailable" | "idempotency_conflict" | "failed";
       message: string;
     }
   | {

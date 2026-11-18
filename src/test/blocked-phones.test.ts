@@ -20,8 +20,8 @@ import { createTestD1, type TestD1 } from "./helpers/d1";
 const owner: AdminIdentity = { id: "owner", username: "owner", role: "owner" };
 const T0 = new Date("2026-11-07T04:00:00.000Z");
 const PHONE = "01712345678";
-const RATE_LIMIT_MESSAGE =
-  "Too many orders from this number or connection. Please wait 15 minutes, or message us on WhatsApp.";
+const BLOCKED_MESSAGE =
+  "We can't take online orders from this number. Please message us on WhatsApp to place your order.";
 
 function checkout(db: TestD1, over: { phone?: string; couponCode?: string } = {}) {
   const [product] = db.sqlite
@@ -74,7 +74,7 @@ describe("blocked phones", () => {
       limits: count(db, "order_rate_limits"),
     };
     const result = await place(db);
-    expect(result).toEqual({ ok: false, code: "rate_limited", message: RATE_LIMIT_MESSAGE });
+    expect(result).toEqual({ ok: false, code: "phone_blocked", message: BLOCKED_MESSAGE });
     expect({
       orders: count(db, "orders"),
       items: count(db, "order_items"),
@@ -98,7 +98,7 @@ describe("blocked phones", () => {
     const body = { ...checkout(db), couponCode: "SAVE10", couponDiscount: 10 };
     expect(await submitOrder(db, body, { client: "203.0.113.9", limitSecret: "x".repeat(40), now: T0 })).toMatchObject({
       ok: false,
-      code: "rate_limited",
+      code: "phone_blocked",
     });
     expect(db.sqlite.query("SELECT used_count FROM discounts WHERE code = 'SAVE10'").get()).toEqual({ used_count: 0 });
     expect(db.sqlite.query("SELECT id, stock FROM product_variants WHERE stock IS NOT NULL").all()).toEqual(
@@ -138,7 +138,7 @@ describe("blocked phones", () => {
     const db = createTestD1();
     await blockPhone(db, owner, blockPhoneSchema.parse({ phone: PHONE }), T0);
     expect(await place(db, { phone: "01812345678" })).toMatchObject({ ok: true });
-    expect(await place(db)).toMatchObject({ ok: false, code: "rate_limited" });
+    expect(await place(db)).toMatchObject({ ok: false, code: "phone_blocked" });
     expect(await unblockPhone(db, owner, PHONE, T0)).toBe(true);
     expect(await place(db)).toMatchObject({ ok: true });
   });
