@@ -20,6 +20,7 @@ describe("migrations", () => {
       "0011_discounts.sql",
       "0012_coupons.sql",
       "0013_security_review_fixes.sql",
+      "0014_blocked_phones.sql",
     ]);
     const db = createTestD1();
     const count = (table: string) => (db.sqlite.query(`SELECT count(*) AS n FROM ${table}`).get() as { n: number }).n;

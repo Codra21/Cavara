@@ -5,6 +5,7 @@
 import handler, { createServerEntry } from "@tanstack/react-start/server-entry";
 import type { CloudflareEnv, ExecutionContext, ScheduledController } from "@/server/db/d1";
 import { alertSettings, deliverOrderAlerts } from "@/server/services/order-notifications.service";
+import { runAttackMode } from "@/server/attack-mode.server";
 import { runUsageAlert } from "@/server/usage-alert.server";
 import { canonicalRedirect } from "@/domain/seo";
 import { SITE_URL } from "@/lib/config";
@@ -40,6 +41,13 @@ export default {
           .catch((error: unknown) => {
             console.error("order alert run failed", error);
           }),
+      );
+      // Switches the prepared WAF attack-mode rule by today's Worker requests (src/server/attack-mode.server.ts). It
+      // reads only the analytics and the Cloudflare API, no D1, and has its own waitUntil and catch.
+      ctx.waitUntil(
+        runAttackMode(env).catch((error: unknown) => {
+          console.error("attack mode check failed", error);
+        }),
       );
       return;
     }

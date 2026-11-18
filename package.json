@@ -23,7 +23,7 @@
     "db:release:prod": "bun scripts/db/migrate-prod.ts",
     "db:backup:prod": "bun scripts/db/migrate-prod.ts --backup-only",
     "build:prod": "CLOUDFLARE_ENV=production vite build",
-    "deploy:dev": "bun run check && bun run build && wrangler deploy"
+    "deploy:dev": "bun run check && vite build --mode staging && wrangler deploy"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.106.1",

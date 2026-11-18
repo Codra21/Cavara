@@ -96,6 +96,12 @@ describe("content security policy (report-only)", () => {
     expect(directive("frame-ancestors")).toBe(FRAME_ANCESTORS_POLICY);
   });
 
+  test("allows what Cloudflare Turnstile needs: its script and iframe origin, and same-origin clearance requests", () => {
+    expect(directive("script-src")).toContain("https://challenges.cloudflare.com");
+    expect(directive("frame-src")).toBe("frame-src https://challenges.cloudflare.com");
+    expect(directive("connect-src")).toContain("'self'");
+  });
+
   test("Google Fonts are gone: fonts are self-hosted", () => {
     expect(policy).not.toContain("googleapis");
     expect(policy).not.toContain("gstatic");

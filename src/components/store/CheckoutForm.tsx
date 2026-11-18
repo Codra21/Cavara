@@ -10,6 +10,7 @@ import {
   type SubmitOrderResult,
 } from "@/domain/orders";
 import { WHATSAPP_DISPLAY } from "@/lib/config";
+import { getTurnstileToken } from "@/lib/turnstile";
 import { checkCouponFn } from "@/server/functions/coupons.functions";
 import { submitOrderFn } from "@/server/functions/orders.functions";
 
@@ -102,8 +103,18 @@ export function CheckoutForm({
     setCouponPending(true);
     setCouponError(null);
     try {
+      // A fresh single-use token for every call; "" when the check is switched off for this build.
+      let turnstileToken: string;
+      try {
+        turnstileToken = await getTurnstileToken("coupon");
+      } catch {
+        setCouponError("We couldn't run the security check. Reload the page and try again.");
+        setCouponPending(false);
+        return;
+      }
       const answer = await checkCouponFn({
         data: {
+          turnstileToken,
           code,
           items: lines.map((line) => ({ productId: line.item.id, variant: line.item.variant, qty: line.item.qty })),
         },
@@ -145,7 +156,21 @@ export function CheckoutForm({
     setPending(true);
     let result: SubmitOrderResult;
     try {
-      result = await submitOrderFn({ data: { ...body, idempotencyKey: attempt.current.key } });
+      // Fetched after the idempotency key is fixed and kept out of the payload, so a retry of the same order gets a
+      // new token and still replays the same key. A failed check is not a network error: say what happened.
+      let turnstileToken: string;
+      try {
+        turnstileToken = await getTurnstileToken("order");
+      } catch {
+        setPending(false);
+        setMessage({
+          tone: "error",
+          text: "We couldn't run the security check. Your bag is unchanged. Reload the page and try again, or message us on WhatsApp.",
+        });
+        window.requestAnimationFrame(() => errorSummary.current?.focus());
+        return;
+      }
+      result = await submitOrderFn({ data: { ...body, idempotencyKey: attempt.current.key, turnstileToken } });
     } catch {
       result = {
         ok: false,

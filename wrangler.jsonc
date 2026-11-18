@@ -50,6 +50,12 @@
         // catalog-cache.server.ts.
         "CATALOG_SNAPSHOT_KEY": "snapshots/catalog-v1.json",
         "USAGE_ACCOUNT_ID": "7b55798e5a2b91035dece6c8411564e4",
+        // Attack mode (P10.3, src/server/attack-mode.server.ts): the zone, the zone's WAF custom rules ruleset and the
+        // prepared rule it switches. Rule "ATTACK MODE: challenge page loads" (created 2026-11-18, starts disabled); see docs/abuse-defense-plan.md. The
+        // token is the secret CF_WAF_TOKEN (wrangler secret put), never a var.
+        "WAF_ZONE_ID": "f65e55d799ed9d39e29157147137c620",
+        "WAF_RULESET_ID": "f031f9024361480c8e9692e98bb2c24c",
+        "ATTACK_RULE_ID": "6cbef788d6ea4f3696a8afff9e1e217c",
         // R2 custom domain of cavara-images-prod (connected 2026-11-06). Images skip the Worker and are cached by
         // Cloudflare's CDN; the /media route stays as a fallback for old links.
         "IMAGE_BASE_URL": "https://images.cavarabd.com",

@@ -42,12 +42,38 @@ export function usageQuery(dayStart: Date, through: Date, before: Date | null): 
   return `query Usage($accountTag: string) { viewer { accounts(filter: { accountTag: $accountTag }) { ${parts.join(" ")} } } }`;
 }
 
-function total(
+export function total(
   account: Record<string, Array<{ sum?: { rowsRead?: number; requests?: number } }> | undefined>,
   alias: string,
   field: "rowsRead" | "requests",
 ) {
   return (account[alias] ?? []).reduce((sum, group) => sum + (group.sum?.[field] ?? 0), 0);
+}
+
+type Account = NonNullable<NonNullable<NonNullable<GraphqlResponse["data"]>["viewer"]>["accounts"]>[number];
+
+/**
+ * One GraphQL Analytics request for the account in USAGE_ACCOUNT_ID. Returns the account's aliased groups, or throws
+ * on an HTTP error, a GraphQL error or a missing account. Shared with attack mode (attack-mode.server.ts). The token
+ * is sent in the header only and never appears in an error message.
+ */
+export async function queryAnalytics(
+  env: Required<Pick<CloudflareEnv, "USAGE_ACCOUNT_ID" | "CF_ANALYTICS_TOKEN">>,
+  query: string,
+  fetcher: typeof fetch,
+): Promise<Account> {
+  const response = await fetcher(GRAPHQL_URL, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${env.CF_ANALYTICS_TOKEN}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ query, variables: { accountTag: env.USAGE_ACCOUNT_ID } }),
+  });
+  const body = (await response.json()) as GraphqlResponse;
+  const account = body.data?.viewer?.accounts?.[0];
+  if (!response.ok || body.errors?.length || !account)
+    throw new Error(
+      `analytics query failed (${response.status}): ${body.errors?.map((e) => e.message).join("; ") ?? "no account"}`,
+    );
+  return account;
 }
 
 async function fetchTotals(
@@ -57,20 +83,7 @@ async function fetchTotals(
 ): Promise<{ totals: Totals; through: Date } | null> {
   const windows = usageWindows(now);
   if (!windows) return null;
-  const response = await fetcher(GRAPHQL_URL, {
-    method: "POST",
-    headers: { Authorization: `Bearer ${env.CF_ANALYTICS_TOKEN}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      query: usageQuery(windows.dayStart, windows.through, windows.before),
-      variables: { accountTag: env.USAGE_ACCOUNT_ID },
-    }),
-  });
-  const body = (await response.json()) as GraphqlResponse;
-  const account = body.data?.viewer?.accounts?.[0];
-  if (!response.ok || body.errors?.length || !account)
-    throw new Error(
-      `analytics query failed (${response.status}): ${body.errors?.map((e) => e.message).join("; ") ?? "no account"}`,
-    );
+  const account = await queryAnalytics(env, usageQuery(windows.dayStart, windows.through, windows.before), fetcher);
   return {
     through: windows.through,
     totals: {
@@ -83,7 +96,11 @@ async function fetchTotals(
   };
 }
 
-async function sendTelegram(env: Required<UsageEnv>, text: string, fetcher: typeof fetch): Promise<void> {
+export async function sendTelegram(
+  env: Required<Pick<CloudflareEnv, "TELEGRAM_BOT_TOKEN" | "TELEGRAM_USAGE_CHAT_ID">>,
+  text: string,
+  fetcher: typeof fetch,
+): Promise<void> {
   const response = await fetcher(`https://api.telegram.org/bot${env.TELEGRAM_BOT_TOKEN}/sendMessage`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

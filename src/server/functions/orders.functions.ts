@@ -1,13 +1,15 @@
 // Public order submission. Start's default CSRF middleware rejects cross-site calls; the handler validates everything
-// itself (submitOrder), so the validator only passes the raw body through. Responses are private and never cached.
+// itself (submitOrder), so the validator only passes the raw body through. The body also carries `turnstileToken`,
+// checked with Siteverify first. Responses are private and never cached.
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, setResponseHeader } from "@tanstack/react-start/server";
 import type { SubmitOrderResult } from "@/domain/orders";
 import { refreshProducts } from "@/server/catalog-cache.server";
 import { catalogSources } from "@/server/catalog-sources.server";
-import { getAlertSettings, getDb, getOrderLimitSecret, runAfterResponse } from "@/server/env";
+import { getAlertSettings, getDb, getOrderLimitSecret, getTurnstileSecret, runAfterResponse } from "@/server/env";
 import { deliverOrderAlerts } from "@/server/services/order-notifications.service";
 import { submitOrder } from "@/server/services/orders.service";
+import { splitTurnstileToken, TURNSTILE_REFUSAL_MESSAGE, verifyTurnstile } from "@/server/turnstile.server";
 
 /** Largest body accepted: 30 lines plus the form fields fit in a few KB. */
 const MAX_BODY_CHARS = 16_000;
@@ -24,8 +26,17 @@ export const submitOrderFn = createServerFn({ method: "POST" })
       return { ok: false, code: "validation", message: "That order could not be read.", fieldErrors: {} };
     }
     try {
+      // Before any D1 access, so a bot without a valid token costs no database work and no rate-limit write.
+      // The token travels beside the order body and is removed before the strict order schema sees it.
+      const { token, rest } = splitTurnstileToken(data);
+      const check = await verifyTurnstile(token, "order", {
+        secret: getTurnstileSecret(),
+        host: getRequestHeader("host") ?? "",
+        remoteIp: getRequestHeader("cf-connecting-ip"),
+      });
+      if (!check.ok) return { ok: false, code: "failed", message: TURNSTILE_REFUSAL_MESSAGE };
       const db = getDb();
-      const result = await submitOrder(db, data, {
+      const result = await submitOrder(db, rest, {
         client: getRequestHeader("cf-connecting-ip") || "local",
         limitSecret: getOrderLimitSecret(),
       });

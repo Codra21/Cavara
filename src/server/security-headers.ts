@@ -43,6 +43,9 @@ export function imageOrigin(imageBase: string): string | null {
  * - cdnjs.cloudflare.com: Font Awesome (stylesheet imported by app.css, plus its webfonts). Remove it when the icons
  *   are self-hosted.
  * - Fonts: self-hosted under /fonts, so font-src has no Google origins.
+ * - challenges.cloudflare.com: Turnstile (src/lib/turnstile.ts). It needs script-src for api.js and frame-src for the
+ *   widget iframe. Pre-clearance also fetches the cf_clearance cookie from a /cdn-cgi/ path on this site, which
+ *   connect-src 'self' already allows. Docs: developers.cloudflare.com/turnstile/reference/content-security-policy/
  * - data: images: the 1x1 placeholder GIF in ProductDialog.
  * - Known report: Zod probes `Function("")` once per page to pick its fast path and falls back when it is blocked, so an
  *   enforced policy without 'unsafe-eval' still works. Set `z.config({ jitless: true })` to silence it before enforcing.
@@ -51,11 +54,12 @@ export function contentSecurityPolicyReportOnly(imagesOrigin: string | null = nu
   const imgSrc = ["'self'", "data:", ...(imagesOrigin ? [imagesOrigin] : [])];
   return [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    "script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com",
     "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com",
     "font-src 'self' https://cdnjs.cloudflare.com",
     `img-src ${imgSrc.join(" ")}`,
     "connect-src 'self'",
+    "frame-src https://challenges.cloudflare.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

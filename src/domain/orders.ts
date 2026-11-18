@@ -20,6 +20,9 @@ export const MAX_ORDER_LINES = 30;
 export const ORDER_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 export const ORDER_LIMITS = { ip: 10, phone: 5, couponIp: 20 } as const;
 
+/** Orders a phone may have waiting at status 'new' (P10.5). A third is refused until staff confirm or cancel one. */
+export const MAX_OPEN_ORDERS = 2;
+
 export interface DeliveryZone {
   id: string;
   name: string;
@@ -126,7 +129,11 @@ export type CheckoutField = "name" | "phone" | "zoneId" | "address" | "note" | "
 export type SubmitOrderResult =
   | { ok: true; reference: string; total: number; replayed: boolean }
   | { ok: false; code: "validation"; message: string; fieldErrors: Partial<Record<CheckoutField, string>> }
-  | { ok: false; code: "rate_limited" | "unavailable" | "idempotency_conflict" | "failed"; message: string }
+  | {
+      ok: false;
+      code: "rate_limited" | "open_orders" | "unavailable" | "idempotency_conflict" | "failed";
+      message: string;
+    }
   | {
       ok: false;
       code: "price_changed";

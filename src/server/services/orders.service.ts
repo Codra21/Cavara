@@ -4,7 +4,9 @@
 //   1. Validate (Zod). A filled honeypot is rejected like a validation error.
 //   2. Replay: the same idempotency key with the same order returns the saved reference (a retried tap, a lost
 //      response). The same key with a different order is refused.
-//   3. Rate limits per client IP and per phone number (HMAC keys, 15-minute windows).
+//   3. A blocked phone gets the rate-limit refusal and a phone with MAX_OPEN_ORDERS orders still 'new' gets the
+//      open-order refusal. Both are read first, so nothing is written. Then rate limits per client IP and per phone
+//      number (HMAC keys, 15-minute windows).
 //   4. Re-read prices, availability, the live sales and the delivery zone from D1. The charged price is the list price
 //      less the best sale (src/domain/discounts.ts, the rule the shop's cards use). The client's prices are never
 //      charged: a mismatch returns the current prices for the shopper to review.
@@ -14,7 +16,8 @@
 //      conditional on the stock still being there, so a colour that sold out since step 4 saves nothing and the
 //      shopper gets the out-of-stock refusal. The same batch claims a use of the coupon, and the order insert needs the
 //      use to be there, so the loser of a race for the last use saves nothing and gets price_changed with the coupon's
-//      new answer. A race on the idempotency key resolves to a replay, which claims nothing.
+//      new answer. The same insert needs the phone to be unblocked and under the open-order cap, so concurrent
+//      submits cannot pass either check. A race on the idempotency key resolves to a replay, which claims nothing.
 // Telegram alerts (unit 8) are written to an outbox after the order commits, so a failed alert never loses an order.
 import { createHash, createHmac } from "node:crypto";
 import {
@@ -26,6 +29,7 @@ import {
   ORDER_LIMIT_WINDOW_MS,
   ORDER_LIMITS,
   shopDay,
+  MAX_OPEN_ORDERS,
   type SubmitOrderResult,
 } from "@/domain/orders";
 import { type CouponAnswer, type CouponRule, couponMessage, evaluateCoupon } from "@/domain/coupons";
@@ -40,6 +44,7 @@ import {
   insertOrder,
   readActiveZone,
   readCouponByCode,
+  readPhoneStanding,
   type OrderLine,
   readSelections,
 } from "@/server/db/orders.repository";
@@ -58,6 +63,19 @@ const FAILED: SubmitOutcome = {
   ok: false,
   code: "failed",
   message: "Your order could not be saved. Your bag is unchanged. Please try again, or message us on WhatsApp.",
+};
+
+// A blocked number gets the rate-limit answer word for word, so a blocked caller cannot tell it from a busy window.
+const RATE_LIMITED: SubmitOutcome = {
+  ok: false,
+  code: "rate_limited",
+  message: "Too many orders from this number or connection. Please wait 15 minutes, or message us on WhatsApp.",
+};
+
+const OPEN_ORDERS: SubmitOutcome = {
+  ok: false,
+  code: "open_orders",
+  message: `You already have ${MAX_OPEN_ORDERS} orders waiting for our call. We'll contact you soon; reply to us if you need to change them.`,
 };
 
 const CONFLICT: SubmitOutcome = {
@@ -127,6 +145,10 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
   }
 
   const now = context.now ?? new Date();
+  // Before the rate limits, so a blocked or capped number writes nothing at all (not even a limit counter).
+  const standing = await readPhoneStanding(db, input.phone);
+  if (standing.blocked) return RATE_LIMITED;
+  if (standing.openOrders >= MAX_OPEN_ORDERS) return OPEN_ORDERS;
   const limitKey = (kind: string, value: string) => orderLimitKey(context.limitSecret, kind, value);
   const withinLimits = await consumeOrderLimits(
     db,
@@ -137,13 +159,7 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
     now.getTime(),
     ORDER_LIMIT_WINDOW_MS,
   );
-  if (!withinLimits) {
-    return {
-      ok: false,
-      code: "rate_limited",
-      message: "Too many orders from this number or connection. Please wait 15 minutes, or message us on WhatsApp.",
-    };
-  }
+  if (!withinLimits) return RATE_LIMITED;
 
   const [selections, zone, sales] = await Promise.all([
     readSelections(db, input.items),
@@ -270,6 +286,10 @@ async function refusedAfterRead(
   input: CheckoutInput,
   read: { zone: { charge: number }; itemsTotal: number; lines: OrderLine[]; now: Date },
 ): Promise<SubmitOutcome> {
+  // The insert also refuses a phone that was blocked or reached the cap after the first read.
+  const standing = await readPhoneStanding(db, input.phone);
+  if (standing.blocked) return RATE_LIMITED;
+  if (standing.openOrders >= MAX_OPEN_ORDERS) return OPEN_ORDERS;
   const selections = await readSelections(db, input.items);
   for (const item of input.items) {
     const selection = selections.get(`${item.productId}:${item.variant}`);

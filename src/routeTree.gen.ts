@@ -14,6 +14,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as HealthzRouteImport } from './routes/healthz'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
+import { Route as AdminBlockedRouteImport } from './routes/admin.blocked'
 import { Route as AdminDiscountsRouteImport } from './routes/admin.discounts'
 import { Route as AdminZonesRouteImport } from './routes/admin.zones'
 import { Route as CollectionsCategoryRouteImport } from './routes/collections.$category'
@@ -48,6 +49,11 @@ const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
 const AdminIndexRoute = AdminIndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBlockedRoute = AdminBlockedRouteImport.update({
+  id: '/blocked',
+  path: '/blocked',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminDiscountsRoute = AdminDiscountsRouteImport.update({
@@ -106,6 +112,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/healthz': typeof HealthzRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/blocked': typeof AdminBlockedRoute
   '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/zones': typeof AdminZonesRoute
   '/collections/$category': typeof CollectionsCategoryRoute
@@ -122,6 +129,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/healthz': typeof HealthzRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/blocked': typeof AdminBlockedRoute
   '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/zones': typeof AdminZonesRoute
   '/collections/$category': typeof CollectionsCategoryRoute
@@ -140,6 +148,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/healthz': typeof HealthzRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/admin/blocked': typeof AdminBlockedRoute
   '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/zones': typeof AdminZonesRoute
   '/collections/$category': typeof CollectionsCategoryRoute
@@ -159,6 +168,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/healthz'
     | '/sitemap.xml'
+    | '/admin/blocked'
     | '/admin/discounts'
     | '/admin/zones'
     | '/collections/$category'
@@ -175,6 +185,7 @@ export interface FileRouteTypes {
     | '/'
     | '/healthz'
     | '/sitemap.xml'
+    | '/admin/blocked'
     | '/admin/discounts'
     | '/admin/zones'
     | '/collections/$category'
@@ -192,6 +203,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/healthz'
     | '/sitemap.xml'
+    | '/admin/blocked'
     | '/admin/discounts'
     | '/admin/zones'
     | '/collections/$category'
@@ -251,6 +263,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/admin/'
       preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/blocked': {
+      id: '/admin/blocked'
+      path: '/blocked'
+      fullPath: '/admin/blocked'
+      preLoaderRoute: typeof AdminBlockedRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/discounts': {
@@ -327,6 +346,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AdminRouteChildren {
+  AdminBlockedRoute: typeof AdminBlockedRoute
   AdminDiscountsRoute: typeof AdminDiscountsRoute
   AdminZonesRoute: typeof AdminZonesRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -337,6 +357,7 @@ interface AdminRouteChildren {
 }
 
 const AdminRouteChildren: AdminRouteChildren = {
+  AdminBlockedRoute: AdminBlockedRoute,
   AdminDiscountsRoute: AdminDiscountsRoute,
   AdminZonesRoute: AdminZonesRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -363,10 +384,11 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

@@ -1,6 +1,6 @@
 // Guest order writes and lookups. Server-only. Every query is a primary-key or indexed lookup (D1 read budget).
 import type { CouponRule } from "@/domain/coupons";
-import type { CheckoutInput, DeliveryZone } from "@/domain/orders";
+import { type CheckoutInput, type DeliveryZone, MAX_OPEN_ORDERS } from "@/domain/orders";
 import type { Availability } from "@/lib/types";
 import type { D1Database } from "./d1";
 import { consumeLimits } from "./rate-limits";
@@ -34,6 +34,22 @@ export async function consumeOrderLimits(
 ): Promise<boolean> {
   const within = await consumeLimits(db, "order_rate_limits", limits, now, windowMs, sweep);
   return within.every(Boolean);
+}
+
+/**
+ * Whether a phone is blocked and how many of its orders are still 'new'. One statement: a primary-key probe on
+ * blocked_phones and a count over the partial index idx_orders_phone_new. Read before the rate limits so a refused
+ * number writes nothing; insertOrder re-checks both atomically.
+ */
+export const PHONE_STANDING_SQL = `SELECT EXISTS (SELECT 1 FROM blocked_phones WHERE phone = ?) AS blocked,
+  (SELECT COUNT(*) FROM orders WHERE phone = ? AND status = 'new') AS open_orders`;
+
+export async function readPhoneStanding(
+  db: D1Database,
+  phone: string,
+): Promise<{ blocked: boolean; openOrders: number }> {
+  const row = await db.prepare(PHONE_STANDING_SQL).bind(phone, phone).first<{ blocked: number; open_orders: number }>();
+  return { blocked: row?.blocked === 1, openOrders: row?.open_orders ?? 0 };
 }
 
 interface CouponRow {
@@ -148,6 +164,14 @@ const COUPON_USABLE = `(? IS NULL OR EXISTS (SELECT 1 FROM discounts
   WHERE id = ? AND kind = 'coupon' AND active = 1 AND (usage_limit IS NULL OR used_count < usage_limit)
     AND starts_at <= ? AND (ends_at IS NULL OR ends_at > ?)))`;
 
+/**
+ * True when the phone (bound twice, then the cap) is not blocked and has fewer than the cap's orders still 'new'. It is
+ * part of the order INSERT's WHERE, so two submits racing for the last open slot cannot both save, and a refused order
+ * leaves nothing behind because every later statement needs the order row.
+ */
+const PHONE_ALLOWED = `NOT EXISTS (SELECT 1 FROM blocked_phones WHERE phone = ?)
+  AND (SELECT COUNT(*) FROM orders WHERE phone = ? AND status = 'new') < ?`;
+
 /** Takes one use, only while one is left and only for an order that exists and names this coupon (3 parameters). */
 export const CLAIM_COUPON_USE_SQL = `UPDATE discounts SET used_count = used_count + 1
   WHERE id = ? AND (usage_limit IS NULL OR used_count < usage_limit)
@@ -155,8 +179,8 @@ export const CLAIM_COUPON_USE_SQL = `UPDATE discounts SET used_count = used_coun
 
 /**
  * Saves the order, its lines, the first history row and the day's "received" count as one transaction, and takes the
- * counted colours out of stock. Returns false, with nothing saved, when a counted colour holds fewer than a line wants
- * or the coupon has no use left.
+ * counted colours out of stock. Returns false, with nothing saved, when a counted colour holds fewer than a line wants,
+ * the coupon has no use left, the phone is blocked or the phone already has MAX_OPEN_ORDERS orders at 'new'.
  *
  * A coupon use is claimed in the same batch. The order INSERT is conditional on the coupon still being usable
  * (COUPON_USABLE: on, inside its dates, a use left) and the claim UPDATE follows it as the next statement of the same transaction, so two orders racing
@@ -177,7 +201,7 @@ export async function insertOrder(db: D1Database, order: NewOrder): Promise<bool
            zone_id, zone_name, delivery_charge, subtotal, total, item_count, shop_day, created_at, updated_at,
            items_total, coupon_code, coupon_id, coupon_discount)
          SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-         WHERE ${NO_SHORT_LINE} AND ${COUPON_USABLE}`,
+         WHERE ${NO_SHORT_LINE} AND ${COUPON_USABLE} AND ${PHONE_ALLOWED}`,
       )
       .bind(
         order.id,
@@ -206,6 +230,9 @@ export async function insertOrder(db: D1Database, order: NewOrder): Promise<bool
         order.coupon?.id ?? null,
         order.createdAt,
         order.createdAt,
+        input.phone,
+        input.phone,
+        MAX_OPEN_ORDERS,
       ),
     ...(order.coupon ? [db.prepare(CLAIM_COUPON_USE_SQL).bind(order.coupon.id, order.id, order.coupon.id)] : []),
     db

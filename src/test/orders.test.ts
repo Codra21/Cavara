@@ -195,6 +195,8 @@ describe("submitOrder", () => {
     const db = createTestD1();
     for (let i = 0; i < ORDER_LIMITS.phone; i++) {
       expect(await submitOrder(db, request(db), context())).toMatchObject({ ok: true });
+      // Staff act on each order, so the open-order cap (P10.5) does not get in the way of this test.
+      db.sqlite.run("UPDATE orders SET status = 'confirmed'");
     }
     expect(await submitOrder(db, request(db), context())).toMatchObject({ ok: false, code: "rate_limited" });
     // Another number on the same connection still works until the IP limit.

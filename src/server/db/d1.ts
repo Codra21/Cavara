@@ -110,10 +110,18 @@ export interface CloudflareEnv {
   TELEGRAM_BOT_TOKEN?: string;
   /** Telegram chat for usage alerts (secret). Order alerts use TELEGRAM_CHAT_ID. */
   TELEGRAM_USAGE_CHAT_ID?: string;
+  /** API token with Zone WAF Write (secret). Attack mode edits one WAF rule with it; unset skips attack mode. */
+  CF_WAF_TOKEN?: string;
+  /** Zone, zone ruleset and rule that attack mode switches (vars, see docs/abuse-defense-plan.md). Blank skips it. */
+  WAF_ZONE_ID?: string;
+  WAF_RULESET_ID?: string;
+  ATTACK_RULE_ID?: string;
   /** HMAC key for order rate-limit rows (secret, 32+ characters). Unset: a fixed fallback key, with a warning. */
   ORDER_RATE_LIMIT_SECRET?: string;
   /** Telegram chat for order alerts (secret), separate from the usage chat. Unset: alerts wait in the outbox. */
   TELEGRAM_CHAT_ID?: string;
   /** Origin for admin links in order alerts (var). Defaults to https://cavarabd.com. */
   ORDER_ADMIN_BASE_URL?: string;
+  /** Turnstile secret key (secret). Unset: the check is skipped on localhost and refused on every other host. */
+  TURNSTILE_SECRET_KEY?: string;
 }

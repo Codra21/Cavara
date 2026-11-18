@@ -36,6 +36,11 @@ export function getOrderLimitSecret(): string {
   return "cavara-order-limits-fallback-v1";
 }
 
+/** Turnstile secret key, or undefined when unset (see verifyTurnstile for what that means per host). */
+export function getTurnstileSecret(): string | undefined {
+  return env.TURNSTILE_SECRET_KEY?.trim() || undefined;
+}
+
 /** Telegram order-alert settings, or null when TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing. */
 export function getAlertSettings(): AlertSettings | null {
   return alertSettings(env);

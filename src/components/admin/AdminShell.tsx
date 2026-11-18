@@ -66,6 +66,9 @@ export function AdminShell({
                   <Link to="/admin/discounts" className={navClass} activeProps={{ className: activeNavClass }}>
                     Sales
                   </Link>
+                  <Link to="/admin/blocked" className={navClass} activeProps={{ className: activeNavClass }}>
+                    Blocked
+                  </Link>
                   <Link to="/admin/zones" className={navClass} activeProps={{ className: activeNavClass }}>
                     Delivery
                   </Link>

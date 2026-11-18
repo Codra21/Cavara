@@ -15,6 +15,7 @@ import {
 } from "@/lib/config";
 import { RootErrorPage } from "@/components/layout/ErrorPage";
 import { GlobalEffects } from "@/components/layout/GlobalEffects";
+import { TurnstilePanel } from "@/components/layout/TurnstilePanel";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { Announcement, FloatingChat, QuickDock, SiteFooter, Toast } from "@/components/layout/SiteChrome";
 import { BagDrawer } from "@/components/store/BagDrawer";
@@ -124,11 +125,19 @@ function RootDocument({ children }: { children: ReactNode }) {
 }
 
 function RootLayout() {
-  // The admin has its own layout: no storefront header, footer, bag or page effects.
+  // The admin has its own layout: no storefront header, footer, bag or page effects. Both layouts carry the Turnstile
+  // panel, because the WAF challenges admin server-function calls too.
   const isAdmin = useLocation({
     select: (location) => location.pathname === "/admin" || location.pathname.startsWith("/admin/"),
   });
-  if (isAdmin) return <Outlet />;
+  if (isAdmin) {
+    return (
+      <>
+        <Outlet />
+        <TurnstilePanel />
+      </>
+    );
+  }
   return (
     <StoreProvider>
       <a className="skip-link" href="#main">
@@ -146,6 +155,7 @@ function RootLayout() {
       <ProductDialog />
       <BagDrawer />
       <GlobalEffects />
+      <TurnstilePanel />
     </StoreProvider>
   );
 }

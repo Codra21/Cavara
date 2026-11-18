@@ -6,6 +6,10 @@ build/
 .wrangler/
 .tanstack/
 .env*
+# Public build-time values only (Vite exposes VITE_*): the Turnstile site key. Never put a secret in these.
+!.env.development
+!.env.production
+!.env.staging
 .dev.vars*
 !.dev.vars.example
 worker-configuration.d.ts.bak

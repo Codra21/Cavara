@@ -5,6 +5,7 @@ import { infiniteQueryOptions, keepPreviousData, type QueryClient, queryOptions 
 import type { AdminProductQuery } from "@/domain/admin-product-list";
 import type { AdminOrderPage, OrderStatus } from "@/domain/orders";
 import type { AdminProductName } from "@/domain/product-admin";
+import { isPhoneBlockedFn, listBlockedPhonesFn } from "@/server/functions/admin-blocked-phones.functions";
 import { getDashboardFn } from "@/server/functions/admin-dashboard.functions";
 import { listStockMovementsFn } from "@/server/functions/admin-stock.functions";
 import type { StockMovementPage } from "@/domain/stock";
@@ -148,4 +149,16 @@ export const adminDashboardQuery = () =>
     queryFn: ({ signal }) => getDashboardFn({ signal }),
     // Totals change only with orders and status changes; a minute is fresh enough and saves D1 reads.
     staleTime: 60_000,
+  });
+
+export const adminBlockedPhonesQuery = () =>
+  queryOptions({
+    queryKey: [...ADMIN_QUERY_KEY, "blocked-phones"],
+    queryFn: ({ signal }) => listBlockedPhonesFn({ signal }),
+  });
+
+export const adminPhoneBlockedQuery = (phone: string) =>
+  queryOptions({
+    queryKey: [...ADMIN_QUERY_KEY, "phone-blocked", phone],
+    queryFn: ({ signal }) => isPhoneBlockedFn({ data: { phone }, signal }),
   });

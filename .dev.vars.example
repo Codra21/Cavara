@@ -25,3 +25,9 @@ TELEGRAM_USAGE_CHAT_ID=
 IMAGE_BASE_URL=
 # Optional. R2 key of the catalogue snapshot; empty turns snapshots off.
 CATALOG_SNAPSHOT_KEY=
+
+# Cloudflare Turnstile secret key, checked by Siteverify on order submission and the coupon check. Unset: the check is
+# skipped on localhost and every other host is refused. This is Cloudflare's documented dummy secret (always passes);
+# it needs the dummy site key in .env.development. Production: `bunx wrangler secret put TURNSTILE_SECRET_KEY --env production`.
+# https://developers.cloudflare.com/turnstile/troubleshooting/testing/
+TURNSTILE_SECRET_KEY=1x0000000000000000000000000000000AA

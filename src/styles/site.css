@@ -4975,4 +4975,39 @@
     text-transform: uppercase;
     vertical-align: middle;
   }
+
+  /* ---------- Turnstile check ---------- */
+  /* Holds the Cloudflare Turnstile widgets (src/lib/turnstile.ts). Clipped to nothing while a check passes by
+     itself; the script sets data-active when the visitor has to act, and the panel shows the widget. */
+  .turnstile-panel {
+    position: fixed;
+    right: 16px;
+    bottom: max(16px, env(safe-area-inset-bottom));
+    z-index: 90;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .turnstile-panel[data-active] {
+    width: min(332px, calc(100vw - 32px));
+    height: auto;
+    padding: 14px 16px 16px;
+    overflow: visible;
+    clip-path: none;
+    white-space: normal;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--ink);
+    box-shadow: var(--shadow-float);
+  }
+
+  .turnstile-panel p {
+    margin: 0 0 10px;
+    font-size: 14px;
+    font-weight: 600;
+  }
 } /* @layer components */

@@ -21,6 +21,7 @@ import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, Table
 import { Textarea } from "@/components/ui/textarea";
 import { updateOrderFn } from "@/server/functions/admin-orders.functions";
 import { adminTimeFormat } from "./ActivityLog";
+import { BlockPhoneCard } from "./BlockPhoneCard";
 import { OrderStatusBadge, PaymentBadge } from "./OrderList";
 import { ADMIN_QUERY_KEY } from "./queries";
 
@@ -91,37 +92,40 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
       </div>
 
       <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
-        <Card>
-          <CardHeader>
-            <CardTitle>Customer</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3 text-sm">
-            <div className="font-medium text-foreground">{order.customerName}</div>
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="tabular-nums">{formatPhone(order.phone)}</span>
-              <Button size="sm" variant="outline" render={<a href={`tel:${order.phone}`} />}>
-                Call
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                render={<a href={whatsappLink(order.phone)} target="_blank" rel="noreferrer" />}
-              >
-                WhatsApp
-              </Button>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground">Deliver to ({order.zoneName})</div>
-              <p className="whitespace-pre-line text-foreground">{order.address}</p>
-            </div>
-            {order.note ? (
-              <div>
-                <div className="text-xs text-muted-foreground">Customer note</div>
-                <p className="whitespace-pre-line text-foreground">{order.note}</p>
+        <div className="grid content-start gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Customer</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 text-sm">
+              <div className="font-medium text-foreground">{order.customerName}</div>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="tabular-nums">{formatPhone(order.phone)}</span>
+                <Button size="sm" variant="outline" render={<a href={`tel:${order.phone}`} />}>
+                  Call
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  render={<a href={whatsappLink(order.phone)} target="_blank" rel="noreferrer" />}
+                >
+                  WhatsApp
+                </Button>
               </div>
-            ) : null}
-          </CardContent>
-        </Card>
+              <div>
+                <div className="text-xs text-muted-foreground">Deliver to ({order.zoneName})</div>
+                <p className="whitespace-pre-line text-foreground">{order.address}</p>
+              </div>
+              {order.note ? (
+                <div>
+                  <div className="text-xs text-muted-foreground">Customer note</div>
+                  <p className="whitespace-pre-line text-foreground">{order.note}</p>
+                </div>
+              ) : null}
+            </CardContent>
+          </Card>
+          {isOwner ? <BlockPhoneCard phone={order.phone} orderId={order.id} /> : null}
+        </div>
 
         <Card>
           <CardHeader>
