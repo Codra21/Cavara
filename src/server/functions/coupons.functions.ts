@@ -5,7 +5,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { getRequestHeader, setResponseHeader } from "@tanstack/react-start/server";
 import type { CouponCheckResult } from "@/domain/coupons";
-import { getDb, getOrderLimitSecret, getTurnstileSecret } from "@/server/env";
+import { getDb, getOrderLimitSecret, getTurnstileSecret, isTurnstileEnforced } from "@/server/env";
 import { checkCoupon } from "@/server/services/coupons.service";
 import { splitTurnstileToken, TURNSTILE_REFUSAL_MESSAGE, verifyTurnstile } from "@/server/turnstile.server";
 
@@ -18,6 +18,7 @@ export const checkCouponFn = createServerFn({ method: "POST" })
       const { token, rest } = splitTurnstileToken(data);
       const check = await verifyTurnstile(token, "coupon", {
         secret: getTurnstileSecret(),
+        enforce: isTurnstileEnforced(),
         host: getRequestHeader("host") ?? "",
         remoteIp: getRequestHeader("cf-connecting-ip"),
       });

@@ -41,6 +41,14 @@ export function getTurnstileSecret(): string | undefined {
   return env.TURNSTILE_SECRET_KEY?.trim() || undefined;
 }
 
+/**
+ * False when the TURNSTILE_MODE var is "off": order submission and the coupon check then skip Siteverify. A switch for
+ * the time a widget key is missing or wrong, so checkout keeps working; the phone and IP limits still apply.
+ */
+export function isTurnstileEnforced(): boolean {
+  return env.TURNSTILE_MODE?.trim().toLowerCase() !== "off";
+}
+
 /** Telegram order-alert settings, or null when TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID is missing. */
 export function getAlertSettings(): AlertSettings | null {
   return alertSettings(env);

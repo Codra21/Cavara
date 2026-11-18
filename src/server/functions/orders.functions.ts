@@ -6,7 +6,14 @@ import { getRequestHeader, setResponseHeader } from "@tanstack/react-start/serve
 import type { SubmitOrderResult } from "@/domain/orders";
 import { refreshProducts } from "@/server/catalog-cache.server";
 import { catalogSources } from "@/server/catalog-sources.server";
-import { getAlertSettings, getDb, getOrderLimitSecret, getTurnstileSecret, runAfterResponse } from "@/server/env";
+import {
+  getAlertSettings,
+  getDb,
+  getOrderLimitSecret,
+  getTurnstileSecret,
+  isTurnstileEnforced,
+  runAfterResponse,
+} from "@/server/env";
 import { deliverOrderAlerts } from "@/server/services/order-notifications.service";
 import { submitOrder } from "@/server/services/orders.service";
 import { splitTurnstileToken, TURNSTILE_REFUSAL_MESSAGE, verifyTurnstile } from "@/server/turnstile.server";
@@ -31,6 +38,7 @@ export const submitOrderFn = createServerFn({ method: "POST" })
       const { token, rest } = splitTurnstileToken(data);
       const check = await verifyTurnstile(token, "order", {
         secret: getTurnstileSecret(),
+        enforce: isTurnstileEnforced(),
         host: getRequestHeader("host") ?? "",
         remoteIp: getRequestHeader("cf-connecting-ip"),
       });

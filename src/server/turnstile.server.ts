@@ -28,6 +28,8 @@ export interface TurnstileContext {
   remoteIp?: string | undefined;
   fetchImpl?: typeof fetch;
   timeoutMs?: number;
+  /** False (TURNSTILE_MODE "off") passes every request without calling Siteverify. */
+  enforce?: boolean;
 }
 
 interface SiteverifyBody {
@@ -61,6 +63,7 @@ export async function verifyTurnstile(
   expectedAction: TurnstileAction,
   context: TurnstileContext,
 ): Promise<TurnstileOutcome> {
+  if (context.enforce === false) return { ok: true, skipped: true };
   const secret = context.secret?.trim();
   if (!secret) {
     if (isLocalHost(context.host)) {

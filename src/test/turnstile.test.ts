@@ -86,6 +86,15 @@ describe("verifyTurnstile", () => {
     expect(await verifyTurnstile("tok", "order", { ...ctx, fetchImpl })).toEqual({ ok: true, skipped: false });
   });
 
+  test("enforce false (TURNSTILE_MODE off) passes without calling Siteverify", async () => {
+    const { calls, fetchImpl } = siteverify({ success: false });
+    expect(await verifyTurnstile("", "order", { ...ctx, enforce: false, fetchImpl })).toEqual({
+      ok: true,
+      skipped: true,
+    });
+    expect(calls).toHaveLength(0);
+  });
+
   test("a failed verification is refused", async () => {
     const { fetchImpl } = siteverify({ success: false, "error-codes": ["timeout-or-duplicate"] });
     expect(await verifyTurnstile("tok", "order", { ...ctx, fetchImpl })).toEqual({ ok: false, reason: "rejected" });

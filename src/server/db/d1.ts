@@ -124,4 +124,6 @@ export interface CloudflareEnv {
   ORDER_ADMIN_BASE_URL?: string;
   /** Turnstile secret key (secret). Unset: the check is skipped on localhost and refused on every other host. */
   TURNSTILE_SECRET_KEY?: string;
+  /** "off" skips Siteverify (var). Anything else, or unset, checks it. */
+  TURNSTILE_MODE?: string;
 }
