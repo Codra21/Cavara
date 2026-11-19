@@ -3341,7 +3341,7 @@
   }
 
   .checkout-coupon details[open] > summary::after {
-    content: "2";
+    content: "\2212";
   }
 
   .checkout-coupon summary:focus-visible {

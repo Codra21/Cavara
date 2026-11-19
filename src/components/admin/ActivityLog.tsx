@@ -27,6 +27,8 @@ const ACTION_LABELS: Record<string, string> = {
   "discount.updated": "Updated sale",
   "coupon.created": "Added coupon",
   "coupon.updated": "Updated coupon",
+  "phone.blocked": "Blocked number",
+  "phone.unblocked": "Unblocked number",
 };
 
 // Fixed time zone so every admin sees shop time, whatever their device says.
