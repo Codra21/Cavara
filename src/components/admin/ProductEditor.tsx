@@ -49,6 +49,8 @@ import { ADMIN_QUERY_KEY, invalidateProductData, patchProductNames } from "./que
 import { StockControls, StockHistory } from "./StockControls";
 
 type FormVariant = ProductFormValues["variants"][number];
+type EditorVariant = FormVariant & { clientKey: string };
+type EditorFormValues = Omit<ProductFormValues, "variants"> & { variants: EditorVariant[] };
 
 const AVAILABILITY_LABELS: Record<Availability, string> = {
   in_stock: "In stock",
@@ -213,10 +215,10 @@ function VariantCard({
   stock,
   savedProductId,
 }: {
-  variant: FormVariant;
+  variant: EditorVariant;
   index: number;
   total: number;
-  onChange: (variant: FormVariant) => void;
+  onChange: (variant: EditorVariant) => void;
   onMove: (to: number) => void;
   onRemove: () => void;
   onAddImages: (keys: string[]) => void;
@@ -405,16 +407,26 @@ function VariantCard({
   );
 }
 
+function stripClientKeys(variants: EditorVariant[]): FormVariant[] {
+  return variants.map(({ clientKey: _clientKey, ...rest }) => rest);
+}
+
 export function ProductEditor({ product, categories }: { product: AdminProduct | null; categories: AdminCategory[] }) {
   const id = useId();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const { imageBase } = useCategories();
-  const initial = useMemo(
-    () => (product ? productToForm(product) : emptyProductForm(categories[0]?.id)),
-    [product, categories],
-  );
-  const [values, setValues] = useState<ProductFormValues>(initial);
+  const initial = useMemo<EditorFormValues>(() => {
+    const form = product ? productToForm(product) : emptyProductForm(categories[0]?.id);
+    return {
+      ...form,
+      variants: (form.variants ?? []).map((v) => ({
+        ...v,
+        clientKey: v.id !== null ? String(v.id) : crypto.randomUUID(),
+      })),
+    };
+  }, [product, categories]);
+  const [values, setValues] = useState<EditorFormValues>(initial);
   const [detailsText, setDetailsText] = useState((initial.details ?? []).join("\n"));
   const [slugTouched, setSlugTouched] = useState(Boolean(product));
   const [problems, setProblems] = useState<string[]>([]);
@@ -427,24 +439,27 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
     .split("\n")
     .map((line) => line.trim())
     .filter(Boolean);
-  const current: ProductFormValues = { ...values, details };
-  const dirty = JSON.stringify(current) !== JSON.stringify(initial);
+  const current: EditorFormValues = { ...values, details };
+  // clientKey is editor-only and new rows get a fresh UUID whenever `initial` recomputes, so compare without it.
+  const dirty =
+    JSON.stringify({ ...current, variants: stripClientKeys(current.variants ?? []) }) !==
+    JSON.stringify({ ...initial, variants: stripClientKeys(initial.variants ?? []) });
   const margin = unitMargin(values.price ?? 0, values.costPrice ?? null);
 
-  function set<K extends keyof ProductFormValues>(key: K, value: ProductFormValues[K]) {
+  function set<K extends keyof EditorFormValues>(key: K, value: EditorFormValues[K]) {
     setSaved(false);
     setValues((previous) => ({ ...previous, [key]: value }));
   }
 
-  const setVariants = (variants: FormVariant[]) => set("variants", variants);
+  const setVariants = (variants: EditorVariant[]) => set("variants", variants);
 
-  // Uploads finish later, so append to the latest state rather than the variants captured at click time.
-  function addImages(index: number, keys: string[]) {
+  // Uploads finish later, so append to the latest state by clientKey rather than index.
+  function addImages(clientKey: string, keys: string[]) {
     setSaved(false);
     setValues((previous) => ({
       ...previous,
-      variants: (previous.variants ?? []).map((variant, i) =>
-        i === index
+      variants: (previous.variants ?? []).map((variant) =>
+        variant.clientKey === clientKey
           ? { ...variant, images: [...(variant.images ?? []), ...keys].slice(0, MAX_IMAGES_PER_VARIANT) }
           : variant,
       ),
@@ -454,7 +469,7 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
   const save = useMutation({
     mutationFn: (form: ProductFormValues) =>
       saveProductFn({ data: { id: product?.id ?? null, revision: product?.revision ?? "", product: form } }),
-    onSuccess: async (result) => {
+    onSuccess: async (result, variables) => {
       if (!result.ok) {
         setConflict(Boolean(result.conflict));
         setProblems([result.error]);
@@ -464,7 +479,7 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
       setSaved(true);
       // The product list, counts and this product refetch; the name list (one read per product) is patched instead.
       patchProductNames(queryClient, [
-        { id: result.id, name: current.name, slug: current.slug, status: current.status ?? "draft" },
+        { id: result.id, name: variables.name, slug: variables.slug, status: variables.status ?? "draft" },
       ]);
       await invalidateProductData(queryClient);
       if (!product)
@@ -476,13 +491,17 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
   function submit(event: React.FormEvent) {
     event.preventDefault();
     setConflict(false);
-    const parsed = productInputSchema.safeParse(current);
+    const payload: ProductFormValues = {
+      ...current,
+      variants: stripClientKeys(current.variants ?? []),
+    };
+    const parsed = productInputSchema.safeParse(payload);
     if (!parsed.success) {
       setProblems([...new Set(parsed.error.issues.map((issue) => issue.message))]);
       return;
     }
     setProblems([]);
-    save.mutate(current);
+    save.mutate(payload);
   }
 
   async function reloadLatest() {
@@ -711,14 +730,16 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
           <ul className="grid gap-4">
             {variants.map((variant, index) => (
               <VariantCard
-                key={variant.id ?? `new-${index}`}
+                key={variant.clientKey}
                 variant={variant}
                 index={index}
                 total={variants.length}
-                onChange={(next) => setVariants(variants.map((item, i) => (i === index ? next : item)))}
+                onChange={(next) =>
+                  setVariants(variants.map((item) => (item.clientKey === variant.clientKey ? next : item)))
+                }
                 onMove={(to) => setVariants(move(variants, index, to))}
-                onRemove={() => setVariants(variants.filter((_, i) => i !== index))}
-                onAddImages={(keys) => addImages(index, keys)}
+                onRemove={() => setVariants(variants.filter((item) => item.clientKey !== variant.clientKey))}
+                onAddImages={(keys) => addImages(variant.clientKey, keys)}
                 productId={product ? String(product.id) : "new"}
                 imageBase={imageBase}
                 stock={product?.variants.find((saved) => saved.id === variant.id)?.stock ?? null}
@@ -734,7 +755,14 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
               onClick={() =>
                 setVariants([
                   ...variants,
-                  { id: null, name: "", swatch: "#E7E9E8", availability: "in_stock", images: [] },
+                  {
+                    clientKey: crypto.randomUUID(),
+                    id: null,
+                    name: "",
+                    swatch: "#E7E9E8",
+                    availability: "in_stock",
+                    images: [],
+                  },
                 ])
               }
             >
