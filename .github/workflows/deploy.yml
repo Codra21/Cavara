@@ -71,7 +71,7 @@ jobs:
       - name: Smoke test cavarabd.com
         run: |
           # Stable pages only: product URLs can change from the admin.
-          for path in / /robots.txt; do
+          for path in / /robots.txt /healthz /products; do
             code="$(curl -s -o /dev/null -w '%{http_code}' --retry 3 --retry-delay 5 "https://cavarabd.com$path")"
             echo "$path → $code"
             test "$code" = "200"
