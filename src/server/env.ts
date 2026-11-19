@@ -1,8 +1,13 @@
 // Request-time access to Worker bindings. Import only from server-only modules (*.server.ts, server function handlers).
+import { createHmac } from "node:crypto";
 import { env, waitUntil } from "cloudflare:workers";
 import { ownerCredentials } from "./admin/auth.server";
 import type { D1Database, R2Bucket } from "./db/d1";
 import { alertSettings, type AlertSettings } from "./services/order-notifications.service";
+import { isLocalHost } from "./turnstile.server";
+
+/** Public HMAC key used only when no real secret is configured. Fine on localhost, guessable anywhere else. */
+const ORDER_LIMIT_FALLBACK = "cavara-order-limits-fallback-v1";
 
 export function getImages(): R2Bucket {
   if (!env.IMAGES) throw new Error("R2 binding IMAGES is not configured for this Worker");
@@ -26,14 +31,35 @@ export function getDb(): D1Database {
 }
 
 /**
- * Key for the HMACs that name order rate-limit rows. The rows expire after 15 minutes and only need to hide the raw
- * phone and IP, so a missing secret falls back to a fixed key (logged) rather than blocking every order.
+ * Key for the HMACs that name order rate-limit rows. Uses ORDER_RATE_LIMIT_SECRET when it is at least 32 characters.
+ * Otherwise derives a key from ADMIN_SECRET (logged) so a missing order secret does not make phone HMACs reversible
+ * and does not stop checkout. The public fallback literal is only for local dev, where neither secret is set.
+ * Off localhost, with neither secret, that same literal is still returned: throwing would break checkout.
  */
-export function getOrderLimitSecret(): string {
-  const secret = env.ORDER_RATE_LIMIT_SECRET?.trim();
+export function orderLimitSecret(
+  source: { ORDER_RATE_LIMIT_SECRET?: string; ADMIN_SECRET?: string },
+  host = "",
+): string {
+  const secret = source.ORDER_RATE_LIMIT_SECRET?.trim();
   if (secret && secret.length >= 32) return secret;
-  console.warn("ORDER_RATE_LIMIT_SECRET is not set (or shorter than 32 characters); using the fallback key");
-  return "cavara-order-limits-fallback-v1";
+
+  const admin = source.ADMIN_SECRET?.trim();
+  if (admin) {
+    console.warn(
+      "ORDER_RATE_LIMIT_SECRET is not set or is shorter than 32 characters; deriving the order-limit key from ADMIN_SECRET",
+    );
+    return createHmac("sha256", admin).update("cavara-order-limits-v1").digest("hex");
+  }
+
+  console.warn("ORDER_RATE_LIMIT_SECRET is not set or is shorter than 32 characters; using the fallback key");
+  if (!isLocalHost(host)) {
+    console.warn("ADMIN_SECRET is not set either; checkout is using the public order-limit fallback");
+  }
+  return ORDER_LIMIT_FALLBACK;
+}
+
+export function getOrderLimitSecret(host = ""): string {
+  return orderLimitSecret(env, host);
 }
 
 /** Turnstile secret key, or undefined when unset (see verifyTurnstile for what that means per host). */
