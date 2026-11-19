@@ -58,6 +58,7 @@ export const listingQueryOptions = (query: ListQuery) => {
     queryFn: () => listProductsFn({ data }),
     staleTime: PUBLIC_STALE_TIME,
     refetchOnWindowFocus: false,
+    placeholderData: keepPreviousData,
   });
 };
 

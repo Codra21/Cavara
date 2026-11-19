@@ -74,28 +74,30 @@ export function ProductListing({ category, search }: { category?: string; search
 
   // The grid shows pages `start` to `end` of one list. A different list, or a page outside that run (a pager link, the
   // back button), starts a new run at the page in the URL.
-  const [run, setRun] = useState({ signature, start: page, end: page });
-  let current = run;
-  if (run.signature !== signature || page < run.start || page > run.end) {
-    current = { signature, start: page, end: page };
-    setRun(current);
-  }
+  const [expandedRun, setExpandedRun] = useState<{ signature: string; start: number; end: number } | null>(null);
+  const isRunValid =
+    expandedRun !== null && expandedRun.signature === signature && page >= expandedRun.start && page <= expandedRun.end;
+  const current = isRunValid ? expandedRun : { signature, start: page, end: page };
+
+  const latestSearch = useRef(search);
+  const latestCategory = useRef(category);
+  useEffect(() => {
+    latestSearch.current = search;
+    latestCategory.current = category;
+  });
 
   const baseQuery = { ...withoutPage(search), ...(category ? { category } : {}) };
   const pageNumbers = Array.from({ length: current.end - current.start + 1 }, (_, index) => current.start + index);
   const results = useQueries({
     queries: pageNumbers.map((number) => listingQueryOptions({ ...baseQuery, page: number })),
   });
-  const firstWithData = results.find((result) => result.data)?.data;
-  const latest = useRef(firstWithData);
-  const head = firstWithData ?? latest.current;
-  if (head) latest.current = head;
+  const head = results.find((result) => result.data)?.data;
 
-  const go = (next: ListSearch) =>
-    category
+  const go = (next: ListSearch, targetCategory = latestCategory.current) =>
+    targetCategory
       ? navigate({
           to: "/collections/$category",
-          params: { category },
+          params: { category: targetCategory },
           search: next,
           replace: true,
           resetScroll: false,
@@ -103,7 +105,7 @@ export function ProductListing({ category, search }: { category?: string; search
       : navigate({ to: "/products", search: next, replace: true, resetScroll: false });
   /** Applies a change to the filters or sort and returns to the first page. */
   const update = (patch: Partial<Record<keyof ListSearch, unknown>>) =>
-    void go(parseListSearch({ ...search, ...patch, page: undefined }));
+    void go(parseListSearch({ ...latestSearch.current, ...patch, page: undefined }));
 
   // Search box: typing applies after a pause, Enter applies at once. `pushed` is the text last written to the URL, so a
   // slow navigation never overwrites what the visitor has typed since.
@@ -159,8 +161,8 @@ export function ProductListing({ category, search }: { category?: string; search
   const loadMore = () => {
     const next = current.end + 1;
     focusFrom.current = cards.length;
-    setRun({ ...current, end: next });
-    void go({ ...search, page: next });
+    setExpandedRun({ signature, start: current.start, end: next });
+    void go({ ...latestSearch.current, page: next });
   };
 
   const filtered = hasActiveFilters(search);
@@ -398,7 +400,7 @@ export function ProductListing({ category, search }: { category?: string; search
                       category={category}
                       search={{ ...search, page: number > 1 ? number : undefined }}
                       aria-label={`Page ${number}`}
-                      onClick={() => setRun({ signature, start: number, end: number })}
+                      onClick={() => setExpandedRun(null)}
                       {...(number === page ? { "aria-current": "page" as const } : {})}
                     >
                       {number}
