@@ -74,7 +74,7 @@ export function ProductDialog() {
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  });
+  }, [quickView, images.length]);
 
   return (
     <ModalDialog

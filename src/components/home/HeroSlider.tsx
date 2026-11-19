@@ -33,9 +33,12 @@ export function HeroSlider() {
   const [pageHidden, setPageHidden] = useState(false);
   const sectionRef = useRef<HTMLElement>(null);
   const total = slides.length;
-  const running = !paused && !held && !pageHidden;
+  const running = total > 1 && !paused && !held && !pageHidden;
 
-  const show = (next: number) => setIndex(((next % total) + total) % total);
+  const show = (next: number) => {
+    if (total === 0) return;
+    setIndex(((next % total) + total) % total);
+  };
 
   useEffect(() => setPaused(prefersReducedMotion()), []);
 
@@ -50,6 +53,8 @@ export function HeroSlider() {
     const timer = window.setInterval(() => setIndex((current) => (current + 1) % total), SLIDE_INTERVAL);
     return () => window.clearInterval(timer);
   }, [running, index, total]);
+
+  if (total === 0) return null;
 
   return (
     <section

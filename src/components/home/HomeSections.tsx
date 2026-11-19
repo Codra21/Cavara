@@ -182,14 +182,14 @@ export function CarouselSection() {
       drag = null;
       track.classList.remove("is-dragging");
       if (moved) {
-        window.addEventListener(
-          "click",
-          (event) => {
-            event.stopPropagation();
-            event.preventDefault();
-          },
-          { capture: true, once: true },
-        );
+        const swallowClick = (event: MouseEvent) => {
+          event.stopPropagation();
+          event.preventDefault();
+        };
+        window.addEventListener("click", swallowClick, { capture: true, once: true });
+        window.setTimeout(() => {
+          window.removeEventListener("click", swallowClick, { capture: true });
+        }, 0);
       }
     };
     track.addEventListener("pointerdown", onDown);
