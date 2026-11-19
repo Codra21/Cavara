@@ -20,13 +20,21 @@ export interface PlacedOrder {
   phone: string;
 }
 
-interface Draft {
+export interface CheckoutDraft {
   name: string;
   phone: string;
   zoneId: string;
   address: string;
   note: string;
 }
+
+export const EMPTY_DRAFT: CheckoutDraft = {
+  name: "",
+  phone: "",
+  zoneId: "",
+  address: "",
+  note: "",
+};
 
 const priceKey = (productId: number, variant: number) => `${productId}:${variant}`;
 
@@ -38,22 +46,22 @@ const priceKey = (productId: number, variant: number) => `${productId}:${variant
 export function CheckoutForm({
   lines: buyable,
   zones,
+  draft: controlledDraft,
+  onDraftChange,
   onBack,
   onPlaced,
 }: {
   lines: BuyableLine[];
   zones: DeliveryZone[];
+  draft?: CheckoutDraft;
+  onDraftChange?: React.Dispatch<React.SetStateAction<CheckoutDraft>>;
   onBack: () => void;
   onPlaced: (order: PlacedOrder) => void;
 }) {
   const id = useId();
-  const [draft, setDraft] = useState<Draft>({
-    name: "",
-    phone: "",
-    zoneId: zones[0]?.id ?? "",
-    address: "",
-    note: "",
-  });
+  const [localDraft, setLocalDraft] = useState<CheckoutDraft>(() => controlledDraft ?? EMPTY_DRAFT);
+  const draft = controlledDraft ?? localDraft;
+  const setDraft = onDraftChange ?? setLocalDraft;
   const [website, setWebsite] = useState("");
   const [errors, setErrors] = useState<Partial<Record<CheckoutField, string>>>({});
   const [message, setMessage] = useState<{ tone: "error" | "notice"; text: string } | null>(null);
@@ -75,9 +83,9 @@ export function CheckoutForm({
     ...line,
     unitPrice: serverPrices.get(priceKey(line.item.id, line.item.variant)) ?? line.product.price,
   }));
-  const zone = zones.find((candidate) => candidate.id === draft.zoneId);
-  const deliveryCharge =
-    serverCharge && serverCharge.zoneId === draft.zoneId ? serverCharge.charge : (zone?.charge ?? 0);
+  const zone = zones.find((candidate) => candidate.id === draft.zoneId) ?? zones[0];
+  const zoneId = zone?.id ?? "";
+  const deliveryCharge = serverCharge && serverCharge.zoneId === zoneId ? serverCharge.charge : (zone?.charge ?? 0);
   const subtotal = lines.reduce((sum, line) => sum + line.unitPrice * line.item.qty, 0);
   const couponDiscount = coupon?.discount ?? 0;
   const total = subtotal - couponDiscount + deliveryCharge;
@@ -127,7 +135,7 @@ export function CheckoutForm({
     setCouponPending(false);
   }
 
-  const update = (field: keyof Draft) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const update = (field: keyof CheckoutDraft) => (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const value = event.target.value;
     setDraft((previous) => ({ ...previous, [field]: value }));
     if (errors[field as CheckoutField]) setErrors((previous) => ({ ...previous, [field]: undefined }));
@@ -139,6 +147,7 @@ export function CheckoutForm({
     setMessage(null);
     const body: Omit<CheckoutRequest, "idempotencyKey"> = {
       ...draft,
+      zoneId,
       deliveryCharge,
       couponCode: coupon?.code ?? "",
       couponDiscount,
@@ -192,7 +201,7 @@ export function CheckoutForm({
       setServerPrices(
         new Map(result.prices.map((price) => [priceKey(price.productId, price.variant), price.unitPrice])),
       );
-      setServerCharge({ zoneId: draft.zoneId, charge: result.deliveryCharge });
+      setServerCharge({ zoneId, charge: result.deliveryCharge });
       // A coupon that changed or stopped applying: show its new discount, or drop it and say why next to the field.
       if (result.coupon) {
         applyAnswer(result.coupon);
@@ -270,7 +279,7 @@ export function CheckoutForm({
               type="radio"
               name="zoneId"
               value={option.id}
-              checked={draft.zoneId === option.id}
+              checked={zoneId === option.id}
               onChange={() => {
                 setDraft((previous) => ({ ...previous, zoneId: option.id }));
                 setErrors((previous) => ({ ...previous, zoneId: undefined }));

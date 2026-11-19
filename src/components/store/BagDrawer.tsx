@@ -8,7 +8,7 @@ import { Toast } from "@/components/layout/SiteChrome";
 import { useShopNavigation } from "@/components/layout/useShopNavigation";
 import { ModalDialog } from "@/components/ui/ModalDialog";
 import { Icon, Quantity, SrOnly } from "@/components/ui/primitives";
-import { CheckoutForm, type PlacedOrder } from "./CheckoutForm";
+import { CheckoutForm, type CheckoutDraft, EMPTY_DRAFT, type PlacedOrder } from "./CheckoutForm";
 import { formatPhone } from "@/domain/orders";
 import { useBagLines } from "./useBagLines";
 import { useStore } from "./StoreProvider";
@@ -46,6 +46,7 @@ export function BagDrawer() {
   const buyable = lines.filter(isBuyable);
   const ready = canCheckout(lines);
   const [view, setView] = useState<"bag" | "checkout" | "placed">("bag");
+  const [draft, setDraft] = useState<CheckoutDraft>(EMPTY_DRAFT);
   const [placed, setPlaced] = useState<PlacedOrder | null>(null);
   const placedRef = useRef<HTMLHeadingElement>(null);
 
@@ -63,6 +64,7 @@ export function BagDrawer() {
   function onPlaced(order: PlacedOrder) {
     setPlaced(order);
     setView("placed");
+    setDraft(EMPTY_DRAFT);
     clearBag();
   }
 
@@ -97,7 +99,14 @@ export function BagDrawer() {
 
         <div className="bag-body">
           {view === "checkout" && ready ? (
-            <CheckoutForm lines={buyable} zones={zones} onBack={() => setView("bag")} onPlaced={onPlaced} />
+            <CheckoutForm
+              lines={buyable}
+              zones={zones}
+              draft={draft}
+              onDraftChange={setDraft}
+              onBack={() => setView("bag")}
+              onPlaced={onPlaced}
+            />
           ) : null}
           {view === "placed" && placed ? (
             <div className="order-placed" role="status">
