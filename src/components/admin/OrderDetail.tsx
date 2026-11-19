@@ -20,6 +20,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Textarea } from "@/components/ui/textarea";
 import { updateOrderFn } from "@/server/functions/admin-orders.functions";
+import { ActionDialog } from "./ActionDialog";
 import { adminTimeFormat } from "./ActivityLog";
 import { BlockPhoneCard } from "./BlockPhoneCard";
 import { OrderStatusBadge, PaymentBadge } from "./OrderList";
@@ -50,6 +51,7 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
   const [payment, setPayment] = useState<PaymentStatus>(order.paymentStatus);
   const [note, setNote] = useState("");
   const [problem, setProblem] = useState<{ text: string; conflict: boolean } | null>(null);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   const next = STATUS_TRANSITIONS[order.status];
   const dirty = status !== order.status || payment !== order.paymentStatus || note.trim() !== "";
@@ -65,6 +67,7 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
     mutationFn: () =>
       updateOrderFn({ data: { id: order.id, version: order.version, status, paymentStatus: payment, note } }),
     onSuccess: async (result) => {
+      setConfirmCancel(false);
       if (!result.ok) {
         setProblem({ text: result.error, conflict: Boolean(result.conflict) });
         return;
@@ -72,7 +75,10 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
       // The detail remounts on the new version with fresh state; lists and the activity log refetch.
       await queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEY });
     },
-    onError: (error) => setProblem({ text: error.message || "Could not save. Try again.", conflict: false }),
+    onError: (error) => {
+      setConfirmCancel(false);
+      setProblem({ text: error.message || "Could not save. Try again.", conflict: false });
+    },
   });
 
   return (
@@ -143,7 +149,8 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
                 event.preventDefault();
                 setProblem(null);
                 if (status === "cancelled" && order.status !== "cancelled") {
-                  if (!window.confirm(`Cancel ${order.reference}? It will be removed from sales.`)) return;
+                  setConfirmCancel(true);
+                  return;
                 }
                 save.mutate();
               }}
@@ -223,6 +230,17 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
               </Button>
             </form>
           </CardContent>
+          <ActionDialog
+            open={confirmCancel}
+            onOpenChange={setConfirmCancel}
+            title={`Cancel ${order.reference}?`}
+            description="It will be removed from sales."
+            confirmLabel="Cancel order"
+            pendingLabel="Cancelling…"
+            pending={save.isPending}
+            destructive
+            onConfirm={() => save.mutate()}
+          />
         </Card>
       </div>
 
@@ -272,39 +290,49 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
             </TableBody>
             <TableFooter>
               <TableRow>
-                <TableCell className="pl-4 whitespace-normal" colSpan={isOwner ? 4 : 3}>
+                <TableCell className="pl-4 whitespace-normal" colSpan={2}>
                   {order.couponCode ? "Items" : "Subtotal"}
                 </TableCell>
+                <TableCell className="hidden sm:table-cell" />
+                {isOwner ? <TableCell className="hidden sm:table-cell" /> : null}
                 <TableCell className="pr-4 text-right tabular-nums">
                   {formatPrice(order.couponCode ? order.itemsTotal : order.subtotal)}
                 </TableCell>
               </TableRow>
               {order.couponCode ? (
                 <TableRow>
-                  <TableCell className="pl-4 whitespace-normal" colSpan={isOwner ? 4 : 3}>
+                  <TableCell className="pl-4 whitespace-normal" colSpan={2}>
                     Coupon <span className="font-medium text-foreground">{order.couponCode}</span>
                   </TableCell>
+                  <TableCell className="hidden sm:table-cell" />
+                  {isOwner ? <TableCell className="hidden sm:table-cell" /> : null}
                   <TableCell className="pr-4 text-right tabular-nums">−{formatPrice(order.couponDiscount)}</TableCell>
                 </TableRow>
               ) : null}
               <TableRow>
-                <TableCell className="pl-4 whitespace-normal" colSpan={isOwner ? 4 : 3}>
+                <TableCell className="pl-4 whitespace-normal" colSpan={2}>
                   Delivery ({order.zoneName})
                 </TableCell>
+                <TableCell className="hidden sm:table-cell" />
+                {isOwner ? <TableCell className="hidden sm:table-cell" /> : null}
                 <TableCell className="pr-4 text-right tabular-nums">{formatPrice(order.deliveryCharge)}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell className="pl-4 whitespace-normal font-semibold" colSpan={isOwner ? 4 : 3}>
+                <TableCell className="pl-4 whitespace-normal font-semibold" colSpan={2}>
                   Total to collect
                 </TableCell>
+                <TableCell className="hidden sm:table-cell" />
+                {isOwner ? <TableCell className="hidden sm:table-cell" /> : null}
                 <TableCell className="pr-4 text-right font-semibold tabular-nums">{formatPrice(order.total)}</TableCell>
               </TableRow>
               {isOwner ? (
                 <TableRow>
-                  <TableCell className="pl-4 whitespace-normal text-muted-foreground" colSpan={4}>
+                  <TableCell className="pl-4 whitespace-normal text-muted-foreground" colSpan={2}>
                     Margin on items{order.couponCode ? " after the coupon" : ""}
                     {knownCost ? "" : " (some lines have no cost price)"}
                   </TableCell>
+                  <TableCell className="hidden sm:table-cell" />
+                  <TableCell className="hidden sm:table-cell" />
                   <TableCell className="pr-4 text-right tabular-nums text-muted-foreground">
                     {formatPrice(margin)}
                   </TableCell>
