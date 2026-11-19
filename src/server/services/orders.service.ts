@@ -13,9 +13,10 @@
 //   5. A coupon code is re-checked against the item total after sales (src/domain/coupons.ts). A coupon that stopped
 //      applying, or whose discount changed, returns price_changed with the coupon's new answer, like a changed price.
 //   6. Save everything in one D1 batch (one transaction), taking counted colours out of stock. The order insert is
-//      conditional on the stock still being there, so a colour that sold out since step 4 saves nothing and the
-//      shopper gets the out-of-stock refusal. The same batch claims a use of the coupon, and the order insert needs the
-//      use to be there, so the loser of a race for the last use saves nothing and gets price_changed with the coupon's
+//      conditional on the colour still existing, its product still being published, and the stock still being there,
+//      so a colour that sold out or disappeared since step 4 saves nothing and the shopper gets the unavailable
+//      refusal. The same batch claims a use of the coupon, and the order insert needs the use to be there, so the
+//      loser of a race for the last use saves nothing and gets price_changed with the coupon's
 //      new answer. The same insert needs the phone to be unblocked and under the open-order cap, so concurrent
 //      submits cannot pass either check. A race on the idempotency key resolves to a replay, which claims nothing.
 // Telegram alerts (unit 8) are written to an outbox after the order commits, so a failed alert never loses an order.
@@ -285,8 +286,8 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
 }
 
 /**
- * The order insert saved nothing: a counted colour ran short, or the coupon's last use went to another order, after
- * they were read. Say which, as the first checks do.
+ * The order insert saved nothing: a colour or its product disappeared, a counted colour ran short, or the coupon's
+ * last use went to another order, after they were read. Say which, as the first checks do.
  */
 async function refusedAfterRead(
   db: D1Database,
@@ -300,7 +301,16 @@ async function refusedAfterRead(
   const selections = await readSelections(db, input.items);
   for (const item of input.items) {
     const selection = selections.get(`${item.productId}:${item.variant}`);
-    if (selection && (selection.availability === "out_of_stock" || isShort({ ...selection, qty: item.qty }))) {
+    // A missing colour, or a product that is no longer published, is the same answer as the first check.
+    if (!selection || selection.status !== "published") {
+      const name = selection ? `${selection.productName} (${selection.variantName})` : "A piece in your bag";
+      return {
+        ok: false,
+        code: "unavailable",
+        message: `${name} is no longer available. Remove it from your bag and send the order again.`,
+      };
+    }
+    if (selection.availability === "out_of_stock" || isShort({ ...selection, qty: item.qty })) {
       return { ok: false, code: "unavailable", message: shortageMessage(selection) };
     }
   }

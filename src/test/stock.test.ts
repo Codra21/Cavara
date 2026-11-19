@@ -414,6 +414,57 @@ describe("placing an order", () => {
     expect(rowsIn(db, "stock_movements")).toBe(2);
   });
 
+  // Fires once the order INSERT is built, which is after the lines were read and before the statement runs.
+  function changeOnOrderInsert(db: TestD1, change: () => void) {
+    const prepare = db.prepare.bind(db);
+    let done = false;
+    db.prepare = (sql: string) => {
+      const statement = prepare(sql);
+      if (done || !sql.includes("INSERT INTO orders (")) return statement;
+      const bind = statement.bind.bind(statement);
+      statement.bind = (...values: unknown[]) => {
+        if (!done) {
+          done = true;
+          change();
+        }
+        return bind(...values);
+      };
+      return statement;
+    };
+  }
+
+  test("a colour deleted after the lines were read saves nothing and names the bag", async () => {
+    const db = createTestD1();
+    const product = await makeProduct(db, ["Sage"]);
+    changeOnOrderInsert(db, () => {
+      db.sqlite.run("DELETE FROM product_variants WHERE id = ?", [product.variants[0]!.id]);
+    });
+    const result = await order(db, [{ productId: product.id, variant: 0, qty: 1 }]);
+    expect(result).toEqual({
+      ok: false,
+      code: "unavailable",
+      message: "A piece in your bag is no longer available. Remove it from your bag and send the order again.",
+    });
+    expect(rowsIn(db, "orders")).toBe(0);
+    expect(rowsIn(db, "order_items")).toBe(0);
+    expect(rowsIn(db, "order_notification_outbox")).toBe(0);
+  });
+
+  test("a product unpublished after the lines were read saves nothing and names the piece", async () => {
+    const db = createTestD1();
+    const product = await makeProduct(db, ["Sage"]);
+    changeOnOrderInsert(db, () => {
+      db.sqlite.run("UPDATE products SET status = 'archived' WHERE id = ?", [product.id]);
+    });
+    const result = await order(db, [{ productId: product.id, variant: 0, qty: 1 }]);
+    expect(result).toEqual({
+      ok: false,
+      code: "unavailable",
+      message: `${product.values.name} (Sage) is no longer available. Remove it from your bag and send the order again.`,
+    });
+    expect(rowsIn(db, "orders")).toBe(0);
+  });
+
   test("a counted pre-order colour may go below 0 and stays pre-order; uncounted colours are not tracked", async () => {
     const db = createTestD1();
     const product = await makeProduct(db, ["Sage"], {

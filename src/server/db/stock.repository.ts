@@ -215,14 +215,17 @@ export const stockLinesJson = (lines: { variantId: number; qty: number }[]) =>
   JSON.stringify(lines.map((line) => [line.variantId, line.qty]));
 
 /**
- * SQL (one lines-JSON parameter) that is true when no line is short: no colour that is not on pre-order is out of
- * stock or counted below the quantity wanted. The order insert runs only when this holds.
+ * SQL (one lines-JSON parameter) that is true when every line can still be sold. The order insert runs only when
+ * this holds. The joins are left joins on purpose: an inner join would drop a colour deleted since the lines were
+ * read, NOT EXISTS would see no row, and the order would save for a missing colour or an unpublished product.
  */
 export const NO_SHORT_LINE = `NOT EXISTS (
   SELECT 1 FROM json_each(?) j
-  JOIN product_variants v ON v.id = json_extract(j.value, '$[0]')
-  WHERE v.availability <> 'preorder'
-    AND (v.availability = 'out_of_stock' OR (v.stock IS NOT NULL AND v.stock < json_extract(j.value, '$[1]'))))`;
+  LEFT JOIN product_variants v ON v.id = json_extract(j.value, '$[0]')
+  LEFT JOIN products p ON p.id = v.product_id
+  WHERE v.id IS NULL OR p.status <> 'published'
+    OR (v.availability <> 'preorder'
+      AND (v.availability = 'out_of_stock' OR (v.stock IS NOT NULL AND v.stock < json_extract(j.value, '$[1]')))))`;
 
 const ORDER_LINES = `SELECT json_extract(j.value, '$[0]') AS variant_id, json_extract(j.value, '$[1]') AS qty
   FROM json_each(?) j`;
