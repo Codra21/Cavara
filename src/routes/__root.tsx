@@ -17,10 +17,11 @@ import { RootErrorPage } from "@/components/layout/ErrorPage";
 import { GlobalEffects } from "@/components/layout/GlobalEffects";
 import { TurnstilePanel } from "@/components/layout/TurnstilePanel";
 import { SiteHeader } from "@/components/layout/SiteHeader";
-import { Announcement, FloatingChat, QuickDock, SiteFooter, Toast } from "@/components/layout/SiteChrome";
+import { FloatingChat, QuickDock, SiteFooter, Toast } from "@/components/layout/SiteChrome";
 import { BagDrawer } from "@/components/store/BagDrawer";
 import { ProductDialog } from "@/components/store/ProductDialog";
 import { StoreProvider } from "@/components/store/StoreProvider";
+import { INPUT_BOOT } from "@/lib/dom";
 import { THEME_BOOT, THEME_COLORS } from "@/lib/theme";
 import { categoriesQueryOptions } from "@/lib/query";
 
@@ -114,6 +115,7 @@ function RootDocument({ children }: { children: ReactNode }) {
     <html lang="en" data-theme="light" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
+        <script dangerouslySetInnerHTML={{ __html: INPUT_BOOT }} />
         <HeadContent />
       </head>
       <body>
@@ -143,7 +145,6 @@ function RootLayout() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      <Announcement />
       <SiteHeader />
       <main id="main" tabIndex={-1}>
         <Outlet />

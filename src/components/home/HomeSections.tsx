@@ -8,7 +8,7 @@ import { CAROUSEL_CATEGORY, LOOKBOOK } from "@/lib/config";
 import { scrollBehavior } from "@/lib/dom";
 import { PriceTag } from "@/components/store/PriceTag";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
-import { Icon, RoundBadge } from "@/components/ui/primitives";
+import { Icon } from "@/components/ui/primitives";
 
 const delay = (ms: number) => ({ "--reveal-delay": `${ms}ms` }) as React.CSSProperties;
 
@@ -292,11 +292,6 @@ export function PromoSection() {
               height={800}
             />
           </div>
-          <RoundBadge
-            value={String(promo.variants.length)}
-            ringText="Painted by hand · No two alike · "
-            caption="designs"
-          />
           <div className="studio-promo-copy">
             <p className="sub-heading sub-heading-light">Painted by hand</p>
             <h2 id="studio-promo-title">{pluralize(promo.variants.length, "design")}, no two quite alike.</h2>

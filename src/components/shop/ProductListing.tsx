@@ -215,8 +215,8 @@ export function ProductListing({ category, search }: { category?: string; search
           </p>
         </div>
 
-        <div className="shop-toolbar">
-          {showCategories ? (
+        {showCategories ? (
+          <div className="shop-toolbar">
             <nav className="filter-chips" aria-label="Collections">
               <ListingLink
                 className="filter-chip"
@@ -241,101 +241,96 @@ export function ProductListing({ category, search }: { category?: string; search
                 </ListingLink>
               ))}
             </nav>
-          ) : (
-            <span />
-          )}
-          <div className="shop-controls">
-            <form
-              role="search"
-              className="search-field"
-              onSubmit={(event) => {
-                event.preventDefault();
-                const clean = cleanSearchText(text) ?? "";
-                if (clean === pushed.current) return;
-                pushed.current = clean;
-                update({ q: clean });
-              }}
-            >
-              <Icon name="fa-solid fa-magnifying-glass" />
-              <label className="sr-only" htmlFor="product-search">
-                Search products
-              </label>
-              <input
-                type="search"
-                id="product-search"
-                placeholder="Search cups, dishes, jars…"
-                autoComplete="off"
-                maxLength={80}
-                value={text}
-                onChange={(event) => setText(event.target.value)}
-              />
-            </form>
+          </div>
+        ) : null}
+
+        {/* One row: search, filters, sort. */}
+        <div className="shop-filters">
+          <form
+            role="search"
+            className="search-field"
+            onSubmit={(event) => {
+              event.preventDefault();
+              const clean = cleanSearchText(text) ?? "";
+              if (clean === pushed.current) return;
+              pushed.current = clean;
+              update({ q: clean });
+            }}
+          >
+            <Icon name="fa-solid fa-magnifying-glass" />
+            <label className="sr-only" htmlFor="product-search">
+              Search products
+            </label>
+            <input
+              type="search"
+              id="product-search"
+              placeholder="Search cups, dishes, jars…"
+              autoComplete="off"
+              maxLength={80}
+              value={text}
+              onChange={(event) => setText(event.target.value)}
+            />
+          </form>
+          {showAvailability ? (
             <label className="sort-field">
-              <span>Sort</span>
-              <select value={sort} onChange={(event) => update({ sort: event.target.value as SortKey })}>
-                {SORT_KEYS.map((key) => (
-                  <option key={key} value={key}>
-                    {SORT_LABELS[key]}
+              <span>Availability</span>
+              <select
+                value={search.availability ?? ""}
+                onChange={(event) => update({ availability: event.target.value || undefined })}
+              >
+                <option value="">All</option>
+                {availabilityChoices.map((choice) => (
+                  <option key={choice} value={choice}>
+                    {AVAILABILITY_LABELS[choice]}
                   </option>
                 ))}
               </select>
             </label>
-          </div>
+          ) : null}
+          {showPrice ? (
+            <div className="sort-field price-field" role="group" aria-label="Price in taka">
+              <span>Price ৳</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                aria-label="Lowest price"
+                placeholder={facets.price ? String(facets.price.min) : "Min"}
+                value={minText}
+                onChange={(event) => setMinText(event.target.value)}
+                onBlur={commitPrice}
+                onKeyDown={(event) => event.key === "Enter" && commitPrice()}
+              />
+              <span aria-hidden="true">to</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                aria-label="Highest price"
+                placeholder={facets.price ? String(facets.price.max) : "Max"}
+                value={maxText}
+                onChange={(event) => setMaxText(event.target.value)}
+                onBlur={commitPrice}
+                onKeyDown={(event) => event.key === "Enter" && commitPrice()}
+              />
+            </div>
+          ) : null}
+          <label className="sort-field">
+            <span>Sort</span>
+            <select value={sort} onChange={(event) => update({ sort: event.target.value as SortKey })}>
+              {SORT_KEYS.map((key) => (
+                <option key={key} value={key}>
+                  {SORT_LABELS[key]}
+                </option>
+              ))}
+            </select>
+          </label>
+          {filtered ? (
+            <button className="text-link" type="button" onClick={() => void go(keepSort)}>
+              Clear filters
+            </button>
+          ) : null}
         </div>
-
-        {showAvailability || showPrice || filtered ? (
-          <div className="shop-filters" role="group" aria-label="Filters">
-            {showAvailability ? (
-              <label className="sort-field">
-                <span>Availability</span>
-                <select
-                  value={search.availability ?? ""}
-                  onChange={(event) => update({ availability: event.target.value || undefined })}
-                >
-                  <option value="">All</option>
-                  {availabilityChoices.map((choice) => (
-                    <option key={choice} value={choice}>
-                      {AVAILABILITY_LABELS[choice]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            ) : null}
-            {showPrice ? (
-              <div className="sort-field price-field" role="group" aria-label="Price in taka">
-                <span>Price ৳</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  aria-label="Lowest price"
-                  placeholder={facets.price ? String(facets.price.min) : "Min"}
-                  value={minText}
-                  onChange={(event) => setMinText(event.target.value)}
-                  onBlur={commitPrice}
-                  onKeyDown={(event) => event.key === "Enter" && commitPrice()}
-                />
-                <span aria-hidden="true">to</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
-                  min={0}
-                  aria-label="Highest price"
-                  placeholder={facets.price ? String(facets.price.max) : "Max"}
-                  value={maxText}
-                  onChange={(event) => setMaxText(event.target.value)}
-                  onBlur={commitPrice}
-                  onKeyDown={(event) => event.key === "Enter" && commitPrice()}
-                />
-              </div>
-            ) : null}
-            {filtered ? (
-              <button className="text-link" type="button" onClick={() => void go(keepSort)}>
-                Clear filters
-              </button>
-            ) : null}
-          </div>
-        ) : null}
 
         <ul ref={gridRef} className="product-grid" aria-label="Products" hidden={cards.length === 0}>
           {cards.map((product, index) => (

@@ -1,4 +1,4 @@
-import { useId, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import type { Availability } from "@/lib/types";
 
 /** Font Awesome icon. `name` is the full class list, e.g. "fa-solid fa-bag-shopping". */
@@ -15,29 +15,6 @@ export function BrandLogo({ className = "" }: { className?: string }) {
     <span className={`brand-logo ${className}`.trim()} aria-hidden="true">
       <span className="brand-mark" />
       <span className="brand-word" />
-    </span>
-  );
-}
-
-/** Circular badge with rotating ring text around a value. */
-export function RoundBadge({ value, ringText, caption }: { value: string; ringText: string; caption?: string }) {
-  const id = `badge-ring-${useId().replace(/:/g, "")}`;
-  return (
-    <span className="round-badge" aria-hidden="true">
-      <svg viewBox="0 0 100 100" className="round-badge-ring">
-        <defs>
-          <path id={id} d="M50,50 m-38,0 a38,38 0 1,1 76,0 a38,38 0 1,1 -76,0" />
-        </defs>
-        <text>
-          <textPath href={`#${id}`} textLength={236}>
-            {ringText.toUpperCase()}
-          </textPath>
-        </text>
-      </svg>
-      <span className="round-badge-value">
-        {value}
-        {caption ? <small>{caption}</small> : null}
-      </span>
     </span>
   );
 }

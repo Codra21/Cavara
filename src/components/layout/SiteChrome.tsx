@@ -14,30 +14,6 @@ import { useStore } from "@/components/store/StoreProvider";
 import { BrandLogo, Icon } from "@/components/ui/primitives";
 import { useShopNavigation } from "./useShopNavigation";
 
-const ANNOUNCEMENTS = (hidden: boolean) => (
-  <ul className="announce-list" aria-hidden={hidden || undefined}>
-    <li>Curated ceramics &amp; home accessories for modern Bangladeshi homes</li>
-    <li>
-      <a href={WHATSAPP_URL} target="_blank" rel="noopener" tabIndex={hidden ? -1 : undefined}>
-        <Icon name="fa-brands fa-whatsapp" /> Order on WhatsApp · {WHATSAPP_DISPLAY}
-      </a>
-    </li>
-    <li>Hand-selected from international artisans</li>
-    <li>Based in South Banasree, Dhaka</li>
-  </ul>
-);
-
-export function Announcement() {
-  return (
-    <div className="announce" aria-label="Announcements">
-      <div className="announce-track">
-        {ANNOUNCEMENTS(false)}
-        {ANNOUNCEMENTS(true)}
-      </div>
-    </div>
-  );
-}
-
 export function SiteFooter() {
   const { categories } = useCategories();
   const [year, setYear] = useState(2026);

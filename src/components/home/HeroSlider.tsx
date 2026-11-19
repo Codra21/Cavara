@@ -5,7 +5,7 @@ import { useHome } from "@/lib/query";
 import { HERO_SLIDES, SLIDE_INTERVAL } from "@/lib/config";
 import { prefersReducedMotion } from "@/lib/dom";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
-import { Icon, RoundBadge } from "@/components/ui/primitives";
+import { Icon } from "@/components/ui/primitives";
 
 export function HeroSlider() {
   const home = useHome();
@@ -27,6 +27,7 @@ export function HeroSlider() {
   );
   const openProduct = useOpenProduct();
   const [index, setIndex] = useState(0);
+  // No pause button: the slideshow stops while hovered or focused, and never runs with reduced motion.
   const [paused, setPaused] = useState(false);
   const [held, setHeld] = useState(false);
   const [pageHidden, setPageHidden] = useState(false);
@@ -98,10 +99,6 @@ export function HeroSlider() {
                       width={800}
                       height={800}
                     />
-                    <RoundBadge
-                      value={formatPrice(slide.product.price)}
-                      ringText={`${slide.category.name} · Cavara · ${slide.category.name} · Cavara · `}
-                    />
                   </div>
                   <span className="studio-slide-word" aria-hidden="true">
                     {slide.word}
@@ -148,14 +145,6 @@ export function HeroSlider() {
                 onClick={() => show(index - 1)}
               >
                 <Icon name="fa-solid fa-arrow-left-long" />
-              </button>
-              <button
-                className="studio-arrow"
-                type="button"
-                aria-label={paused ? "Play slideshow" : "Pause slideshow"}
-                onClick={() => setPaused(!paused)}
-              >
-                <Icon name={`fa-solid ${paused ? "fa-play" : "fa-pause"}`} />
               </button>
               <button className="studio-arrow" type="button" aria-label="Next slide" onClick={() => show(index + 1)}>
                 <Icon name="fa-solid fa-arrow-right-long" />
