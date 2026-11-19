@@ -262,4 +262,56 @@ describe("saveProduct", () => {
     expect(shown?.variants.length).toBe(loaded.variants.length);
     expect(shown?.variants[0]?.images).toEqual(loaded.variants[0]!.images.map((key) => mediaUrl("", key)));
   });
+
+  // The pre-write read is three statements. Creating with a picture is four, so the two batches stay distinct.
+  function stealNextId(db: TestD1, once: boolean) {
+    const batch = db.batch.bind(db);
+    let reads = 0;
+    db.batch = (async (statements) => {
+      const results = await batch(statements);
+      if (statements.length === 3 && (!once || reads === 0)) {
+        reads += 1;
+        const nextId = Number((results[2]?.results[0] as { id: number }).id);
+        db.sqlite.run(
+          "INSERT INTO products (id, slug, name, category_id, price) VALUES (?, ?, 'Racer', 'drinkware', 100)",
+          [nextId, `racer-${reads}`],
+        );
+      }
+      return results;
+    }) as TestD1["batch"];
+    return () => reads;
+  }
+
+  test("create retries when another product takes the next id", async () => {
+    const db = createTestD1();
+    stealNextId(db, true);
+    const result = await saveProduct(db, {
+      actor: owner,
+      id: null,
+      revision: "",
+      input: parse(form({ slug: "fresh-mug", name: "Fresh Mug" })),
+    });
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    const saved = db.sqlite.query("SELECT id FROM products WHERE slug = 'fresh-mug'").get() as { id: number };
+    const racer = db.sqlite.query("SELECT id FROM products WHERE slug = 'racer-1'").get() as { id: number };
+    expect(saved.id).toBe(racer.id + 1);
+  });
+
+  test("create gives up after three id collisions", async () => {
+    const db = createTestD1();
+    const reads = stealNextId(db, false);
+    const result = await saveProduct(db, {
+      actor: owner,
+      id: null,
+      revision: "",
+      input: parse(form({ slug: "fresh-mug", name: "Fresh Mug" })),
+    });
+    expect(result).toEqual({
+      ok: false,
+      error: "Another product was created at the same moment. Save again.",
+    });
+    expect(reads()).toBe(3);
+    expect(db.sqlite.query("SELECT id FROM products WHERE slug = 'fresh-mug'").get()).toBeNull();
+  });
 });

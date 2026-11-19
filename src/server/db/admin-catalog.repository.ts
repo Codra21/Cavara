@@ -136,170 +136,183 @@ export interface SaveProductOptions {
   now?: Date;
 }
 
+/** Create allocates MAX(id)+1. A second create can take that id; retry the allocation this many times. */
+const CREATE_ATTEMPTS = 3;
+
+function productIdTaken(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error);
+  return /UNIQUE constraint failed: products\.id/i.test(message);
+}
+
 export async function saveProduct(db: D1Database, options: SaveProductOptions): Promise<SaveProductResult> {
   const { actor, input } = options;
   const now = (options.now ?? new Date()).toISOString();
-  const nextRevision = crypto.randomUUID();
   const creating = options.id === null;
 
-  // Reads before the batch: these only shape the statements. The revision guard makes them safe, because any
-  // change that slips in between also changes the revision, and then the whole batch writes nothing.
-  const [categoryResult, existingResult, maxResult] = await db.batch<{ id: number | string }>([
-    db.prepare("SELECT id FROM categories WHERE id = ?").bind(input.categoryId),
-    db.prepare("SELECT id FROM product_variants WHERE product_id = ?").bind(options.id ?? -1),
-    db.prepare("SELECT COALESCE(MAX(id), 0) + 1 AS id FROM products"),
-  ]);
-  if (!categoryResult?.results.length)
-    return { ok: false, error: "That category no longer exists. Reload and pick another." };
+  for (let attempt = 1; attempt <= (creating ? CREATE_ATTEMPTS : 1); attempt++) {
+    const nextRevision = crypto.randomUUID();
 
-  const id = creating ? Number(maxResult?.results[0]?.id ?? 1) : (options.id as number);
-  const existingIds = new Set((existingResult?.results ?? []).map((row) => Number(row.id)));
-  const keptIds = input.variants.flatMap((variant) => (variant.id === null ? [] : [variant.id]));
-  if (keptIds.some((variantId) => !existingIds.has(variantId))) {
-    return {
-      ok: false,
-      conflict: true,
-      error: "Some colours changed in another tab. Reload to see the latest version.",
-    };
-  }
+    // Reads before the batch: these only shape the statements. The revision guard makes them safe, because any
+    // change that slips in between also changes the revision, and then the whole batch writes nothing.
+    const [categoryResult, existingResult, maxResult] = await db.batch<{ id: number | string }>([
+      db.prepare("SELECT id FROM categories WHERE id = ?").bind(input.categoryId),
+      db.prepare("SELECT id FROM product_variants WHERE product_id = ?").bind(options.id ?? -1),
+      db.prepare("SELECT COALESCE(MAX(id), 0) + 1 AS id FROM products"),
+    ]);
+    if (!categoryResult?.results.length)
+      return { ok: false, error: "That category no longer exists. Reload and pick another." };
 
-  const guardSql = "EXISTS (SELECT 1 FROM products WHERE id = ? AND revision = ?)";
-  const guardParams = [id, nextRevision];
-  const fields = [
-    input.slug,
-    input.name,
-    input.categoryId,
-    input.summary,
-    JSON.stringify(input.details),
-    input.note,
-    input.price,
-    input.regularPrice,
-    input.costPrice,
-    input.status,
-    input.featured ? 1 : 0,
-    input.sort,
-  ];
+    const id = creating ? Number(maxResult?.results[0]?.id ?? 1) : (options.id as number);
+    const existingIds = new Set((existingResult?.results ?? []).map((row) => Number(row.id)));
+    const keptIds = input.variants.flatMap((variant) => (variant.id === null ? [] : [variant.id]));
+    if (keptIds.some((variantId) => !existingIds.has(variantId))) {
+      return {
+        ok: false,
+        conflict: true,
+        error: "Some colours changed in another tab. Reload to see the latest version.",
+      };
+    }
 
-  const statements: D1PreparedStatement[] = [];
-  if (creating) {
-    statements.push(
-      db
-        .prepare(
-          `INSERT INTO products (id, slug, name, category_id, summary, details, note, price, regular_price, cost_price,
-             status, featured, sort, archived_at, revision, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'archived' THEN ? END, ?, ?, ?)`,
-        )
-        .bind(id, ...fields, input.status, now, nextRevision, now, now),
-    );
-  } else {
-    statements.push(
-      db
-        .prepare(
-          `UPDATE products SET slug = ?, name = ?, category_id = ?, summary = ?, details = ?, note = ?, price = ?,
-             regular_price = ?, cost_price = ?, status = ?, featured = ?, sort = ?,
-             archived_at = CASE WHEN ? = 'archived' THEN COALESCE(archived_at, ?) END,
-             revision = ?, updated_at = ?
-           WHERE id = ? AND revision = ?`,
-        )
-        .bind(...fields, input.status, now, nextRevision, now, id, options.revision),
-      db
-        .prepare(
-          `DELETE FROM product_images WHERE variant_id IN (SELECT id FROM product_variants WHERE product_id = ?)
-             AND ${guardSql}`,
-        )
-        .bind(id, ...guardParams),
-      db
-        .prepare(
-          `DELETE FROM product_variants WHERE product_id = ? AND id NOT IN (SELECT value FROM json_each(?))
-             AND ${guardSql}`,
-        )
-        .bind(id, JSON.stringify(keptIds), ...guardParams),
-      db
-        .prepare(
-          `UPDATE product_variants SET position = position + ${POSITION_PARK} WHERE product_id = ? AND ${guardSql}`,
-        )
-        .bind(id, ...guardParams),
-    );
-  }
+    const guardSql = "EXISTS (SELECT 1 FROM products WHERE id = ? AND revision = ?)";
+    const guardParams = [id, nextRevision];
+    const fields = [
+      input.slug,
+      input.name,
+      input.categoryId,
+      input.summary,
+      JSON.stringify(input.details),
+      input.note,
+      input.price,
+      input.regularPrice,
+      input.costPrice,
+      input.status,
+      input.featured ? 1 : 0,
+      input.sort,
+    ];
 
-  input.variants.forEach((variant, position) => {
-    if (variant.id === null) {
+    const statements: D1PreparedStatement[] = [];
+    if (creating) {
       statements.push(
         db
           .prepare(
-            `INSERT INTO product_variants (product_id, position, name, swatch, availability)
-             SELECT ?, ?, ?, ?, ? WHERE ${guardSql}`,
+            `INSERT INTO products (id, slug, name, category_id, summary, details, note, price, regular_price, cost_price,
+             status, featured, sort, archived_at, revision, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'archived' THEN ? END, ?, ?, ?)`,
           )
-          .bind(id, position, variant.name, variant.swatch, variant.availability, ...guardParams),
+          .bind(id, ...fields, input.status, now, nextRevision, now, now),
       );
     } else {
       statements.push(
         db
           .prepare(
-            // Stock is never written here: it has its own functions, so a save cannot overwrite a count. A counted
-            // colour (stock not NULL) takes its availability from the count; only pre-order is chosen by hand.
-            `UPDATE product_variants SET position = ?, name = ?, swatch = ?,
+            `UPDATE products SET slug = ?, name = ?, category_id = ?, summary = ?, details = ?, note = ?, price = ?,
+             regular_price = ?, cost_price = ?, status = ?, featured = ?, sort = ?,
+             archived_at = CASE WHEN ? = 'archived' THEN COALESCE(archived_at, ?) END,
+             revision = ?, updated_at = ?
+           WHERE id = ? AND revision = ?`,
+          )
+          .bind(...fields, input.status, now, nextRevision, now, id, options.revision),
+        db
+          .prepare(
+            `DELETE FROM product_images WHERE variant_id IN (SELECT id FROM product_variants WHERE product_id = ?)
+             AND ${guardSql}`,
+          )
+          .bind(id, ...guardParams),
+        db
+          .prepare(
+            `DELETE FROM product_variants WHERE product_id = ? AND id NOT IN (SELECT value FROM json_each(?))
+             AND ${guardSql}`,
+          )
+          .bind(id, JSON.stringify(keptIds), ...guardParams),
+        db
+          .prepare(
+            `UPDATE product_variants SET position = position + ${POSITION_PARK} WHERE product_id = ? AND ${guardSql}`,
+          )
+          .bind(id, ...guardParams),
+      );
+    }
+
+    input.variants.forEach((variant, position) => {
+      if (variant.id === null) {
+        statements.push(
+          db
+            .prepare(
+              `INSERT INTO product_variants (product_id, position, name, swatch, availability)
+             SELECT ?, ?, ?, ?, ? WHERE ${guardSql}`,
+            )
+            .bind(id, position, variant.name, variant.swatch, variant.availability, ...guardParams),
+        );
+      } else {
+        statements.push(
+          db
+            .prepare(
+              // Stock is never written here: it has its own functions, so a save cannot overwrite a count. A counted
+              // colour (stock not NULL) takes its availability from the count; only pre-order is chosen by hand.
+              `UPDATE product_variants SET position = ?, name = ?, swatch = ?,
                availability = CASE WHEN stock IS NULL THEN ?
                  WHEN ? = 'preorder' THEN 'preorder' WHEN stock <= 0 THEN 'out_of_stock' ELSE 'in_stock' END
              WHERE id = ? AND product_id = ? AND ${guardSql}`,
-          )
-          .bind(
-            position,
-            variant.name,
-            variant.swatch,
-            variant.availability,
-            variant.availability,
-            variant.id,
-            id,
-            ...guardParams,
-          ),
-      );
-    }
-  });
+            )
+            .bind(
+              position,
+              variant.name,
+              variant.swatch,
+              variant.availability,
+              variant.availability,
+              variant.id,
+              id,
+              ...guardParams,
+            ),
+        );
+      }
+    });
 
-  // All pictures in one statement: a JSON list of { v: variant position, p: picture position, path }.
-  const images = input.variants.flatMap((variant, v) => variant.images.map((path, p) => ({ v, p, path })));
-  if (images.length) {
-    statements.push(
-      db
-        .prepare(
-          `INSERT INTO product_images (variant_id, position, path)
+    // All pictures in one statement: a JSON list of { v: variant position, p: picture position, path }.
+    const images = input.variants.flatMap((variant, v) => variant.images.map((path, p) => ({ v, p, path })));
+    if (images.length) {
+      statements.push(
+        db
+          .prepare(
+            `INSERT INTO product_images (variant_id, position, path)
            SELECT pv.id, json_extract(j.value, '$.p'), json_extract(j.value, '$.path')
            FROM json_each(?) j JOIN product_variants pv
              ON pv.product_id = ? AND pv.position = json_extract(j.value, '$.v')
            WHERE ${guardSql}`,
-        )
-        .bind(JSON.stringify(images), id, ...guardParams),
-    );
-  }
-
-  const details: Record<string, AuditValue> = {
-    name: input.name,
-    status: input.status,
-    price: input.price,
-    costPrice: input.costPrice,
-    colours: input.variants.length,
-  };
-  statements.push(
-    auditStatement(db, actor, creating ? "product.created" : "product.updated", String(id), details, new Date(now), {
-      sql: guardSql,
-      params: guardParams,
-    }),
-  );
-
-  try {
-    const [claim] = await db.batch(statements);
-    if (claim?.meta.changes !== 1) {
-      return {
-        ok: false,
-        conflict: true,
-        error: "This product was changed in another tab or by another save. Reload to see the latest version.",
-      };
+          )
+          .bind(JSON.stringify(images), id, ...guardParams),
+      );
     }
-  } catch (error) {
-    const message = constraintError(error);
-    if (message) return { ok: false, error: message };
-    throw error;
+
+    const details: Record<string, AuditValue> = {
+      name: input.name,
+      status: input.status,
+      price: input.price,
+      costPrice: input.costPrice,
+      colours: input.variants.length,
+    };
+    statements.push(
+      auditStatement(db, actor, creating ? "product.created" : "product.updated", String(id), details, new Date(now), {
+        sql: guardSql,
+        params: guardParams,
+      }),
+    );
+
+    try {
+      const [claim] = await db.batch(statements);
+      if (claim?.meta.changes !== 1) {
+        return {
+          ok: false,
+          conflict: true,
+          error: "This product was changed in another tab or by another save. Reload to see the latest version.",
+        };
+      }
+    } catch (error) {
+      if (creating && productIdTaken(error) && attempt < CREATE_ATTEMPTS) continue;
+      const message = constraintError(error);
+      if (message) return { ok: false, error: message };
+      throw error;
+    }
+    return { ok: true, id, revision: nextRevision };
   }
-  return { ok: true, id, revision: nextRevision };
+  return { ok: false, error: "Another product was created at the same moment. Save again." };
 }
