@@ -1,4 +1,4 @@
-// Public order submission. Start's default CSRF middleware rejects cross-site calls; the handler validates everything
+// Public order submission. csrfMiddleware in src/start.ts rejects cross-site calls; the handler validates everything
 // itself (submitOrder), so the validator only passes the raw body through. The body also carries `turnstileToken`,
 // checked with Siteverify first. Responses are private and never cached.
 import { createServerFn } from "@tanstack/react-start";
@@ -46,14 +46,13 @@ export const submitOrderFn = createServerFn({ method: "POST" })
       const db = getDb();
       const result = await submitOrder(db, rest, {
         client: getRequestHeader("cf-connecting-ip") || "local",
-        limitSecret: getOrderLimitSecret(),
+        limitSecret: getOrderLimitSecret(getRequestHeader("host") ?? ""),
       });
       if (result.ok && !result.replayed) {
-        // Send the Telegram alert before replying (usually well under a second; 8 s timeout). The order is already
-        // saved, so a failure only leaves the outbox row for the 5-minute cron; the shopper never sees an alert error.
-        await deliverOrderAlerts(db, getAlertSettings(), { orderId: result.orderId }).catch((error: unknown) => {
-          console.error("order alert failed", error);
-        });
+        // The outbox row is already committed with the order. Send after the reply: Telegram's 8s timeout must not
+        // hold checkout. runAfterResponse logs a failure, and the 5-minute cron claims any row still pending.
+        const orderId = result.orderId;
+        runAfterResponse("order alert", () => deliverOrderAlerts(db, getAlertSettings(), { orderId }));
       }
       if (!result.ok) return result;
       // A colour this order sold out shows "Out of stock" from the shop's copy of the catalogue. Patch it after the

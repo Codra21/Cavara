@@ -11,8 +11,11 @@ import type { D1Database } from "@/server/db/d1";
 export const LEASE_MS = 60_000;
 export const MAX_ATTEMPTS = 12;
 export const MAX_BACKOFF_MS = 6 * 60 * 60 * 1000;
-/** Alerts sent per run; the cron runs every 5 minutes, so a backlog clears quickly without a long invocation. */
-export const BATCH_SIZE = 20;
+/**
+ * Alerts sent per run. Each send waits up to 8s, so six stays inside the 60s lease (48s) and a second sender
+ * cannot pick the same rows up mid-loop. The cron runs every 5 minutes, so a backlog still clears.
+ */
+export const BATCH_SIZE = 6;
 
 export interface AlertSettings {
   botToken: string;
@@ -118,10 +121,14 @@ export async function deliverOrderAlerts(
 ): Promise<DeliveryReport> {
   const report: DeliveryReport = { sent: [], retrying: [], failed: [] };
   if (!settings) return report;
-  const now = options.now ?? Date.now();
+  // Tests pin one clock. A live run stamps each row when that send finishes, so a slow Telegram does not
+  // record every row as if it finished at the start of the batch.
+  const pinned = options.now;
+  const clock = () => pinned ?? Date.now();
   const fetcher = options.fetcher ?? fetch;
 
-  for (const row of await claim(db, now, options.orderId)) {
+  for (const row of await claim(db, clock(), options.orderId)) {
+    const now = clock();
     const at = new Date(now).toISOString();
     try {
       await sendTelegram(settings, alertText(row, settings.adminBase), fetcher);
