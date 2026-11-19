@@ -1,5 +1,5 @@
 // Public coupon check. POST with a body (the bag lines), never cached: the answer depends on the clock, the use count
-// and the code, and an edge copy of it would let a used-up code keep working. Start's default CSRF middleware rejects
+// and the code, and an edge copy of it would let a used-up code keep working. csrfMiddleware in src/start.ts rejects
 // cross-site calls; checkCoupon validates the body itself, so the validator only passes it through. The body also carries
 // `turnstileToken`, checked with Siteverify first.
 import { createServerFn } from "@tanstack/react-start";
@@ -25,7 +25,7 @@ export const checkCouponFn = createServerFn({ method: "POST" })
       if (!check.ok) return { ok: false, reason: "failed", message: TURNSTILE_REFUSAL_MESSAGE };
       return await checkCoupon(getDb(), rest, {
         client: getRequestHeader("cf-connecting-ip") || "local",
-        limitSecret: getOrderLimitSecret(),
+        limitSecret: getOrderLimitSecret(getRequestHeader("host") ?? ""),
       });
     } catch (error) {
       console.error("coupon check failed", error);

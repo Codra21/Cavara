@@ -1,6 +1,6 @@
 // Request-bound admin session handling: the cookie, private cache headers and access checks. Server-only.
-// Cross-site calls to server functions are already rejected by Start's default CSRF middleware
-// (installed automatically because the app has no src/start.ts).
+// Cross-site calls to server functions are rejected by csrfMiddleware, registered in src/start.ts.
+// Start installs its default CSRF middleware only when that file is absent, so this app registers the same check there.
 import {
   deleteCookie,
   getCookie,
