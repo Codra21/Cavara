@@ -78,6 +78,8 @@ describe("updateOrderStatus", () => {
 
     const order = (await getOrder(db, id))!;
     expect(order.status).toBe("confirmed");
+    expect(order).not.toHaveProperty("couponId");
+    expect(order).not.toHaveProperty("couponReturned");
     expect(order.history.map((event) => [event.toStatus, event.actorUsername, event.note])).toEqual([
       ["new", null, ""],
       ["confirmed", "owner", "Called, confirmed"],

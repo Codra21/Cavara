@@ -114,16 +114,25 @@ interface DetailRow extends OrderRow {
   items_total: number | null;
   coupon_code: string | null;
   coupon_discount: number;
+  coupon_id: number | null;
+  coupon_returned: number;
   version: number;
   shop_day: string;
 }
 
-export async function getOrder(db: D1Database, id: string): Promise<AdminOrderDetail | null> {
+/** The public order plus the coupon columns a status change needs. Those stay off AdminOrderDetail. */
+interface OrderRead {
+  order: AdminOrderDetail;
+  couponId: number | null;
+  couponReturned: number;
+}
+
+async function readOrder(db: D1Database, id: string): Promise<OrderRead | null> {
   const [orderResult, lineResult, historyResult] = await db.batch([
     db
       .prepare(
         `SELECT ${SUMMARY_COLUMNS}, address, note, zone_id, delivery_charge, subtotal, items_total, coupon_code,
-           coupon_discount, version, shop_day
+           coupon_discount, coupon_id, coupon_returned, version, shop_day
          FROM orders WHERE id = ?`,
       )
       .bind(id),
@@ -146,21 +155,29 @@ export async function getOrder(db: D1Database, id: string): Promise<AdminOrderDe
   const row = (orderResult?.results ?? [])[0] as DetailRow | undefined;
   if (!row) return null;
   return {
-    ...toSummary(row),
-    address: row.address,
-    note: row.note,
-    zoneId: row.zone_id,
-    deliveryCharge: row.delivery_charge,
-    subtotal: row.subtotal,
-    // NULL on orders placed before coupons existed, which had no discount.
-    itemsTotal: row.items_total ?? row.subtotal,
-    couponCode: row.coupon_code,
-    couponDiscount: row.coupon_discount,
-    version: row.version,
-    shopDay: row.shop_day,
-    lines: (lineResult?.results ?? []) as AdminOrderLine[],
-    history: (historyResult?.results ?? []) as AdminOrderEvent[],
+    couponId: row.coupon_id,
+    couponReturned: row.coupon_returned,
+    order: {
+      ...toSummary(row),
+      address: row.address,
+      note: row.note,
+      zoneId: row.zone_id,
+      deliveryCharge: row.delivery_charge,
+      subtotal: row.subtotal,
+      // NULL on orders placed before coupons existed, which had no discount.
+      itemsTotal: row.items_total ?? row.subtotal,
+      couponCode: row.coupon_code,
+      couponDiscount: row.coupon_discount,
+      version: row.version,
+      shopDay: row.shop_day,
+      lines: (lineResult?.results ?? []) as AdminOrderLine[],
+      history: (historyResult?.results ?? []) as AdminOrderEvent[],
+    },
   };
+}
+
+export async function getOrder(db: D1Database, id: string): Promise<AdminOrderDetail | null> {
+  return (await readOrder(db, id))?.order ?? null;
 }
 
 const TIMESTAMP_COLUMN: Partial<Record<OrderStatus, string>> = {
@@ -213,8 +230,9 @@ export async function updateOrderStatus(
   input: UpdateOrderInput,
   now = new Date(),
 ): Promise<UpdateOrderOutcome> {
-  const current = await getOrder(db, input.id);
-  if (!current) return { ok: false, error: "This order no longer exists." };
+  const read = await readOrder(db, input.id);
+  if (!read) return { ok: false, error: "This order no longer exists." };
+  const current = read.order;
   if (current.version !== input.version) {
     return { ok: false, conflict: true, error: "This order changed since you opened it. Reload to see the latest." };
   }
@@ -234,15 +252,11 @@ export async function updateOrderStatus(
   const paymentChanged = current.paymentStatus !== input.paymentStatus;
   if (!statusChanged && !paymentChanged && !input.note) return { ok: true, version: current.version };
 
-  // The coupon this order used and whether it gave the use back (a cancel while unpaid).
-  const couponState = await db
-    .prepare("SELECT coupon_id, coupon_returned FROM orders WHERE id = ?")
-    .bind(input.id)
-    .first<{ coupon_id: number | null; coupon_returned: number }>();
-  const couponId = couponState?.coupon_id ?? null;
+  // The coupon this order used and whether it gave the use back (a cancel while unpaid). Read with the order above.
+  const couponId = read.couponId;
   const returnsCouponUse =
-    cancelling && couponId !== null && couponState?.coupon_returned === 0 && input.paymentStatus === "unpaid";
-  const claimsCouponUse = reopening && couponId !== null && couponState?.coupon_returned === 1;
+    cancelling && couponId !== null && read.couponReturned === 0 && input.paymentStatus === "unpaid";
+  const claimsCouponUse = reopening && couponId !== null && read.couponReturned === 1;
 
   const at = now.toISOString();
   const token = crypto.randomUUID();
