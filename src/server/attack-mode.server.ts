@@ -75,6 +75,7 @@ async function wafRequest(
     method,
     headers: { Authorization: `Bearer ${env.CF_WAF_TOKEN}`, "Content-Type": "application/json" },
     ...(body === undefined ? {} : { body: JSON.stringify(body) }),
+    signal: AbortSignal.timeout(8_000),
   });
   const parsed = (await response.json().catch(() => ({}))) as RuleResponse;
   if (!response.ok || parsed.success === false) {

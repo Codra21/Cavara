@@ -66,8 +66,9 @@ export async function queryAnalytics(
     method: "POST",
     headers: { Authorization: `Bearer ${env.CF_ANALYTICS_TOKEN}`, "Content-Type": "application/json" },
     body: JSON.stringify({ query, variables: { accountTag: env.USAGE_ACCOUNT_ID } }),
+    signal: AbortSignal.timeout(8_000),
   });
-  const body = (await response.json()) as GraphqlResponse;
+  const body = (await response.json().catch(() => ({}))) as GraphqlResponse;
   const account = body.data?.viewer?.accounts?.[0];
   if (!response.ok || body.errors?.length || !account)
     throw new Error(
@@ -105,6 +106,7 @@ export async function sendTelegram(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chat_id: env.TELEGRAM_USAGE_CHAT_ID, text }),
+    signal: AbortSignal.timeout(8_000),
   });
   const body = (await response.json().catch(() => ({}))) as { ok?: boolean; description?: string };
   if (!body.ok)
