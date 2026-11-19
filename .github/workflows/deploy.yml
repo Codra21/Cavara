@@ -71,8 +71,23 @@ jobs:
       - name: Smoke test cavarabd.com
         run: |
           # Stable pages only: product URLs can change from the admin.
+          # Bot Fight Mode challenges GitHub's datacenter IPs and cannot be skipped on the Free plan, so a 403 with
+          # `cf-mitigated: challenge` means Cloudflare stopped the runner before the Worker ran. That is a warning,
+          # not a failed deploy. Any other non-200 fails.
+          challenged=0
           for path in / /robots.txt /healthz /products; do
-            code="$(curl -s -o /dev/null -w '%{http_code}' --retry 3 --retry-delay 5 "https://cavarabd.com$path")"
+            headers="$(mktemp)"
+            code="$(curl -s -o /dev/null -D "$headers" -w '%{http_code}' --retry 3 --retry-delay 5 "https://cavarabd.com$path")"
             echo "$path → $code"
-            test "$code" = "200"
+            if [ "$code" = "200" ]; then continue; fi
+            if [ "$code" = "403" ] && grep -qi '^cf-mitigated: *challenge' "$headers"; then
+              challenged=$((challenged + 1))
+              continue
+            fi
+            echo "::error::$path returned $code"
+            cat "$headers"
+            exit 1
           done
+          if [ "$challenged" -gt 0 ]; then
+            echo "::warning::Cloudflare challenged the runner on $challenged path(s); check cavarabd.com by hand."
+          fi
