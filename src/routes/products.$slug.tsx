@@ -2,6 +2,7 @@ import { createFileRoute, notFound } from "@tanstack/react-router";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { getVariant, isProductSlug } from "@/domain/catalog";
 import { productQueryOptions, relatedQueryOptions } from "@/lib/query";
+import { safeLoad } from "@/lib/safe-load";
 import { absoluteUrl, breadcrumbJsonLd, metaDescription, productJsonLd, productUrl } from "@/domain/seo";
 import { SHARE_DESCRIPTION, SITE_URL } from "@/lib/config";
 import { ProductPage } from "@/components/product/ProductPage";
@@ -18,11 +19,13 @@ export const Route = createFileRoute("/products/$slug")({
   loader: async ({ context, params }) => {
     // A slug the editor could never have written is not found; the server function would reject it as bad input.
     if (!isProductSlug(params.slug)) throw notFound();
-    const [{ product, category }] = await Promise.all([
-      context.queryClient.query(productQueryOptions(params.slug)),
-      // Related pieces are below the fold; a failure leaves the row empty instead of failing the page.
-      context.queryClient.prefetchQuery(relatedQueryOptions(params.slug)),
-    ]);
+    const [{ product, category }] = await safeLoad("product page", () =>
+      Promise.all([
+        context.queryClient.query(productQueryOptions(params.slug)),
+        // Related pieces are below the fold; a failure leaves the row empty instead of failing the page.
+        context.queryClient.prefetchQuery(relatedQueryOptions(params.slug)),
+      ]),
+    );
     if (!product) throw notFound();
     // head() below needs the product too. The component reads the same data back from the query cache.
     return { product, category };
