@@ -1,4 +1,17 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  AlertCircle,
+  Check,
+  History,
+  MapPin,
+  MessageCircle,
+  Phone,
+  Receipt,
+  Save,
+  StickyNote,
+  User,
+  XCircle,
+} from "lucide-react";
 import { useId, useState } from "react";
 import { formatPrice } from "@/domain/catalog";
 import {
@@ -26,6 +39,8 @@ import { BlockPhoneCard } from "./BlockPhoneCard";
 import { OrderStatusBadge, PaymentBadge } from "./OrderList";
 import { ADMIN_QUERY_KEY } from "./queries";
 
+const PROGRESS_STEPS: readonly OrderStatus[] = ["new", "confirmed", "dispatched", "delivered"];
+
 function whatsappLink(phone: string) {
   return `https://wa.me/88${phone}`;
 }
@@ -42,6 +57,59 @@ function describeEvent(event: AdminOrderDetail["history"][number]) {
   }
   if (!parts.length) parts.push("Note added");
   return parts.join(" · ");
+}
+
+function FulfillmentTracker({ status }: { status: OrderStatus }) {
+  if (status === "cancelled") {
+    return (
+      <Alert variant="destructive">
+        <XCircle />
+        <AlertDescription>
+          This order is cancelled and excluded from sales totals. You can reopen it in the Update panel.
+        </AlertDescription>
+      </Alert>
+    );
+  }
+  const currentIndex = PROGRESS_STEPS.indexOf(status);
+  return (
+    <Card className="py-3">
+      <CardContent className="px-4">
+        <ol className="grid grid-cols-4 gap-2" aria-label="Order progress">
+          {PROGRESS_STEPS.map((step, index) => {
+            // Delivered is final, so its own step counts as done rather than in progress.
+            const done = index < currentIndex || status === "delivered";
+            const current = !done && index === currentIndex;
+            return (
+              <li key={step} className="grid gap-1.5" aria-current={current ? "step" : undefined}>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${
+                      done
+                        ? "bg-success text-background"
+                        : current
+                          ? "bg-primary text-primary-foreground ring-4 ring-primary/15"
+                          : "bg-muted text-muted-foreground"
+                    }`}
+                  >
+                    {done ? <Check className="size-3.5" aria-hidden="true" /> : index + 1}
+                  </span>
+                  <span
+                    className={`h-0.5 flex-1 rounded-full ${
+                      index === PROGRESS_STEPS.length - 1 ? "bg-transparent" : done ? "bg-success" : "bg-border"
+                    }`}
+                    aria-hidden="true"
+                  />
+                </div>
+                <span className={`text-xs ${current ? "font-semibold text-foreground" : "text-muted-foreground"}`}>
+                  {STATUS_LABELS[step]}
+                </span>
+              </li>
+            );
+          })}
+        </ol>
+      </CardContent>
+    </Card>
+  );
 }
 
 export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwner: boolean }) {
@@ -88,44 +156,58 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
           <h1 className="text-2xl font-bold tracking-tight tabular-nums">{order.reference}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Placed <time dateTime={order.createdAt}>{adminTimeFormat.format(new Date(order.createdAt))}</time> ·{" "}
-            {formatPrice(order.total)}
+            <span className="font-medium text-foreground">{formatPrice(order.total)}</span>
           </p>
         </div>
-        <div className="flex items-center gap-3 text-sm">
+        <div className="flex items-center gap-2 text-sm">
           <OrderStatusBadge status={order.status} />
           <PaymentBadge status={order.paymentStatus} />
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,20rem)]">
+      <FulfillmentTracker status={order.status} />
+
+      <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_minmax(0,22rem)]">
         <div className="grid content-start gap-6">
           <Card>
-            <CardHeader>
-              <CardTitle>Customer</CardTitle>
+            <CardHeader className="border-b border-border pb-3">
+              <div className="flex items-center gap-2">
+                <User aria-hidden="true" className="size-4 text-primary" />
+                <CardTitle>Customer</CardTitle>
+              </div>
             </CardHeader>
-            <CardContent className="grid gap-3 text-sm">
-              <div className="font-medium text-foreground">{order.customerName}</div>
+            <CardContent className="grid gap-4 text-sm">
+              <div className="text-base font-semibold text-foreground">{order.customerName}</div>
               <div className="flex flex-wrap items-center gap-2">
-                <span className="tabular-nums">{formatPhone(order.phone)}</span>
+                <span className="rounded-md bg-muted px-2.5 py-1 font-medium tabular-nums">
+                  {formatPhone(order.phone)}
+                </span>
                 <Button size="sm" variant="outline" render={<a href={`tel:${order.phone}`} />}>
-                  Call
+                  <Phone /> Call
                 </Button>
                 <Button
                   size="sm"
                   variant="outline"
+                  className="border-success-border bg-success-soft text-success hover:bg-success-soft/80"
                   render={<a href={whatsappLink(order.phone)} target="_blank" rel="noreferrer" />}
                 >
-                  WhatsApp
+                  <MessageCircle /> WhatsApp
                 </Button>
               </div>
-              <div>
-                <div className="text-xs text-muted-foreground">Deliver to ({order.zoneName})</div>
-                <p className="whitespace-pre-line text-foreground">{order.address}</p>
+              <div className="flex items-start gap-2.5 rounded-md bg-muted/40 p-3">
+                <MapPin aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <div>
+                  <div className="text-xs font-medium text-muted-foreground">Deliver to ({order.zoneName})</div>
+                  <p className="mt-0.5 whitespace-pre-line text-foreground">{order.address}</p>
+                </div>
               </div>
               {order.note ? (
-                <div>
-                  <div className="text-xs text-muted-foreground">Customer note</div>
-                  <p className="whitespace-pre-line text-foreground">{order.note}</p>
+                <div className="flex items-start gap-2.5 rounded-md border border-warning-border bg-warning-soft/60 p-3">
+                  <StickyNote aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-warning" />
+                  <div>
+                    <div className="text-xs font-medium text-warning">Customer note</div>
+                    <p className="mt-0.5 whitespace-pre-line text-foreground">{order.note}</p>
+                  </div>
                 </div>
               ) : null}
             </CardContent>
@@ -134,8 +216,8 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
         </div>
 
         <Card>
-          <CardHeader>
-            <CardTitle>Update</CardTitle>
+          <CardHeader className="border-b border-border pb-3">
+            <CardTitle>Update order</CardTitle>
             <CardDescription>
               {next.length
                 ? "Choose the next step, then save."
@@ -199,6 +281,7 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
               </div>
               {problem ? (
                 <Alert variant="destructive" role="alert">
+                  <AlertCircle />
                   <AlertDescription>
                     {problem.text}
                     {problem.conflict ? (
@@ -226,6 +309,7 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
                     : undefined
                 }
               >
+                <Save />
                 {save.isPending ? "Saving…" : "Save"}
               </Button>
             </form>
@@ -245,10 +329,16 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
       </div>
 
       <Card className="py-0">
+        <CardHeader className="border-b border-border px-4 py-3">
+          <div className="flex items-center gap-2">
+            <Receipt aria-hidden="true" className="size-4 text-primary" />
+            <CardTitle>Items &amp; totals</CardTitle>
+          </div>
+        </CardHeader>
         <CardContent className="px-0">
           <Table>
             <TableHeader>
-              <TableRow>
+              <TableRow className="bg-muted/40 hover:bg-muted/40">
                 <TableHead className="pl-4">Piece</TableHead>
                 <TableHead className="text-right">Qty</TableHead>
                 <TableHead className="hidden text-right sm:table-cell">Price</TableHead>
@@ -270,7 +360,7 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
                   <TableCell className="hidden text-right tabular-nums sm:table-cell">
                     {formatPrice(line.unitPrice)}
                     {isOwner && line.listPrice !== null && line.listPrice > line.unitPrice ? (
-                      <div className="text-xs text-muted-foreground">
+                      <div className="text-xs text-success">
                         Listed {formatPrice(line.listPrice)}, sale #{line.discountId}
                       </div>
                     ) : null}
@@ -284,7 +374,9 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
                       )}
                     </TableCell>
                   ) : null}
-                  <TableCell className="pr-4 text-right tabular-nums">{formatPrice(line.lineTotal)}</TableCell>
+                  <TableCell className="pr-4 text-right font-medium tabular-nums">
+                    {formatPrice(line.lineTotal)}
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -302,11 +394,13 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
               {order.couponCode ? (
                 <TableRow>
                   <TableCell className="pl-4 whitespace-normal" colSpan={2}>
-                    Coupon <span className="font-medium text-foreground">{order.couponCode}</span>
+                    Coupon <span className="font-semibold text-success">{order.couponCode}</span>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell" />
                   {isOwner ? <TableCell className="hidden sm:table-cell" /> : null}
-                  <TableCell className="pr-4 text-right tabular-nums">−{formatPrice(order.couponDiscount)}</TableCell>
+                  <TableCell className="pr-4 text-right font-medium text-success tabular-nums">
+                    −{formatPrice(order.couponDiscount)}
+                  </TableCell>
                 </TableRow>
               ) : null}
               <TableRow>
@@ -323,7 +417,9 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
                 </TableCell>
                 <TableCell className="hidden sm:table-cell" />
                 {isOwner ? <TableCell className="hidden sm:table-cell" /> : null}
-                <TableCell className="pr-4 text-right font-semibold tabular-nums">{formatPrice(order.total)}</TableCell>
+                <TableCell className="pr-4 text-right text-base font-bold tabular-nums">
+                  {formatPrice(order.total)}
+                </TableCell>
               </TableRow>
               {isOwner ? (
                 <TableRow>
@@ -333,7 +429,11 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
                   </TableCell>
                   <TableCell className="hidden sm:table-cell" />
                   <TableCell className="hidden sm:table-cell" />
-                  <TableCell className="pr-4 text-right tabular-nums text-muted-foreground">
+                  <TableCell
+                    className={`pr-4 text-right font-semibold tabular-nums ${
+                      margin >= 0 ? "text-success" : "text-destructive"
+                    }`}
+                  >
                     {formatPrice(margin)}
                   </TableCell>
                 </TableRow>
@@ -344,8 +444,11 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
       </Card>
 
       <Card>
-        <CardHeader>
-          <CardTitle>History</CardTitle>
+        <CardHeader className="border-b border-border pb-3">
+          <div className="flex items-center gap-2">
+            <History aria-hidden="true" className="size-4 text-primary" />
+            <CardTitle>History</CardTitle>
+          </div>
         </CardHeader>
         <CardContent>
           <ol className="divide-y divide-border">
@@ -357,9 +460,9 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
                 <span className="min-w-0">
                   <span className="font-medium text-foreground">{describeEvent(event)}</span>
                   <span className="text-muted-foreground"> · {event.actorUsername ?? "customer"}</span>
-                  {event.note ? <span className="block text-muted-foreground">{event.note}</span> : null}
+                  {event.note ? <span className="mt-0.5 block text-muted-foreground">{event.note}</span> : null}
                 </span>
-                <time className="text-muted-foreground tabular-nums" dateTime={event.createdAt}>
+                <time className="text-xs text-muted-foreground tabular-nums" dateTime={event.createdAt}>
                   {adminTimeFormat.format(new Date(event.createdAt))}
                 </time>
               </li>

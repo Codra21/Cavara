@@ -1,5 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { AlertTriangle, BellOff, Calendar, CalendarDays, CalendarRange, Clock, TrendingUp } from "lucide-react";
+import { type ReactNode, useState } from "react";
 import { formatPrice } from "@/domain/catalog";
 import type { DayTotals } from "@/domain/dashboard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -19,22 +20,50 @@ const monthLabel = new Intl.DateTimeFormat("en-GB", { timeZone: "UTC", month: "l
 const labelDay = (key: string) => dayLabel.format(new Date(`${key}T00:00:00Z`));
 const labelMonth = (key: string) => monthLabel.format(new Date(`${key}-01T00:00:00Z`));
 
-function Stat({ title, totals, note }: { title: string; totals: DayTotals; note?: string }) {
+function Stat({
+  title,
+  totals,
+  note,
+  icon,
+  accent,
+}: {
+  title: string;
+  totals: DayTotals;
+  note?: string;
+  icon: ReactNode;
+  accent?: boolean;
+}) {
   return (
-    <Card className="gap-2 py-4">
-      <CardHeader className="px-4">
-        <CardDescription>{title}</CardDescription>
-        <CardTitle className="text-2xl tabular-nums">{formatPrice(totals.revenue)}</CardTitle>
-      </CardHeader>
-      <CardContent className="grid gap-0.5 px-4 text-sm text-muted-foreground">
-        <span className="tabular-nums">
-          {totals.ordersReceived} received · {totals.ordersSold} sold
+    <Card className={`gap-2.5 py-4 ${accent ? "ring-primary/30" : ""}`}>
+      <CardHeader className="flex flex-row items-start justify-between gap-2 px-4">
+        <div className="grid gap-1">
+          <CardDescription className="text-xs font-medium uppercase tracking-wide">{title}</CardDescription>
+          <CardTitle className="text-2xl font-bold tracking-tight tabular-nums">
+            {formatPrice(totals.revenue)}
+          </CardTitle>
+        </div>
+        <span
+          className={`flex size-8 shrink-0 items-center justify-center rounded-md ${
+            accent ? "bg-primary/12 text-primary" : "bg-muted text-muted-foreground"
+          } [&_svg]:size-4`}
+          aria-hidden="true"
+        >
+          {icon}
         </span>
+      </CardHeader>
+      <CardContent className="grid gap-1 px-4 text-xs text-muted-foreground">
         <span className="tabular-nums">
-          Profit {formatPrice(totals.profit)}
+          <span className="font-medium text-foreground">{totals.ordersReceived}</span> received ·{" "}
+          <span className="font-medium text-foreground">{totals.ordersSold}</span> sold
+        </span>
+        <span className="inline-flex items-center gap-1 tabular-nums">
+          <span>Profit</span>
+          <span className={`font-semibold ${totals.profit > 0 ? "text-success" : "text-foreground"}`}>
+            {formatPrice(totals.profit)}
+          </span>
           {totals.linesWithoutCost ? <span title="Some sold lines have no cost price">*</span> : null}
         </span>
-        {note ? <span className="text-xs">{note}</span> : null}
+        {note ? <span className="text-[11px]">{note}</span> : null}
       </CardContent>
     </Card>
   );
@@ -58,11 +87,13 @@ function TotalsTable({ rows, label, caption }: { rows: DayTotals[]; label: (key:
           const empty = row.ordersReceived === 0 && row.ordersSold === 0;
           return (
             <TableRow key={row.key} className={empty ? "text-muted-foreground" : undefined}>
-              <TableCell className="pl-4">{label(row.key)}</TableCell>
+              <TableCell className="pl-4 font-medium">{label(row.key)}</TableCell>
               <TableCell className="text-right tabular-nums">{row.ordersReceived}</TableCell>
               <TableCell className="text-right tabular-nums">{row.ordersSold}</TableCell>
-              <TableCell className="text-right tabular-nums">{formatPrice(row.revenue)}</TableCell>
-              <TableCell className="pr-4 text-right tabular-nums">
+              <TableCell className="text-right font-medium tabular-nums">{formatPrice(row.revenue)}</TableCell>
+              <TableCell
+                className={`pr-4 text-right tabular-nums ${!empty && row.profit > 0 ? "font-medium text-success" : ""}`}
+              >
                 {formatPrice(row.profit)}
                 {row.linesWithoutCost ? "*" : ""}
               </TableCell>
@@ -82,6 +113,7 @@ export function DashboardPanel() {
   if (dashboard.isError) {
     return (
       <Alert variant="destructive" role="alert">
+        <AlertTriangle />
         <AlertDescription>{dashboard.error.message || "Could not load the dashboard."}</AlertDescription>
       </Alert>
     );
@@ -99,7 +131,8 @@ export function DashboardPanel() {
       </h2>
 
       {!data.alerts.configured ? (
-        <Alert>
+        <Alert variant="info">
+          <BellOff />
           <AlertTitle>Order alerts are off</AlertTitle>
           <AlertDescription>
             Telegram alerts start once TELEGRAM_BOT_TOKEN and TELEGRAM_CHAT_ID are set for the Worker. New orders still
@@ -107,7 +140,8 @@ export function DashboardPanel() {
           </AlertDescription>
         </Alert>
       ) : data.alerts.failed > 0 || data.alerts.pending > 0 ? (
-        <Alert variant={data.alerts.failed ? "destructive" : "default"}>
+        <Alert variant={data.alerts.failed ? "destructive" : "warning"}>
+          {data.alerts.failed ? <AlertTriangle /> : <Clock />}
           <AlertTitle>
             {data.alerts.failed
               ? `${data.alerts.failed} order alert${data.alerts.failed === 1 ? "" : "s"} could not be sent`
@@ -119,38 +153,48 @@ export function DashboardPanel() {
         </Alert>
       ) : null}
 
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Stat title="Today" totals={data.today} />
-        <Stat title="Yesterday" totals={data.yesterday} />
-        <Stat title={labelMonth(data.thisMonth.key)} totals={data.thisMonth} note="This month so far" />
-        <Stat title={labelMonth(data.lastMonth.key)} totals={data.lastMonth} note="Last month" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <Stat title="Today" totals={data.today} icon={<TrendingUp />} accent />
+        <Stat title="Yesterday" totals={data.yesterday} icon={<Clock />} />
+        <Stat
+          title={labelMonth(data.thisMonth.key)}
+          totals={data.thisMonth}
+          note="This month so far"
+          icon={<CalendarDays />}
+        />
+        <Stat
+          title={labelMonth(data.lastMonth.key)}
+          totals={data.lastMonth}
+          note="Last month"
+          icon={<CalendarRange />}
+        />
       </div>
 
       <Card className="py-0">
-        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-2 px-4 pt-4">
+        <CardHeader className="flex flex-row flex-wrap items-center justify-between gap-3 border-b border-border px-4 py-4">
           <div>
             <CardTitle>{view === "days" ? "Last 30 days" : "Last 12 months"}</CardTitle>
-            <CardDescription>
+            <CardDescription className="mt-0.5">
               Revenue is the item total of confirmed, dispatched and delivered orders, on the day they were placed.
               Delivery charges are not included.
             </CardDescription>
           </div>
-          <div role="group" aria-label="Period" className="flex gap-1">
+          <div role="group" aria-label="Period" className="flex gap-1 rounded-lg bg-muted p-0.5">
             <Button
               size="sm"
-              variant={view === "days" ? "secondary" : "ghost"}
+              variant={view === "days" ? "default" : "ghost"}
               aria-pressed={view === "days"}
               onClick={() => setView("days")}
             >
-              Days
+              <Calendar /> Days
             </Button>
             <Button
               size="sm"
-              variant={view === "months" ? "secondary" : "ghost"}
+              variant={view === "months" ? "default" : "ghost"}
               aria-pressed={view === "months"}
               onClick={() => setView("months")}
             >
-              Months
+              <CalendarRange /> Months
             </Button>
           </div>
         </CardHeader>

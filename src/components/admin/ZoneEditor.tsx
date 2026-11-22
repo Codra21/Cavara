@@ -1,8 +1,9 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { ArrowDown, ArrowUp, Plus } from "lucide-react";
+import { AlertCircle, ArrowDown, ArrowUp, CheckCircle2, MapPin, Plus, Save } from "lucide-react";
 import { useId, useState } from "react";
 import { type AdminZone, saveZonesSchema, type ZoneInput } from "@/domain/orders";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -32,6 +33,7 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
   const dirty =
     JSON.stringify(rows.map(({ key: _key, ...row }) => row)) !==
     JSON.stringify(toRows(zones).map(({ key: _key, ...row }) => row));
+  const firstActiveIndex = rows.findIndex((row) => row.active);
 
   const update = (index: number, patch: Partial<Row>) => {
     setNotice(null);
@@ -88,13 +90,14 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
           </p>
         </div>
         <Button type="submit" disabled={!dirty || save.isPending}>
-          {save.isPending ? "Saving…" : "Save areas"}
+          <Save /> {save.isPending ? "Saving…" : "Save areas"}
         </Button>
       </div>
 
       <div aria-live="polite" className="grid gap-2">
         {problems.length ? (
           <Alert variant="destructive" role="alert">
+            <AlertCircle />
             <AlertDescription>
               <ul className="list-disc pl-4">
                 {problems.map((problem) => (
@@ -104,12 +107,20 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
             </AlertDescription>
           </Alert>
         ) : null}
-        {notice && !dirty ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
+        {notice && !dirty ? (
+          <Alert variant="success" role="status">
+            <CheckCircle2 />
+            <AlertDescription>{notice}</AlertDescription>
+          </Alert>
+        ) : null}
       </div>
 
       <Card>
-        <CardHeader>
-          <CardTitle>Areas</CardTitle>
+        <CardHeader className="border-b border-border pb-3">
+          <div className="flex items-center gap-2">
+            <MapPin aria-hidden="true" className="size-4 text-primary" />
+            <CardTitle>Areas</CardTitle>
+          </div>
           <CardDescription>
             The first active area is selected by default at checkout. Switch an area off to hide it.
           </CardDescription>
@@ -119,10 +130,16 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
             {rows.map((row, index) => (
               <li
                 key={row.key}
-                className="grid items-end gap-3 rounded-md border border-border p-3 sm:grid-cols-[minmax(0,1fr)_8rem_auto_auto]"
+                className={`grid items-end gap-3 rounded-md border p-3 transition-colors sm:grid-cols-[minmax(0,1fr)_8rem_auto_auto] ${
+                  row.active ? "border-border bg-card" : "border-border/60 bg-muted/40 opacity-75"
+                }`}
               >
                 <div className="grid gap-1.5">
-                  <Label htmlFor={`${id}-${row.key}-name`}>Name</Label>
+                  <div className="flex items-center gap-2">
+                    <Label htmlFor={`${id}-${row.key}-name`}>Name</Label>
+                    {index === firstActiveIndex ? <Badge variant="info">Default at checkout</Badge> : null}
+                    {!row.active ? <Badge variant="outline">Hidden</Badge> : null}
+                  </div>
                   <Input
                     id={`${id}-${row.key}-name`}
                     value={row.name}

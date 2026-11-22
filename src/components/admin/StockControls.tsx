@@ -1,5 +1,6 @@
 import { useInfiniteQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
+import { AlertCircle, Boxes, History, Minus, PauseCircle, PlayCircle, Plus } from "lucide-react";
 import { useId, useState } from "react";
 import {
   type AdjustStockInput,
@@ -9,6 +10,7 @@ import {
   type StockMovement,
 } from "@/domain/stock";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -120,33 +122,37 @@ export function StockControls({
   }
 
   const text = action === "stop" ? STOP_TEXT : action ? DIALOG_TEXT[action] : DIALOG_TEXT.in;
+  const stockVariant =
+    stock === null ? "outline" : stock <= 0 ? "destructive" : stock <= LOW_STOCK_LIMIT ? "warning" : "success";
+
   return (
-    <div className="grid gap-2 rounded-md bg-muted/50 p-3">
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-        <span className="text-sm font-medium">Stock</span>
+    <div className="grid gap-2 rounded-md border border-border bg-muted/40 p-3">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="inline-flex items-center gap-1.5 text-sm font-medium">
+          <Boxes aria-hidden="true" className="size-4 text-muted-foreground" />
+          Stock
+        </span>
         {stock === null ? (
           <>
             <span className="text-sm text-muted-foreground">Not counted. Availability is set by hand.</span>
             <Button type="button" size="sm" variant="outline" onClick={() => setAction("start")}>
-              Start counting
+              <PlayCircle /> Start counting
             </Button>
           </>
         ) : (
           <>
-            <span
-              className={`text-sm font-semibold tabular-nums ${stock <= 0 ? "text-destructive" : ""}`}
-              aria-label={`${colour} stock`}
-            >
-              {stock} {stock <= 0 ? "(out of stock)" : stock <= LOW_STOCK_LIMIT ? "(low)" : ""}
-            </span>
+            <Badge variant={stockVariant} className="tabular-nums" aria-label={`${colour} stock`}>
+              {/* One text node: a flex badge drops the whitespace-only node between two expressions ("6in stock"). */}
+              {`${stock} ${stock <= 0 ? "out of stock" : stock <= LOW_STOCK_LIMIT ? "low" : "in stock"}`}
+            </Badge>
             <Button type="button" size="sm" variant="outline" onClick={() => setAction("in")}>
-              Stock in
+              <Plus /> Stock in
             </Button>
             <Button type="button" size="sm" variant="outline" disabled={stock <= 0} onClick={() => setAction("out")}>
-              Stock out
+              <Minus /> Stock out
             </Button>
-            <Button type="button" size="sm" variant="outline" onClick={() => setAction("stop")}>
-              Stop counting
+            <Button type="button" size="sm" variant="ghost" onClick={() => setAction("stop")}>
+              <PauseCircle /> Stop counting
             </Button>
           </>
         )}
@@ -205,6 +211,7 @@ export function StockControls({
           )}
           {error ? (
             <Alert variant="destructive" role="alert">
+              <AlertCircle />
               <AlertDescription>{error}</AlertDescription>
             </Alert>
           ) : null}
@@ -226,8 +233,11 @@ export function StockHistory({ productId }: { productId: number }) {
 
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>Stock history</CardTitle>
+      <CardHeader className="border-b border-border pb-3">
+        <div className="flex items-center gap-2">
+          <History aria-hidden="true" className="size-4 text-primary" />
+          <CardTitle>Stock history</CardTitle>
+        </div>
         <CardDescription>
           Every change to a counted colour, newest first, in Bangladesh time. Colour names are as they were then.
         </CardDescription>
@@ -236,6 +246,7 @@ export function StockHistory({ productId }: { productId: number }) {
         {history.isPending ? <p className="text-sm text-muted-foreground">Loading…</p> : null}
         {history.isError ? (
           <Alert variant="destructive" role="alert">
+            <AlertCircle />
             <AlertDescription>{history.error.message || "Could not load the stock history."}</AlertDescription>
           </Alert>
         ) : null}
@@ -256,7 +267,7 @@ export function StockHistory({ productId }: { productId: number }) {
                         <Link
                           to="/admin/orders/$orderId"
                           params={{ orderId: movement.orderId }}
-                          className="underline hover:text-foreground"
+                          className="text-primary underline hover:text-primary/80"
                         >
                           order
                         </Link>
@@ -267,7 +278,7 @@ export function StockHistory({ productId }: { productId: number }) {
                   </span>
                 </div>
                 <div className="flex items-baseline gap-3 tabular-nums">
-                  <span className={movement.delta < 0 ? "text-destructive" : ""}>{describeMovement(movement)}</span>
+                  <Badge variant={movement.delta < 0 ? "destructive" : "success"}>{describeMovement(movement)}</Badge>
                   <span className="text-muted-foreground">now {movement.balanceAfter}</span>
                   <time dateTime={movement.createdAt} className="text-xs text-muted-foreground">
                     {adminTimeFormat.format(new Date(movement.createdAt))}

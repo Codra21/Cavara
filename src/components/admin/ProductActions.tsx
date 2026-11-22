@@ -1,9 +1,11 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
+import { Archive, CheckCircle2, EyeOff, FolderInput, Star, StarOff, X } from "lucide-react";
 import { useState } from "react";
 import { type BulkProductAction, copyName, describeBulkResult } from "@/domain/admin-product-actions";
 import type { AdminCategory, AdminProductName, AdminProductSummary, ProductStatus } from "@/domain/product-admin";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
@@ -148,29 +150,29 @@ export function BulkBar({
     <div
       role="region"
       aria-label="Actions for the selected products"
-      className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/40 p-2"
+      className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/25 bg-primary/5 p-2.5"
     >
-      <span className="px-1 text-sm font-medium" aria-live="polite">
+      <Badge variant="default" aria-live="polite">
         {selected.length} selected
-      </span>
+      </Badge>
       <Button size="sm" onClick={() => send("publish")} disabled={run.isPending}>
-        Publish
+        <CheckCircle2 /> Publish
       </Button>
       <Button size="sm" variant="outline" onClick={() => send("unpublish")} disabled={run.isPending}>
-        Unpublish
+        <EyeOff /> Unpublish
       </Button>
       <Button size="sm" variant="outline" onClick={() => setConfirmArchive(true)} disabled={run.isPending}>
-        Archive
+        <Archive /> Archive
       </Button>
       <Button size="sm" variant="outline" onClick={() => send("feature")} disabled={run.isPending}>
-        Feature
+        <Star /> Feature
       </Button>
       <Button size="sm" variant="outline" onClick={() => send("unfeature")} disabled={run.isPending}>
-        Unfeature
+        <StarOff /> Unfeature
       </Button>
       <div className="flex items-center gap-1">
         <Select value={category} onValueChange={setCategory}>
-          <SelectTrigger size="sm" aria-label="Category to move the selected products to" className="w-40">
+          <SelectTrigger size="sm" aria-label="Category to move the selected products to" className="w-40 bg-card">
             <SelectValue placeholder="Move to category" />
           </SelectTrigger>
           <SelectContent>
@@ -182,11 +184,11 @@ export function BulkBar({
           </SelectContent>
         </Select>
         <Button size="sm" variant="outline" onClick={() => send("set_category")} disabled={run.isPending || !category}>
-          Move
+          <FolderInput /> Move
         </Button>
       </div>
       <Button size="sm" variant="ghost" onClick={onClear} disabled={run.isPending} className="ml-auto">
-        Clear selection
+        <X /> Clear
       </Button>
 
       <ActionDialog

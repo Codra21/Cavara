@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { Package, ShoppingBag } from "lucide-react";
 import { ActivityLog } from "@/components/admin/ActivityLog";
 import { DashboardPanel } from "@/components/admin/DashboardPanel";
 import { Button } from "@/components/ui/button";
@@ -20,9 +21,11 @@ function AdminOverview() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button render={<Link to="/admin/orders" />}>Open orders</Button>
+          <Button render={<Link to="/admin/orders" />}>
+            <ShoppingBag /> Open orders
+          </Button>
           <Button variant="outline" render={<Link to="/admin/products" />}>
-            Manage products
+            <Package /> Manage products
           </Button>
         </div>
       </div>

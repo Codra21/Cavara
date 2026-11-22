@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, ShieldBan, ShieldCheck } from "lucide-react";
 import { useId, useState } from "react";
 import { MAX_BLOCK_REASON } from "@/domain/blocked-phones";
 import { formatPhone } from "@/domain/orders";
@@ -41,9 +42,15 @@ export function BlockPhoneCard({ phone, orderId }: { phone: string; orderId: str
   const blocked = status.data.blocked;
 
   return (
-    <Card>
+    <Card className={blocked ? "ring-danger-border bg-danger-soft/30" : undefined}>
       <CardHeader>
-        <CardTitle>{blocked ? "This number is blocked" : "Block this number"}</CardTitle>
+        <div className="flex items-center gap-2">
+          <ShieldBan
+            aria-hidden="true"
+            className={`size-4 ${blocked ? "text-destructive" : "text-muted-foreground"}`}
+          />
+          <CardTitle>{blocked ? "This number is blocked" : "Block this number"}</CardTitle>
+        </div>
         <CardDescription>
           {blocked
             ? "New orders from it are refused. Its existing orders are unchanged."
@@ -53,6 +60,7 @@ export function BlockPhoneCard({ phone, orderId }: { phone: string; orderId: str
       <CardContent className="grid gap-3">
         {problem ? (
           <Alert variant="destructive" role="alert">
+            <AlertCircle />
             <AlertDescription>{problem}</AlertDescription>
           </Alert>
         ) : null}
@@ -67,6 +75,7 @@ export function BlockPhoneCard({ phone, orderId }: { phone: string; orderId: str
               unblock.mutate();
             }}
           >
+            <ShieldCheck />
             {unblock.isPending ? "Unblocking…" : "Unblock"}
           </Button>
         ) : (
@@ -78,6 +87,7 @@ export function BlockPhoneCard({ phone, orderId }: { phone: string; orderId: str
               setOpen(true);
             }}
           >
+            <ShieldBan />
             Block this number
           </Button>
         )}

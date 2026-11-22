@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { AlertCircle, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import type { BlockedPhone } from "@/domain/blocked-phones";
 import { formatPhone } from "@/domain/orders";
@@ -30,17 +31,26 @@ export function BlockedPhonesList({ blocked }: { blocked: BlockedPhone[] }) {
       </div>
       {problem ? (
         <Alert variant="destructive" role="alert">
+          <AlertCircle />
           <AlertDescription>{problem}</AlertDescription>
         </Alert>
       ) : null}
       <Card className="py-0">
         <CardContent className="px-0">
           {blocked.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">No numbers are blocked.</p>
+            <div className="grid justify-items-center gap-2 p-8 text-center">
+              <span className="flex size-10 items-center justify-center rounded-full bg-success-soft text-success">
+                <ShieldCheck className="size-5" aria-hidden="true" />
+              </span>
+              <p className="text-sm font-medium text-foreground">No numbers are blocked</p>
+              <p className="text-xs text-muted-foreground">
+                If you receive spam or fake orders, open the order page to block that number.
+              </p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="pl-4">Number</TableHead>
                   <TableHead>Reason</TableHead>
                   <TableHead className="hidden sm:table-cell">Blocked</TableHead>
@@ -52,11 +62,11 @@ export function BlockedPhonesList({ blocked }: { blocked: BlockedPhone[] }) {
               <TableBody>
                 {blocked.map((entry) => (
                   <TableRow key={entry.phone}>
-                    <TableCell className="pl-4 tabular-nums">{formatPhone(entry.phone)}</TableCell>
+                    <TableCell className="pl-4 font-medium tabular-nums">{formatPhone(entry.phone)}</TableCell>
                     <TableCell className="max-w-[16rem] whitespace-normal text-muted-foreground">
                       {entry.reason || "—"}
                     </TableCell>
-                    <TableCell className="hidden text-muted-foreground sm:table-cell">
+                    <TableCell className="hidden text-xs text-muted-foreground sm:table-cell">
                       {adminTimeFormat.format(new Date(entry.createdAt))} · {entry.createdBy}
                     </TableCell>
                     <TableCell className="pr-4 text-right">
@@ -72,7 +82,7 @@ export function BlockedPhonesList({ blocked }: { blocked: BlockedPhone[] }) {
                           unblock.mutate(entry.phone);
                         }}
                       >
-                        Unblock
+                        <ShieldCheck /> Unblock
                       </Button>
                     </TableCell>
                   </TableRow>

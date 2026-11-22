@@ -1,6 +1,20 @@
 import { useQuery } from "@tanstack/react-query";
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
-import { Copy } from "lucide-react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  Archive,
+  CheckCircle2,
+  ChevronLeft,
+  ChevronRight,
+  Copy,
+  FileEdit,
+  ImageOff,
+  Package,
+  Plus,
+  Search,
+  Star,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   ADMIN_PRODUCT_SORTS,
@@ -30,15 +44,33 @@ export const STATUS_LABELS: Record<ProductStatus, string> = {
   archived: "Archived",
 };
 
+const PRODUCT_BADGE_META: Record<
+  ProductStatus,
+  { variant: "success" | "warning" | "outline"; icon: typeof CheckCircle2 }
+> = {
+  published: { variant: "success", icon: CheckCircle2 },
+  draft: { variant: "warning", icon: FileEdit },
+  archived: { variant: "outline", icon: Archive },
+};
+
 export function StatusBadge({ status }: { status: ProductStatus }) {
-  const variant = status === "published" ? "default" : status === "draft" ? "secondary" : "outline";
-  return <Badge variant={variant}>{STATUS_LABELS[status]}</Badge>;
+  const { variant, icon: Icon } = PRODUCT_BADGE_META[status];
+  return (
+    <Badge variant={variant}>
+      <Icon aria-hidden="true" />
+      {STATUS_LABELS[status]}
+    </Badge>
+  );
 }
 
 function Margin({ product }: { product: AdminProductSummary }) {
   const margin = unitMargin(product.price, product.costPrice);
   if (margin === null) return <span className="text-muted-foreground">No cost</span>;
-  return <span className={margin < 0 ? "text-destructive" : undefined}>{formatPrice(margin)}</span>;
+  return (
+    <span className={margin < 0 ? "font-medium text-destructive" : "font-medium text-success"}>
+      {formatPrice(margin)}
+    </span>
+  );
 }
 
 /** Radix Select cannot hold an empty value, so "no filter" is this word. */
@@ -62,11 +94,12 @@ function NameSearch({ term }: { term: string }) {
         {names.isPending ? <p className="p-4 text-sm text-muted-foreground">Loading product names…</p> : null}
         {names.isError ? (
           <Alert variant="destructive" role="alert" className="m-4 w-auto">
+            <AlertCircle />
             <AlertDescription>{names.error.message || "Could not load product names."}</AlertDescription>
           </Alert>
         ) : null}
         {names.data && matches.length === 0 ? (
-          <p className="p-4 text-sm text-muted-foreground">No product matches "{term.trim()}".</p>
+          <p className="p-6 text-center text-sm text-muted-foreground">No product matches "{term.trim()}".</p>
         ) : null}
         {matches.length > 0 ? (
           <ul className="divide-y divide-border" aria-label="Search results">
@@ -146,36 +179,50 @@ export function ProductList() {
             Published products appear on the shop straight away. Drafts and archived products stay hidden.
           </p>
         </div>
-        <Button render={<Link to="/admin/products/$productId" params={{ productId: "new" }} />}>New product</Button>
+        <Button render={<Link to="/admin/products/$productId" params={{ productId: "new" }} />}>
+          <Plus /> New product
+        </Button>
       </div>
 
-      <Input
-        type="search"
-        value={term}
-        onChange={(event) => setTerm(event.target.value)}
-        placeholder="Search every product by name"
-        aria-label="Search products by name"
-        className="w-full sm:w-80"
-      />
+      <div className="relative w-full sm:w-80">
+        <Search
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+        />
+        <Input
+          type="search"
+          value={term}
+          onChange={(event) => setTerm(event.target.value)}
+          placeholder="Search every product by name"
+          aria-label="Search products by name"
+          className="bg-card pl-8.5"
+        />
+      </div>
 
       {searching ? (
         <NameSearch term={term} />
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2">
-            <div role="group" aria-label="Filter by status" className="flex flex-wrap gap-1">
+            <div
+              role="group"
+              aria-label="Filter by status"
+              className="flex flex-wrap gap-1 rounded-lg bg-card p-1 ring-1 ring-border"
+            >
               {(["all", "published", "draft", "archived"] as const).map((value) => {
                 const active = (query.status ?? "all") === value;
                 return (
                   <Button
                     key={value}
                     size="sm"
-                    variant={active ? "secondary" : "ghost"}
+                    variant={active ? "default" : "ghost"}
                     aria-pressed={active}
                     onClick={() => changeFilter({ status: value === "all" ? undefined : value })}
                   >
                     {value === "all" ? "All" : STATUS_LABELS[value]}{" "}
-                    <span className="text-muted-foreground tabular-nums">{counts.data?.[value] ?? ""}</span>
+                    <span className={`tabular-nums ${active ? "opacity-80" : "text-muted-foreground"}`}>
+                      {counts.data?.[value] ?? ""}
+                    </span>
                   </Button>
                 );
               })}
@@ -184,7 +231,7 @@ export function ProductList() {
               value={query.category ?? ANY}
               onValueChange={(value) => changeFilter({ category: value === ANY ? undefined : value })}
             >
-              <SelectTrigger size="sm" aria-label="Filter by category" className="w-44">
+              <SelectTrigger size="sm" aria-label="Filter by category" className="w-44 bg-card">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -198,25 +245,31 @@ export function ProductList() {
             </Select>
             <Button
               size="sm"
-              variant={query.outOfStock ? "secondary" : "outline"}
+              variant={query.outOfStock ? "destructive" : "outline"}
+              className={query.outOfStock ? undefined : "bg-card"}
               aria-pressed={Boolean(query.outOfStock)}
               onClick={() => changeFilter({ outOfStock: query.outOfStock ? undefined : true })}
             >
-              Has an out-of-stock colour
+              <AlertCircle /> Out of stock
             </Button>
             <Button
               size="sm"
               variant={query.lowStock ? "secondary" : "outline"}
+              className={
+                query.lowStock
+                  ? "border-warning-border bg-warning-soft text-warning hover:bg-warning-soft/80"
+                  : "bg-card"
+              }
               aria-pressed={Boolean(query.lowStock)}
               onClick={() => changeFilter({ lowStock: query.lowStock ? undefined : true })}
             >
-              Low stock
+              <AlertTriangle /> Low stock
             </Button>
             <Select
               value={query.sort}
               onValueChange={(value) => changeFilter({ sort: value as AdminProductSearch["sort"] })}
             >
-              <SelectTrigger size="sm" aria-label="Sort products" className="ml-auto w-44">
+              <SelectTrigger size="sm" aria-label="Sort products" className="ml-auto w-44 bg-card">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -240,9 +293,16 @@ export function ProductList() {
 
           {notice ? (
             <Alert
-              variant={notice.kind === "error" ? "destructive" : "default"}
+              variant={notice.kind === "error" ? "destructive" : notice.kind === "warning" ? "warning" : "success"}
               role={notice.kind === "error" ? "alert" : "status"}
             >
+              {notice.kind === "error" ? (
+                <AlertCircle />
+              ) : notice.kind === "warning" ? (
+                <AlertTriangle />
+              ) : (
+                <CheckCircle2 />
+              )}
               <AlertDescription className="flex flex-wrap items-center justify-between gap-2">
                 <span>{notice.text}</span>
                 <Button size="xs" variant="ghost" onClick={() => setNotice(null)}>
@@ -254,21 +314,29 @@ export function ProductList() {
 
           {products.isError ? (
             <Alert variant="destructive" role="alert">
+              <AlertCircle />
               <AlertDescription>{products.error.message || "Could not load products."}</AlertDescription>
             </Alert>
           ) : null}
 
           <Card className="py-0">
             <CardContent className="px-0">
-              {products.isPending ? <p className="p-4 text-sm text-muted-foreground">Loading…</p> : null}
+              {products.isPending ? (
+                <p className="p-6 text-center text-sm text-muted-foreground">Loading products…</p>
+              ) : null}
               {products.data && rows.length === 0 ? (
-                <div className="p-4 text-sm text-muted-foreground">
-                  <p>{filtered ? "No products match these filters." : "No products yet."}</p>
+                <div className="grid justify-items-center gap-2 p-8 text-center">
+                  <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    <Package className="size-5" aria-hidden="true" />
+                  </span>
+                  <p className="text-sm font-medium text-foreground">
+                    {filtered ? "No products match these filters" : "No products yet"}
+                  </p>
                   {filtered ? (
                     <Button
                       size="sm"
                       variant="outline"
-                      className="mt-2"
+                      className="mt-1"
                       onClick={() => goTo({ sort: query.sort === "updated" ? undefined : query.sort })}
                     >
                       Clear filters
@@ -279,7 +347,7 @@ export function ProductList() {
               {rows.length > 0 ? (
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-muted/40 hover:bg-muted/40">
                       <TableHead className="w-10 pl-4">
                         <Checkbox
                           checked={allOnPage ? true : someOnPage ? "indeterminate" : false}
@@ -321,26 +389,42 @@ export function ProductList() {
                               height={40}
                               loading="lazy"
                               decoding="async"
-                              className="size-10 rounded-sm bg-muted object-cover"
+                              className="size-10 rounded-md border border-border bg-muted object-cover"
                             />
                           ) : (
-                            <span className="block size-10 rounded-sm bg-muted" />
+                            <span className="flex size-10 items-center justify-center rounded-md border border-border bg-muted text-muted-foreground">
+                              <ImageOff className="size-4" aria-hidden="true" />
+                            </span>
                           )}
                         </TableCell>
-                        <TableCell className="max-w-[16rem] whitespace-normal">
-                          <Link
-                            to="/admin/products/$productId"
-                            params={{ productId: String(product.id) }}
-                            className="font-medium text-foreground hover:underline"
-                          >
-                            {product.name}
-                          </Link>
-                          <div className="text-xs text-muted-foreground">
-                            {categoryName.get(product.categoryId) ?? product.categoryId} · {product.variantCount}{" "}
-                            {product.variantCount === 1 ? "colour" : "colours"}
-                            {product.featured ? " · Featured" : ""}
-                            {product.outOfStockColours > 0 ? ` · ${product.outOfStockColours} out of stock` : ""}
-                            {product.lowStockColours > 0 ? ` · ${product.lowStockColours} low` : ""}
+                        <TableCell className="max-w-[18rem] whitespace-normal">
+                          <div className="flex items-center gap-1.5">
+                            <Link
+                              to="/admin/products/$productId"
+                              params={{ productId: String(product.id) }}
+                              className="font-medium text-foreground hover:text-primary hover:underline"
+                            >
+                              {product.name}
+                            </Link>
+                            {product.featured ? (
+                              <Star className="size-3.5 shrink-0 fill-warning text-warning" aria-label="Featured" />
+                            ) : null}
+                          </div>
+                          <div className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
+                            <span>
+                              {categoryName.get(product.categoryId) ?? product.categoryId} · {product.variantCount}{" "}
+                              {product.variantCount === 1 ? "colour" : "colours"}
+                            </span>
+                            {product.outOfStockColours > 0 ? (
+                              <Badge variant="destructive" className="h-4.5 px-1.5 text-[11px]">
+                                {product.outOfStockColours} out
+                              </Badge>
+                            ) : null}
+                            {product.lowStockColours > 0 ? (
+                              <Badge variant="warning" className="h-4.5 px-1.5 text-[11px]">
+                                {product.lowStockColours} low
+                              </Badge>
+                            ) : null}
                           </div>
                           {/* Phones: the status column is hidden, so the badge sits under the name. */}
                           <div className="mt-1 sm:hidden">
@@ -350,7 +434,9 @@ export function ProductList() {
                         <TableCell className="hidden sm:table-cell">
                           <StatusBadge status={product.status} />
                         </TableCell>
-                        <TableCell className="text-right tabular-nums">{formatPrice(product.price)}</TableCell>
+                        <TableCell className="text-right font-medium tabular-nums">
+                          {formatPrice(product.price)}
+                        </TableCell>
                         <TableCell className="hidden text-right tabular-nums md:table-cell">
                           {product.costPrice === null ? (
                             <span className="text-muted-foreground">—</span>
@@ -366,6 +452,7 @@ export function ProductList() {
                             variant="ghost"
                             size="icon-sm"
                             aria-label={`Duplicate ${product.name}`}
+                            title={`Duplicate ${product.name}`}
                             onClick={() => setCopying({ id: product.id, name: product.name })}
                           >
                             <Copy />
@@ -397,7 +484,7 @@ export function ProductList() {
                   disabled={!products.data.prev}
                   onClick={() => goTo({ ...search, before: products.data?.prev ?? undefined, after: undefined })}
                 >
-                  Previous
+                  <ChevronLeft /> Previous
                 </Button>
                 <Button
                   variant="outline"
@@ -405,7 +492,7 @@ export function ProductList() {
                   disabled={!products.data.next}
                   onClick={() => goTo({ ...search, after: products.data?.next ?? undefined, before: undefined })}
                 >
-                  Next
+                  Next <ChevronRight />
                 </Button>
               </div>
             </nav>

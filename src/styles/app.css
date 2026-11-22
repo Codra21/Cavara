@@ -62,6 +62,22 @@
   --color-body: var(--body);
   --color-line: var(--line);
   --color-surface-alt: var(--surface-alt);
+  /* Admin canvas & semantic status tokens (WCAG AA compliant in Teal & Midnight). */
+  --color-admin-canvas: var(--admin-canvas);
+  --color-success: var(--status-success);
+  --color-success-soft: var(--status-success-bg);
+  --color-success-border: var(--status-success-border);
+  --color-warning: var(--status-warning);
+  --color-warning-soft: var(--status-warning-bg);
+  --color-warning-border: var(--status-warning-border);
+  --color-info: var(--status-info);
+  --color-info-soft: var(--status-info-bg);
+  --color-info-border: var(--status-info-border);
+  --color-danger-soft: var(--status-danger-bg);
+  --color-danger-border: var(--status-danger-border);
+  --color-dispatch: var(--status-dispatch);
+  --color-dispatch-soft: var(--status-dispatch-bg);
+  --color-dispatch-border: var(--status-dispatch-border);
   /* --radius is Cavara's 6px from site.css. */
   --radius-sm: var(--radius-sm);
   --radius-md: calc(var(--radius) * 0.85);
@@ -104,6 +120,42 @@
   --sidebar-accent-foreground: var(--ink);
   --sidebar-border: var(--line);
   --sidebar-ring: var(--brand);
+
+  /* Admin canvas & semantic status palette — Teal (Light) */
+  --admin-canvas: #f4f7f6;
+  --status-success: #156d44;
+  --status-success-bg: #e7f6ee;
+  --status-success-border: #b7e2cb;
+  --status-warning: #8f4f0e;
+  --status-warning-bg: #fef4e6;
+  --status-warning-border: #f5d3a1;
+  --status-info: #1b5886;
+  --status-info-bg: #e8f3fb;
+  --status-info-border: #b8d8f0;
+  --status-danger-bg: #fdecec;
+  --status-danger-border: #f5c2c0;
+  --status-dispatch: #573b91;
+  --status-dispatch-bg: #f1edfa;
+  --status-dispatch-border: #d4c6f0;
+}
+
+[data-theme="dark"] {
+  /* Admin canvas & semantic status palette — Midnight (Dark) */
+  --admin-canvas: #0b1110;
+  --status-success: #6ee7b7;
+  --status-success-bg: #102a22;
+  --status-success-border: #1e4d3e;
+  --status-warning: #fbbf24;
+  --status-warning-bg: #2a2010;
+  --status-warning-border: #523d18;
+  --status-info: #7dd3fc;
+  --status-info-bg: #102533;
+  --status-info-border: #1f4863;
+  --status-danger-bg: #2d1415;
+  --status-danger-border: #5c2426;
+  --status-dispatch: #c4b5fd;
+  --status-dispatch-bg: #211936;
+  --status-dispatch-border: #3f2f66;
 }
 
 @layer base {

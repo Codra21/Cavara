@@ -1,5 +1,17 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Pencil,
+  Percent,
+  Plus,
+  Power,
+  PowerOff,
+  Save,
+  XCircle,
+} from "lucide-react";
 import { useId, useState } from "react";
 import {
   type AdminDiscount,
@@ -100,13 +112,19 @@ const fromDiscount = (discount: AdminDiscount, active: boolean): DiscountInput =
   active,
 });
 
-const STATE_VARIANT = { live: "default", upcoming: "secondary", ended: "outline", off: "outline" } as const;
+const STATE_META = {
+  live: { variant: "success", icon: CheckCircle2 },
+  upcoming: { variant: "info", icon: Clock },
+  ended: { variant: "outline", icon: XCircle },
+  off: { variant: "outline", icon: PowerOff },
+} as const;
 
 /** Owner-only sales: list, add, edit and switch off. Sales are never deleted (orders keep the id of the sale). */
 export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Draft | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  // A save can succeed with a warning from the server; it gets the warning style, not the success one.
+  const [notice, setNotice] = useState<{ text: string; warning: boolean } | null>(null);
   const [problems, setProblems] = useState<string[]>([]);
 
   const save = useMutation({
@@ -120,8 +138,8 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
       setDraft(null);
       setNotice(
         "warning" in result && result.warning
-          ? result.warning
-          : `Saved ${result.discount.name}. The shop shows the new prices now.`,
+          ? { text: result.warning, warning: true }
+          : { text: `Saved ${result.discount.name}. The shop shows the new prices now.`, warning: false },
       );
       await queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "discounts"] });
       await queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "audit"] });
@@ -156,10 +174,16 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
       <div aria-live="polite" className="grid gap-2">
         {problems.length && !draft ? (
           <Alert variant="destructive" role="alert">
+            <AlertCircle />
             <AlertDescription>{problems.join(" ")}</AlertDescription>
           </Alert>
         ) : null}
-        {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
+        {notice ? (
+          <Alert variant={notice.warning ? "warning" : "success"} role="status">
+            {notice.warning ? <AlertTriangle /> : <CheckCircle2 />}
+            <AlertDescription>{notice.text}</AlertDescription>
+          </Alert>
+        ) : null}
       </div>
 
       {draft ? (
@@ -180,15 +204,21 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
       <Card className="py-0">
         <CardContent className="px-0">
           {discounts.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">No sales yet.</p>
+            <div className="grid justify-items-center gap-2 p-8 text-center">
+              <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Percent className="size-5" aria-hidden="true" />
+              </span>
+              <p className="text-sm font-medium text-foreground">No sales yet</p>
+              <p className="text-xs text-muted-foreground">Add a sale to run a timed promotion on the storefront.</p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="pl-4">Sale</TableHead>
                   <TableHead className="hidden sm:table-cell">Covers</TableHead>
                   <TableHead className="hidden md:table-cell">Runs</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden sm:table-cell">Status</TableHead>
                   <TableHead className="pr-4 text-right">
                     <span className="sr-only">Actions</span>
                   </TableHead>
@@ -197,24 +227,33 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
               <TableBody>
                 {discounts.map((discount) => {
                   const state = saleState(discount, now);
+                  const { variant, icon: StateIcon } = STATE_META[state];
                   return (
                     <TableRow key={discount.id}>
                       <TableCell className="max-w-[14rem] whitespace-normal pl-4">
                         <div className="font-medium text-foreground">{discount.name}</div>
-                        <div className="text-xs text-muted-foreground">{discountLabel(discount)}</div>
+                        <div className="text-xs font-medium text-primary">{discountLabel(discount)}</div>
+                        {/* Phones have no room for a Status column, so the badge sits under the name. */}
+                        <Badge variant={variant} className="mt-1 sm:hidden">
+                          <StateIcon aria-hidden="true" />
+                          {SALE_STATE_LABELS[state]}
+                        </Badge>
                       </TableCell>
                       <TableCell className="hidden whitespace-normal sm:table-cell">
                         {discount.scope === "all"
                           ? SCOPE_LABELS.all
                           : (discount.targetName ?? SCOPE_LABELS[discount.scope])}
                       </TableCell>
-                      <TableCell className="hidden whitespace-normal text-xs md:table-cell">
+                      <TableCell className="hidden whitespace-normal text-xs text-muted-foreground md:table-cell">
                         {adminTimeFormat.format(new Date(discount.startsAt))}
                         <br />
                         {discount.endsAt ? `to ${adminTimeFormat.format(new Date(discount.endsAt))}` : "No end date"}
                       </TableCell>
-                      <TableCell>
-                        <Badge variant={STATE_VARIANT[state]}>{SALE_STATE_LABELS[state]}</Badge>
+                      <TableCell className="hidden sm:table-cell">
+                        <Badge variant={variant}>
+                          <StateIcon aria-hidden="true" />
+                          {SALE_STATE_LABELS[state]}
+                        </Badge>
                       </TableCell>
                       <TableCell className="pr-4 text-right whitespace-nowrap">
                         <Button
@@ -227,7 +266,7 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
                             setDraft(toDraft(discount));
                           }}
                         >
-                          Edit<span className="sr-only"> {discount.name}</span>
+                          <Pencil /> Edit<span className="sr-only"> {discount.name}</span>
                         </Button>
                         <Button
                           type="button"
@@ -243,6 +282,7 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
                             });
                           }}
                         >
+                          {discount.active ? <PowerOff /> : <Power />}
                           {discount.active ? "Switch off" : "Switch on"}
                           <span className="sr-only"> {discount.name}</span>
                         </Button>
@@ -306,7 +346,7 @@ function DiscountForm({
   return (
     <form onSubmit={submit} noValidate>
       <Card>
-        <CardHeader>
+        <CardHeader className="border-b border-border pb-3">
           <CardTitle>{draft.id === null ? "Add a sale" : "Edit sale"}</CardTitle>
           <CardDescription>
             Times are Bangladesh time. Orders already placed keep the price they were charged.
@@ -315,6 +355,7 @@ function DiscountForm({
         <CardContent className="grid gap-4">
           {problems.length ? (
             <Alert variant="destructive" role="alert">
+              <AlertCircle />
               <AlertDescription>
                 <ul className="list-disc pl-4">
                   {problems.map((problem) => (
@@ -495,7 +536,7 @@ function DiscountForm({
 
           <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : "Save sale"}
+              <Save /> {pending ? "Saving…" : "Save sale"}
             </Button>
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel

@@ -1,5 +1,17 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle2,
+  Clock,
+  Pencil,
+  Plus,
+  Power,
+  PowerOff,
+  Save,
+  Ticket,
+  XCircle,
+} from "lucide-react";
 import { useId, useState } from "react";
 import {
   type AdminCoupon,
@@ -99,12 +111,12 @@ const fromCoupon = (coupon: AdminCoupon, active: boolean): CouponInput => ({
   active,
 });
 
-const STATE_VARIANT = {
-  live: "default",
-  upcoming: "secondary",
-  ended: "outline",
-  off: "outline",
-  used_up: "outline",
+const STATE_META = {
+  live: { variant: "success", icon: CheckCircle2 },
+  upcoming: { variant: "info", icon: Clock },
+  ended: { variant: "outline", icon: XCircle },
+  off: { variant: "outline", icon: PowerOff },
+  used_up: { variant: "warning", icon: AlertTriangle },
 } as const;
 
 /** Owner-only coupons: list with use counts, add, edit and switch off. Never deleted (orders keep the code). */
@@ -159,10 +171,16 @@ export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
       <div aria-live="polite" className="grid gap-2">
         {problems.length && !draft ? (
           <Alert variant="destructive" role="alert">
+            <AlertCircle />
             <AlertDescription>{problems.join(" ")}</AlertDescription>
           </Alert>
         ) : null}
-        {notice ? <p className="text-sm text-muted-foreground">{notice}</p> : null}
+        {notice ? (
+          <Alert variant="success" role="status">
+            <CheckCircle2 />
+            <AlertDescription>{notice}</AlertDescription>
+          </Alert>
+        ) : null}
       </div>
 
       {draft ? (
@@ -183,11 +201,17 @@ export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
       <Card className="py-0">
         <CardContent className="px-0">
           {coupons.length === 0 ? (
-            <p className="p-4 text-sm text-muted-foreground">No coupons yet.</p>
+            <div className="grid justify-items-center gap-2 p-8 text-center">
+              <span className="flex size-10 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                <Ticket className="size-5" aria-hidden="true" />
+              </span>
+              <p className="text-sm font-medium text-foreground">No coupons yet</p>
+              <p className="text-xs text-muted-foreground">Create a code shoppers can enter at checkout.</p>
+            </div>
           ) : (
             <Table>
               <TableHeader>
-                <TableRow>
+                <TableRow className="bg-muted/40 hover:bg-muted/40">
                   <TableHead className="pl-4">Coupon</TableHead>
                   <TableHead className="hidden sm:table-cell">Rules</TableHead>
                   <TableHead>Used</TableHead>
@@ -201,33 +225,34 @@ export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
               <TableBody>
                 {coupons.map((coupon) => {
                   const state = couponState(coupon, now);
+                  const { variant, icon: StateIcon } = STATE_META[state];
                   return (
                     <TableRow key={coupon.id}>
                       <TableCell className="max-w-[14rem] whitespace-normal pl-4">
-                        <div className="font-medium text-foreground tabular-nums">{coupon.code}</div>
+                        <div className="font-mono font-semibold text-primary tabular-nums">{coupon.code}</div>
                         <div className="text-xs text-muted-foreground">{coupon.name}</div>
                       </TableCell>
                       <TableCell className="hidden whitespace-normal text-xs sm:table-cell">
-                        {discountLabel(coupon)}
+                        <span className="font-medium text-foreground">{discountLabel(coupon)}</span>
                         {coupon.maxDiscount !== null ? `, up to ${formatPrice(coupon.maxDiscount)}` : ""}
                         {coupon.minOrder ? (
-                          <>
-                            <br />
-                            Needs {formatPrice(coupon.minOrder)} in items
-                          </>
+                          <div className="text-muted-foreground">Needs {formatPrice(coupon.minOrder)} in items</div>
                         ) : null}
                       </TableCell>
-                      <TableCell className="tabular-nums">
+                      <TableCell className="font-medium tabular-nums">
                         {coupon.usedCount}
                         {coupon.usageLimit !== null ? ` / ${coupon.usageLimit}` : ""}
                       </TableCell>
-                      <TableCell className="hidden whitespace-normal text-xs md:table-cell">
+                      <TableCell className="hidden whitespace-normal text-xs text-muted-foreground md:table-cell">
                         {adminTimeFormat.format(new Date(coupon.startsAt))}
                         <br />
                         {coupon.endsAt ? `to ${adminTimeFormat.format(new Date(coupon.endsAt))}` : "No end date"}
                       </TableCell>
                       <TableCell>
-                        <Badge variant={STATE_VARIANT[state]}>{COUPON_STATE_LABELS[state]}</Badge>
+                        <Badge variant={variant}>
+                          <StateIcon aria-hidden="true" />
+                          {COUPON_STATE_LABELS[state]}
+                        </Badge>
                       </TableCell>
                       <TableCell className="pr-4 text-right whitespace-nowrap">
                         <Button
@@ -240,7 +265,7 @@ export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
                             setDraft(toDraft(coupon));
                           }}
                         >
-                          Edit<span className="sr-only"> {coupon.code}</span>
+                          <Pencil /> Edit<span className="sr-only"> {coupon.code}</span>
                         </Button>
                         <Button
                           type="button"
@@ -256,6 +281,7 @@ export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
                             });
                           }}
                         >
+                          {coupon.active ? <PowerOff /> : <Power />}
                           {coupon.active ? "Switch off" : "Switch on"}
                           <span className="sr-only"> {coupon.code}</span>
                         </Button>
@@ -306,7 +332,7 @@ function CouponForm({
   return (
     <form onSubmit={submit} noValidate>
       <Card>
-        <CardHeader>
+        <CardHeader className="border-b border-border pb-3">
           <CardTitle>{editing ? `Edit ${initial.code}` : "Add a coupon"}</CardTitle>
           <CardDescription>
             Times are Bangladesh time. Orders already placed keep the discount they were given.
@@ -315,6 +341,7 @@ function CouponForm({
         <CardContent className="grid gap-4">
           {problems.length ? (
             <Alert variant="destructive" role="alert">
+              <AlertCircle />
               <AlertDescription>
                 <ul className="list-disc pl-4">
                   {problems.map((problem) => (
@@ -345,7 +372,7 @@ function CouponForm({
                 placeholder="EID25"
                 autoComplete="off"
                 disabled={editing}
-                className="uppercase"
+                className="font-mono uppercase"
                 onChange={(event) => set({ code: event.target.value })}
               />
               <p className="text-xs text-muted-foreground">
@@ -465,7 +492,7 @@ function CouponForm({
 
           <div className="flex flex-wrap gap-2">
             <Button type="submit" disabled={pending}>
-              {pending ? "Saving…" : "Save coupon"}
+              <Save /> {pending ? "Saving…" : "Save coupon"}
             </Button>
             <Button type="button" variant="outline" onClick={onCancel}>
               Cancel
