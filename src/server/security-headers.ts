@@ -46,7 +46,7 @@ export function imageOrigin(imageBase: string): string | null {
  * - challenges.cloudflare.com: Turnstile (src/lib/turnstile.ts). It needs script-src for api.js and frame-src for the
  *   widget iframe. Pre-clearance also fetches the cf_clearance cookie from a /cdn-cgi/ path on this site, which
  *   connect-src 'self' already allows. Docs: developers.cloudflare.com/turnstile/reference/content-security-policy/
- * - data: images: the 1x1 placeholder GIF in ProductDialog.
+ * - data: images: allowed for small inline placeholders; nothing uses one today.
  * - Known report: Zod probes `Function("")` once per page to pick its fast path and falls back when it is blocked, so an
  *   enforced policy without 'unsafe-eval' still works. Set `z.config({ jitless: true })` to silence it before enforcing.
  */

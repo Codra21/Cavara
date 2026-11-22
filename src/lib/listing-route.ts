@@ -15,8 +15,18 @@ import type { Category } from "@/lib/types";
  */
 export async function loadListing(queryClient: QueryClient, category: string | undefined, search: ListSearch) {
   if (category !== undefined && !isCategorySlug(category)) throw notFound();
-  const listing = await safeLoad("product listing", () =>
-    queryClient.query(listingQueryOptions({ ...search, ...(category ? { category } : {}) })),
+  const query = { ...search, ...(category ? { category } : {}) };
+  const page = search.page ?? 1;
+  const previous =
+    page > 1 ? queryClient.getQueryData(listingQueryOptions({ ...query, page: page - 1 }).queryKey) : undefined;
+  const listing = await safeLoad("product listing", () => queryClient.query(listingQueryOptions(query))).catch(
+    (error: unknown) => {
+      // "Load more" navigates to ?page=N with page N-1 already on screen. Throwing would swap those cards for the
+      // error page; the cached page keeps them, and ProductListing shows its inline "couldn't load more" and Try again.
+      // A first visit to ?page=N (and the server render) has nothing cached, so it still gets the error page.
+      if (previous) return previous;
+      throw error;
+    },
   );
   if (category !== undefined && !listing.category) throw notFound();
   return { category: listing.category, pageCount: listing.pageCount };

@@ -5,8 +5,11 @@
 //    time, 30 minutes by default).
 // 2. Per-action tokens. getTurnstileToken(action) renders a short-lived widget with that action, resolves with its
 //    single-use token and removes it. The server checks the token with Siteverify (src/server/turnstile.server.ts).
-// Both use appearance "interaction-only": the widget stays invisible unless the visitor must act, and then the
-// fixed panel becomes visible. No site key (VITE_TURNSTILE_SITE_KEY) means nothing runs and tokens are "".
+// Both use appearance "interaction-only": the widget stays invisible unless the visitor must act. Even then the
+// pre-clearance widget started on page load stays hidden, so nothing pops up while someone browses. It shows (in the
+// centred panel) only after a server-function call came back challenged, which means a click the shopper just made
+// is waiting on it. A per-action token widget shows inside the holder its caller passes, next to the button that
+// asked for it. No site key (VITE_TURNSTILE_SITE_KEY) means nothing runs and tokens are "".
 // SSR-safe: every browser access sits behind the `window` check in siteKey().
 // Docs: https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/ (explicit rendering, options),
 // https://developers.cloudflare.com/turnstile/get-started/client-side-rendering/widget-configurations/,
@@ -77,37 +80,35 @@ function loadApi(): Promise<TurnstileApi | null> {
 }
 
 // ---------------------------------------------------------------------------------------------------------------
-// The panel: hidden until a widget needs the visitor, then a small fixed box (styled in site.css).
+// Showing a widget that needs the visitor. The panel (TurnstilePanel) and a checkout holder both use `data-active`.
 
-let interactiveWidgets = 0;
-
-function showPanel(active: boolean) {
-  document.getElementById(PANEL_ID)?.toggleAttribute("data-active", active);
+function setActive(element: HTMLElement | null, active: boolean) {
+  element?.toggleAttribute("data-active", active);
 }
 
-/** Callbacks that raise and lower the panel for one widget, plus a release for when the widget is removed. */
-function interactiveHooks() {
-  let open = false;
+/** Callbacks that track whether one widget is waiting on the visitor, plus a release for when it is removed. */
+function interactiveHooks(onChange: () => void) {
+  let waiting = false;
   const set = (next: boolean) => {
-    if (open === next) return;
-    open = next;
-    interactiveWidgets = Math.max(0, interactiveWidgets + (next ? 1 : -1));
-    showPanel(interactiveWidgets > 0);
+    if (waiting === next) return;
+    waiting = next;
+    onChange();
   };
   return {
     before: () => set(true),
     after: () => set(false),
     release: () => set(false),
+    isWaiting: () => waiting,
   };
 }
 
 let slotCounter = 0;
 
-/** A fresh container for one widget, inside the panel's slot (or the body when the panel is not mounted). */
-function createSlot(): HTMLElement {
+/** A fresh container for one widget, inside `parent` (default: the panel's slot, or the body without a panel). */
+function createSlot(parent?: HTMLElement | null): HTMLElement {
   const element = document.createElement("div");
   element.id = `${SLOT_ID}-${(slotCounter += 1)}`;
-  (document.getElementById(SLOT_ID) ?? document.body).append(element);
+  (parent ?? document.getElementById(SLOT_ID) ?? document.body).append(element);
   return element;
 }
 
@@ -123,6 +124,8 @@ interface Clearance {
   settle: () => void;
   timer: ReturnType<typeof setTimeout> | undefined;
   hooks: ReturnType<typeof interactiveHooks>;
+  /** False for the round started on page load: it may wait on the visitor, but nobody asked for anything yet. */
+  revealed: boolean;
   disposed: boolean;
 }
 
@@ -141,23 +144,31 @@ function newRound(state: Clearance) {
   state.timer = setTimeout(() => state.settle(), CLEARANCE_WAIT_MS);
 }
 
+/** The panel shows only for a revealed round whose widget is waiting on the visitor. */
+function updatePanel(state: Clearance) {
+  const panel = document.getElementById(PANEL_ID);
+  setActive(panel, !state.disposed && state.revealed && state.hooks.isWaiting());
+}
+
 function disposeClearance(state: Clearance) {
   state.disposed = true;
   state.settle();
   state.hooks.release();
+  updatePanel(state);
   if (state.widgetId) window.turnstile?.remove(state.widgetId);
   state.element?.remove();
 }
 
-function startClearance(): Clearance {
+function startClearance(revealed: boolean): Clearance {
   const state = {
     widgetId: null,
     element: null,
     ready: false,
-    hooks: interactiveHooks(),
+    revealed,
     disposed: false,
     timer: undefined,
   } as unknown as Clearance;
+  state.hooks = interactiveHooks(() => updatePanel(state));
   newRound(state);
   clearance = state;
   void loadApi().then((api) => {
@@ -192,19 +203,26 @@ function startClearance(): Clearance {
 
 /**
  * Resolves once this browser holds a Turnstile pass (the `cf_clearance` cookie), or after a cap when it cannot get
- * one, so callers never hang. Concurrent calls share one round. `force` runs the widget again because a request was
- * challenged although the widget believed it had passed; a round already in progress is joined, not restarted.
- * Resolves at once when Turnstile is off (no site key) or on the server.
+ * one, so callers never hang. Concurrent calls share one round. `force` means a request was just challenged: it
+ * reveals a round already in progress (so a hidden widget waiting on the visitor now shows), or runs the widget
+ * again, visibly, when the last round had finished. Resolves at once when Turnstile is off or on the server.
  */
 export function ensureClearance(options: { force?: boolean } = {}): Promise<void> {
   if (!isTurnstileEnabled()) return Promise.resolve();
-  if (clearance && !clearance.settled) return clearance.round;
-  if (clearance?.ready && !options.force) return Promise.resolve();
+  const force = options.force === true;
+  if (clearance && !clearance.settled) {
+    if (force && !clearance.revealed) {
+      clearance.revealed = true;
+      updatePanel(clearance);
+    }
+    return clearance.round;
+  }
+  if (clearance?.ready && !force) return Promise.resolve();
   if (clearance) disposeClearance(clearance);
-  return startClearance().round;
+  return startClearance(force).round;
 }
 
-/** Starts the pre-clearance widget. Called once after hydration; safe to call again. */
+/** Starts the hidden pre-clearance widget. Called once after hydration; safe to call again. */
 export function startTurnstile(): void {
   void ensureClearance();
 }
@@ -216,14 +234,17 @@ export function startTurnstile(): void {
  * A fresh single-use token for `action` ("" when Turnstile is off). Call it right before the server function, because
  * a token is good for one Siteverify call and 300 seconds. Rejects when the widget cannot run (script blocked,
  * challenge failed, no answer in a minute), so the caller can show an error and let the shopper try again.
+ * `holder` is where the widget appears if the visitor has to tick it: it gets `data-active` while that is the case.
+ * Without one the widget uses the panel.
  */
-export async function getTurnstileToken(action: TurnstileAction): Promise<string> {
+export async function getTurnstileToken(action: TurnstileAction, holder?: HTMLElement | null): Promise<string> {
   if (!isTurnstileEnabled()) return "";
   const api = await loadApi();
   if (!api) throw new Error("Turnstile could not be loaded");
   return new Promise<string>((resolve, reject) => {
-    const element = createSlot();
-    const hooks = interactiveHooks();
+    const element = createSlot(holder);
+    const shown = holder ?? document.getElementById(PANEL_ID);
+    const hooks = interactiveHooks(() => setActive(shown, hooks.isWaiting()));
     let widgetId: string | null = null;
     let timer: ReturnType<typeof setTimeout> | undefined;
     const finish = (settle: () => void) => {
@@ -253,5 +274,4 @@ export function resetTurnstileForTests(): void {
   if (clearance) disposeClearance(clearance);
   clearance = null;
   scriptPromise = null;
-  interactiveWidgets = 0;
 }

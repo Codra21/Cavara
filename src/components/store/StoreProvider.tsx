@@ -13,11 +13,6 @@ export interface ToastState {
   inBag?: boolean;
 }
 
-export interface QuickViewTarget {
-  id: number;
-  slug: string;
-}
-
 interface StoreValue {
   bag: BagItem[];
   bagCount: number;
@@ -37,11 +32,6 @@ interface StoreValue {
   toast: ToastState | null;
   showToast: (message: string, options?: Omit<ToastState, "id" | "message">) => void;
   hideToast: () => void;
-
-  /** The product open in the quick view. The slug is what the detail lookup needs. */
-  quickView: QuickViewTarget | null;
-  openQuickView: (product: QuickViewTarget, variant?: number) => void;
-  closeQuickView: () => void;
 
   bagOpen: boolean;
   openBag: () => void;
@@ -87,7 +77,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [selectedVariants, setSelectedVariants] = useState<Record<number, number>>({});
   const [theme, setTheme] = useState<Theme>("light");
   const [toast, setToast] = useState<ToastState | null>(null);
-  const [quickView, setQuickView] = useState<QuickViewTarget | null>(null);
   const [bagOpen, setBagOpen] = useState(false);
   const [recent, setRecent] = useState<number[]>([]);
   const [hydrated, setHydrated] = useState(false);
@@ -174,19 +163,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     toastTimer.current = window.setTimeout(() => setToast(null), 4200);
   }, []);
 
-  const openQuickView = useCallback(
-    (product: QuickViewTarget, variant?: number) => {
-      if (variant !== undefined) selectVariant(product.id, variant);
-      setBagOpen(false);
-      setToast(null);
-      setQuickView({ id: product.id, slug: product.slug });
-    },
-    [selectVariant],
-  );
-  const closeQuickView = useCallback(() => setQuickView(null), []);
-
   const openBag = useCallback(() => {
-    setQuickView(null);
     setToast(null);
     setBagOpen(true);
   }, []);
@@ -216,9 +193,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       toast,
       showToast,
       hideToast,
-      quickView,
-      openQuickView,
-      closeQuickView,
       bagOpen,
       openBag,
       closeBag,
@@ -239,9 +213,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       toast,
       showToast,
       hideToast,
-      quickView,
-      openQuickView,
-      closeQuickView,
       bagOpen,
       openBag,
       closeBag,

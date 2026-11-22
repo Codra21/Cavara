@@ -19,7 +19,6 @@ import { TurnstilePanel } from "@/components/layout/TurnstilePanel";
 import { SiteHeader } from "@/components/layout/SiteHeader";
 import { FloatingChat, QuickDock, SiteFooter, Toast } from "@/components/layout/SiteChrome";
 import { BagDrawer } from "@/components/store/BagDrawer";
-import { ProductDialog } from "@/components/store/ProductDialog";
 import { StoreProvider } from "@/components/store/StoreProvider";
 import { INPUT_BOOT } from "@/lib/dom";
 import { THEME_BOOT, THEME_COLORS } from "@/lib/theme";
@@ -153,7 +152,6 @@ function RootLayout() {
       <FloatingChat />
       <QuickDock />
       <Toast />
-      <ProductDialog />
       <BagDrawer />
       <GlobalEffects />
       <TurnstilePanel />
@@ -166,7 +164,7 @@ function NotFound() {
     <section className="section">
       <div className="container">
         <div className="empty-state">
-          <h3>We couldn't find that page</h3>
+          <h1>We couldn't find that page</h1>
           <p>The piece may have moved. Browse the full collection instead.</p>
           <Link className="button" to="/products">
             Browse the collection

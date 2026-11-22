@@ -1,4 +1,5 @@
 import type { ErrorComponentProps } from "@tanstack/react-router";
+import { useEffect, useRef } from "react";
 import { BrandLogo, Icon } from "@/components/ui/primitives";
 import { WHATSAPP_URL } from "@/lib/config";
 
@@ -17,6 +18,14 @@ export function ServerErrorPage({
   // Server render only: log once to the Worker log (the router swallows loader errors, so nothing else would).
   if (typeof document === "undefined") console.error("page render failed:", error);
 
+  // The failed route's head never ran, so the tab would keep the previous page's title. Moving focus to the heading
+  // tells keyboard and screen-reader users the page changed; focus otherwise stays on the link they clicked.
+  const heading = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    document.title = "Page couldn't load — Cavara";
+    heading.current?.focus({ preventScroll: true });
+  }, []);
+
   return (
     <section className={standalone ? "section error-page" : "section"}>
       <div className="container">
@@ -27,11 +36,10 @@ export function ServerErrorPage({
         ) : null}
         <div className="empty-state" role="alert">
           <Icon name="fa-solid fa-triangle-exclamation" />
-          <h1>Something went wrong</h1>
-          <p>
-            We could not load this page. Your bag stays saved on this device. Try again in a moment, or message us on
-            WhatsApp and we will take your order there.
-          </p>
+          <h1 ref={heading} tabIndex={-1}>
+            Something went wrong
+          </h1>
+          <p>We couldn&apos;t load this page, though your bag is still saved. Try again or message us on WhatsApp.</p>
           <div className="error-page-actions">
             <button className="button" type="button" onClick={() => window.location.reload()}>
               Try again

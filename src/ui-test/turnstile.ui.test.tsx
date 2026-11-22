@@ -74,18 +74,56 @@ test("force runs the widget again after a pass, and concurrent forced calls shar
   await Promise.all([a, b]);
 });
 
-test("the panel shows while a widget needs the visitor and hides when it is done", async () => {
+test("the page-load widget stays hidden while it waits on the visitor, and shows once a call is challenged", async () => {
   render(<TurnstilePanel />);
   await flush();
   const panel = document.getElementById("turnstile-panel");
-  expect(panel?.hasAttribute("data-active")).toBe(false);
-  expect(panel?.textContent).toContain("Quick check before we continue");
+  expect(panel?.textContent).toContain("One quick check");
   expect(widgets).toHaveLength(1);
   expect(document.getElementById("turnstile-slot")?.children).toHaveLength(1);
   widgets[0]?.options["before-interactive-callback"]?.();
+  expect(panel?.hasAttribute("data-active")).toBe(false);
+
+  // A server-function call came back challenged: the same widget is revealed, not replaced.
+  const blocked = ensureClearance({ force: true });
   expect(panel?.hasAttribute("data-active")).toBe(true);
+  expect(widgets).toHaveLength(1);
   widgets[0]?.options["after-interactive-callback"]?.();
   expect(panel?.hasAttribute("data-active")).toBe(false);
+  widgets[0]?.options.callback?.("pass");
+  await blocked;
+});
+
+test("a forced round after a pass shows its widget when it needs the visitor", async () => {
+  render(<TurnstilePanel />);
+  await flush();
+  widgets[0]?.options.callback?.("pass");
+  await ensureClearance();
+  const panel = document.getElementById("turnstile-panel");
+
+  const blocked = ensureClearance({ force: true });
+  await flush();
+  expect(widgets).toHaveLength(2);
+  widgets[1]?.options["before-interactive-callback"]?.();
+  expect(panel?.hasAttribute("data-active")).toBe(true);
+  widgets[1]?.options.callback?.("pass");
+  await blocked;
+});
+
+test("a token widget shows inside the holder it was given, not the panel", async () => {
+  render(<TurnstilePanel />);
+  const holder = document.createElement("div");
+  document.body.append(holder);
+  const pending = getTurnstileToken("order", holder);
+  await flush();
+  const widget = widgets.find((candidate) => candidate.options.action === "order");
+  expect(holder.querySelector(widget?.container ?? "")).not.toBeNull();
+  widget?.options["before-interactive-callback"]?.();
+  expect(holder.hasAttribute("data-active")).toBe(true);
+  expect(document.getElementById("turnstile-panel")?.hasAttribute("data-active")).toBe(false);
+  widget?.options.callback?.("tok");
+  expect(await pending).toBe("tok");
+  expect(holder.hasAttribute("data-active")).toBe(false);
 });
 
 test("getTurnstileToken renders a widget with the action, resolves with its token and removes it", async () => {

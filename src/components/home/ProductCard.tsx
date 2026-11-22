@@ -1,21 +1,20 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import { availabilityTag, BAG_FULL_MESSAGE } from "@/domain/bag";
+import { availabilityTag } from "@/domain/bag";
 import { cardImage, cardVariant, type ProductCard as Card } from "@/domain/catalog-snapshot";
 import { pluralize } from "@/domain/catalog";
 import { useStore } from "@/components/store/StoreProvider";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
 import { PriceTag } from "@/components/store/PriceTag";
-import { Icon, Swatch } from "@/components/ui/primitives";
+import { Swatch } from "@/components/ui/primitives";
 
 /**
  * A grid card built from the summary snapshot's card shape (listing pages and home rows). A colour has one picture
- * there, so the hover picture exists only for the default colour, which carries two.
+ * there, so the hover picture exists only for the default colour, which carries two. The picture and the name both
+ * open the product page; buying happens there.
  */
 export function ProductCard({ product, categoryName, index }: { product: Card; categoryName: string; index: number }) {
-  const { selectedVariant, selectVariant, addToBag, showToast, openBag, openQuickView } = useStore();
+  const { selectedVariant, selectVariant } = useStore();
   const openProduct = useOpenProduct();
-  const [added, setAdded] = useState(false);
   const selected = selectedVariant(product.id);
   const variant = cardVariant(product, selected);
   const visible = product.variants.slice(0, 5);
@@ -23,12 +22,6 @@ export function ProductCard({ product, categoryName, index }: { product: Card; c
   const image = cardImage(product, selected);
   const altImage = selected === 0 ? product.images[1] : undefined;
   const stockTag = availabilityTag(variant.availability);
-
-  useEffect(() => {
-    if (!added) return;
-    const timer = window.setTimeout(() => setAdded(false), 1400);
-    return () => window.clearTimeout(timer);
-  }, [added]);
 
   return (
     <li
@@ -74,50 +67,6 @@ export function ProductCard({ product, categoryName, index }: { product: Card; c
         ) : product.variants.length > 1 ? (
           <span className="product-badge">{pluralize(product.variants.length, "colour")}</span>
         ) : null}
-        <div className="product-icons">
-          <button
-            className="card-icon"
-            type="button"
-            tabIndex={-1}
-            aria-hidden="true"
-            title="View full details"
-            onClick={() => openProduct(product)}
-          >
-            <Icon name="fa-solid fa-up-right-and-down-left-from-center" />
-          </button>
-        </div>
-        <div className="product-actions">
-          <button
-            className={`quick-add${added ? " is-added" : ""}`}
-            type="button"
-            aria-label={
-              stockTag
-                ? `${product.name}, ${variant.name}, is out of stock`
-                : `Add ${product.name}, ${variant.name}, to bag`
-            }
-            disabled={stockTag !== null}
-            onClick={() => {
-              if (!addToBag(product.id, selected, 1)) {
-                showToast(BAG_FULL_MESSAGE, { actionLabel: "View bag", action: openBag });
-                return;
-              }
-              setAdded(true);
-              showToast(`${product.name} added to your bag`, { actionLabel: "View bag", action: openBag });
-            }}
-          >
-            <Icon name={`fa-solid ${added ? "fa-check" : "fa-bag-shopping"}`} />
-            <span>{stockTag ?? (added ? "Added" : "Add to bag")}</span>
-          </button>
-          <button
-            className="card-quick-view"
-            type="button"
-            aria-label={`Quick view ${product.name}`}
-            onClick={() => openQuickView(product)}
-          >
-            <Icon name="fa-regular fa-eye" />
-            <span>Quick view</span>
-          </button>
-        </div>
       </div>
       <div className="product-info">
         <p className="product-meta">{categoryName}</p>

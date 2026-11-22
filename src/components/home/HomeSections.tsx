@@ -84,10 +84,11 @@ export function LookbookSection() {
               const variant = cardVariant(product, spot.variant);
               const open = openSpot === index;
               const side = spot.x < 35 ? " is-start" : spot.x > 65 ? " is-end" : "";
+              const vertical = spot.y > 60 ? " is-bottom" : "";
               return (
                 <div
                   key={index}
-                  className={`studio-spot${side}${open ? " is-open" : ""}`}
+                  className={`studio-spot${side}${vertical}${open ? " is-open" : ""}`}
                   style={{ "--x": `${spot.x}%`, "--y": `${spot.y}%` } as React.CSSProperties}
                 >
                   <button

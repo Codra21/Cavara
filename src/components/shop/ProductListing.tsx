@@ -125,6 +125,7 @@ export function ProductListing({ category, search }: { category?: string; search
     setText(fromUrl);
   }, [search.q]);
 
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [minText, setMinText] = useState(search.min?.toString() ?? "");
   const [maxText, setMaxText] = useState(search.max?.toString() ?? "");
   useEffect(() => setMinText(search.min?.toString() ?? ""), [search.min]);
@@ -183,6 +184,10 @@ export function ProductListing({ category, search }: { category?: string; search
   const shownTo = (current.start - 1) * head.pageSize + cards.length;
   const trimmed = search.q ?? "";
   const keepSort: ListSearch = search.sort ? { sort: search.sort } : {};
+  const activePanelFilters =
+    Number(Boolean(search.availability)) +
+    Number(search.min !== undefined || search.max !== undefined) +
+    Number(sort !== DEFAULT_SORT);
 
   return (
     <section className="section shop listing" aria-labelledby="listing-title">
@@ -246,92 +251,107 @@ export function ProductListing({ category, search }: { category?: string; search
           </div>
         ) : null}
 
-        {/* One row: search, filters, sort. */}
+        {/* One row on desktop; secondary filters collapse behind one button on phones. */}
         <div className="shop-filters">
-          <form
-            role="search"
-            className="search-field"
-            onSubmit={(event) => {
-              event.preventDefault();
-              const clean = cleanSearchText(text) ?? "";
-              if (clean === pushed.current) return;
-              pushed.current = clean;
-              update({ q: clean });
-            }}
-          >
-            <Icon name="fa-solid fa-magnifying-glass" />
-            <label className="sr-only" htmlFor="product-search">
-              Search products
-            </label>
-            <input
-              type="search"
-              id="product-search"
-              placeholder="Search cups, dishes, jars…"
-              autoComplete="off"
-              maxLength={80}
-              value={text}
-              onChange={(event) => setText(event.target.value)}
-            />
-          </form>
-          {showAvailability ? (
+          <div className="shop-filters-bar">
+            <form
+              role="search"
+              className="search-field"
+              onSubmit={(event) => {
+                event.preventDefault();
+                const clean = cleanSearchText(text) ?? "";
+                if (clean === pushed.current) return;
+                pushed.current = clean;
+                update({ q: clean });
+              }}
+            >
+              <Icon name="fa-solid fa-magnifying-glass" />
+              <label className="sr-only" htmlFor="product-search">
+                Search products
+              </label>
+              <input
+                type="search"
+                id="product-search"
+                placeholder="Search cups, jars…"
+                autoComplete="off"
+                maxLength={80}
+                value={text}
+                onChange={(event) => setText(event.target.value)}
+              />
+            </form>
+            <button
+              className="button button-outline shop-filters-toggle"
+              type="button"
+              aria-expanded={filtersOpen}
+              aria-controls="shop-filters-panel"
+              onClick={() => setFiltersOpen((open) => !open)}
+            >
+              <Icon name="fa-solid fa-sliders" />
+              <span>Filters</span>
+              {activePanelFilters > 0 ? <span className="shop-filters-badge">{activePanelFilters}</span> : null}
+            </button>
+          </div>
+          <div id="shop-filters-panel" className={`shop-filters-panel${filtersOpen ? " is-open" : ""}`}>
+            {showAvailability ? (
+              <label className="sort-field">
+                <span>Availability</span>
+                <select
+                  value={search.availability ?? ""}
+                  onChange={(event) => update({ availability: event.target.value || undefined })}
+                >
+                  <option value="">All</option>
+                  {availabilityChoices.map((choice) => (
+                    <option key={choice} value={choice}>
+                      {AVAILABILITY_LABELS[choice]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
+            {showPrice ? (
+              <div className="sort-field price-field" role="group" aria-label="Price in taka">
+                <span>Price ৳</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  aria-label="Lowest price"
+                  placeholder={facets.price ? String(facets.price.min) : "Min"}
+                  value={minText}
+                  onChange={(event) => setMinText(event.target.value)}
+                  onBlur={commitPrice}
+                  onKeyDown={(event) => event.key === "Enter" && commitPrice()}
+                />
+                <span aria-hidden="true">to</span>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  aria-label="Highest price"
+                  placeholder={facets.price ? String(facets.price.max) : "Max"}
+                  value={maxText}
+                  onChange={(event) => setMaxText(event.target.value)}
+                  onBlur={commitPrice}
+                  onKeyDown={(event) => event.key === "Enter" && commitPrice()}
+                />
+              </div>
+            ) : null}
             <label className="sort-field">
-              <span>Availability</span>
-              <select
-                value={search.availability ?? ""}
-                onChange={(event) => update({ availability: event.target.value || undefined })}
-              >
-                <option value="">All</option>
-                {availabilityChoices.map((choice) => (
-                  <option key={choice} value={choice}>
-                    {AVAILABILITY_LABELS[choice]}
+              <span>Sort</span>
+              <select value={sort} onChange={(event) => update({ sort: event.target.value as SortKey })}>
+                {SORT_KEYS.map((key) => (
+                  <option key={key} value={key}>
+                    {SORT_LABELS[key]}
                   </option>
                 ))}
               </select>
             </label>
-          ) : null}
-          {showPrice ? (
-            <div className="sort-field price-field" role="group" aria-label="Price in taka">
-              <span>Price ৳</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                aria-label="Lowest price"
-                placeholder={facets.price ? String(facets.price.min) : "Min"}
-                value={minText}
-                onChange={(event) => setMinText(event.target.value)}
-                onBlur={commitPrice}
-                onKeyDown={(event) => event.key === "Enter" && commitPrice()}
-              />
-              <span aria-hidden="true">to</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                aria-label="Highest price"
-                placeholder={facets.price ? String(facets.price.max) : "Max"}
-                value={maxText}
-                onChange={(event) => setMaxText(event.target.value)}
-                onBlur={commitPrice}
-                onKeyDown={(event) => event.key === "Enter" && commitPrice()}
-              />
-            </div>
-          ) : null}
-          <label className="sort-field">
-            <span>Sort</span>
-            <select value={sort} onChange={(event) => update({ sort: event.target.value as SortKey })}>
-              {SORT_KEYS.map((key) => (
-                <option key={key} value={key}>
-                  {SORT_LABELS[key]}
-                </option>
-              ))}
-            </select>
-          </label>
-          {filtered ? (
-            <button className="text-link" type="button" onClick={() => void go(keepSort)}>
-              Clear filters
-            </button>
-          ) : null}
+            {filtered ? (
+              <button className="text-link" type="button" onClick={() => void go(keepSort)}>
+                Clear filters
+              </button>
+            ) : null}
+          </div>
         </div>
 
         <ul ref={gridRef} className="product-grid" aria-label="Products" hidden={cards.length === 0}>
@@ -370,11 +390,18 @@ export function ProductListing({ category, search }: { category?: string; search
           </div>
         ) : null}
 
-        {hasMore ? (
+        {/* The run already ends on the page being fetched, so keep the block for its "Loading…" and "Try again". */}
+        {hasMore || loadingMore || loadFailed ? (
           <div className="studio-load-more">
-            <p>
-              Showing {shownTo} of {total}
-            </p>
+            {loadFailed ? (
+              <p className="checkout-error" role="alert">
+                We couldn&apos;t load more pieces. Check your connection and try again.
+              </p>
+            ) : (
+              <p>
+                Showing {shownTo} of {total}
+              </p>
+            )}
             <button
               className="button button-outline"
               type="button"

@@ -14,7 +14,8 @@ export function PriceTag({
   regularPrice: number | null;
   sale: { badge: string } | null | undefined;
 }) {
-  if (!sale || regularPrice === null || regularPrice <= price) return <>{formatPrice(price)}</>;
+  if (!sale || regularPrice === null || regularPrice <= price)
+    return <span className="price-value">{formatPrice(price)}</span>;
   return (
     <span className="price-sale">
       <span className="sr-only">Sale price </span>

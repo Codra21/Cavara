@@ -78,6 +78,9 @@ export function CheckoutForm({
   /** The key is reused only for an identical retry, so a lost response cannot create a second order. */
   const attempt = useRef<{ key: string; payload: string } | null>(null);
   const errorSummary = useRef<HTMLDivElement>(null);
+  /** Where the Turnstile widget appears if Cloudflare wants the shopper to tick it (hidden otherwise). */
+  const orderCheck = useRef<HTMLDivElement>(null);
+  const couponCheck = useRef<HTMLDivElement>(null);
 
   const lines = buyable.map((line) => ({
     ...line,
@@ -114,7 +117,7 @@ export function CheckoutForm({
       // A fresh single-use token for every call; "" when the check is switched off for this build.
       let turnstileToken: string;
       try {
-        turnstileToken = await getTurnstileToken("coupon");
+        turnstileToken = await getTurnstileToken("coupon", couponCheck.current);
       } catch {
         setCouponError("We couldn't run the security check. Reload the page and try again.");
         setCouponPending(false);
@@ -169,7 +172,7 @@ export function CheckoutForm({
       // new token and still replays the same key. A failed check is not a network error: say what happened.
       let turnstileToken: string;
       try {
-        turnstileToken = await getTurnstileToken("order");
+        turnstileToken = await getTurnstileToken("order", orderCheck.current);
       } catch {
         setPending(false);
         setMessage({
@@ -193,10 +196,10 @@ export function CheckoutForm({
       onPlaced({ reference: result.reference, total: result.total, phone: normalizePhone(draft.phone) ?? draft.phone });
       return;
     }
+    let focusField: string | undefined;
     if (result.code === "validation") {
       setErrors(result.fieldErrors);
-      const first = Object.keys(result.fieldErrors)[0];
-      if (first && first !== "items") document.getElementById(`${id}-${first}`)?.focus();
+      focusField = (["name", "phone", "zoneId", "address", "note"] as const).find((field) => result.fieldErrors[field]);
     } else if (result.code === "price_changed") {
       setServerPrices(
         new Map(result.prices.map((price) => [priceKey(price.productId, price.variant), price.unitPrice])),
@@ -209,7 +212,10 @@ export function CheckoutForm({
       }
     }
     setMessage({ tone: result.code === "price_changed" ? "notice" : "error", text: result.message });
-    window.requestAnimationFrame(() => errorSummary.current?.focus());
+    window.requestAnimationFrame(() => {
+      if (focusField) document.getElementById(`${id}-${focusField}`)?.focus();
+      else errorSummary.current?.focus();
+    });
   }
 
   const fieldProps = (field: CheckoutField) => ({
@@ -244,6 +250,8 @@ export function CheckoutForm({
         <input
           {...fieldProps("name")}
           name="name"
+          type="text"
+          inputMode="text"
           autoComplete="name"
           maxLength={80}
           value={draft.name}
@@ -393,6 +401,9 @@ export function CheckoutForm({
                   {couponPending ? "Checking…" : "Apply"}
                 </button>
               </div>
+              <div className="checkout-check" ref={couponCheck}>
+                <p>Tick the box to confirm you're a person, then the code applies.</p>
+              </div>
               <div aria-live="polite">
                 {couponError ? (
                   <p className="checkout-error" id={`${id}-coupon-error`}>
@@ -426,10 +437,15 @@ export function CheckoutForm({
         </div>
       </dl>
 
-      <button className="button checkout-submit" type="submit" disabled={pending || lines.length === 0}>
-        {pending ? "Placing order…" : `Place order · ${formatPrice(total)}`}
-      </button>
-      <p className="checkout-help">Questions? WhatsApp us at {WHATSAPP_DISPLAY}. No payment is taken online.</p>
+      <div className="checkout-actions">
+        <div className="checkout-check" ref={orderCheck}>
+          <p>Tick the box to confirm you're a person, then your order goes through.</p>
+        </div>
+        <button className="button checkout-submit" type="submit" disabled={pending || lines.length === 0}>
+          {pending ? "Placing order…" : `Place order · ${formatPrice(total)}`}
+        </button>
+        <p className="checkout-help">Questions? WhatsApp us at {WHATSAPP_DISPLAY}. No payment is taken online.</p>
+      </div>
     </form>
   );
 }

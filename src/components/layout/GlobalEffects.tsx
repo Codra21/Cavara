@@ -4,7 +4,7 @@ import { useStore } from "@/components/store/StoreProvider";
 import { useShopNavigation } from "./useShopNavigation";
 
 const MEDIA_WRAPPERS =
-  ".product-media, .product-dialog-media, .studio-slide-media, .studio-category-media, .studio-promo-media, .studio-lookbook-media, .studio-carousel-media, .pdp-shot";
+  ".product-media, .studio-slide-media, .studio-category-media, .studio-promo-media, .studio-lookbook-media, .studio-carousel-media, .pdp-shot";
 
 /** Fade-up scroll reveals for every `[data-reveal]` element, including ones rendered later. */
 function useReveals() {
@@ -115,9 +115,9 @@ function StudioCursor() {
 }
 
 export function GlobalEffects() {
-  const { quickView, bagOpen } = useStore();
+  const { bagOpen } = useStore();
   const goToShop = useShopNavigation();
-  const dialogOpen = quickView !== null || bagOpen;
+  const dialogOpen = bagOpen;
   const dialogOpenRef = useRef(dialogOpen);
   dialogOpenRef.current = dialogOpen;
 

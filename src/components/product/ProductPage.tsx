@@ -232,14 +232,6 @@ export function ProductPage({
                 <PriceTag price={product.price} regularPrice={product.regularPrice} sale={product.sale} />
                 {product.sale ? <span className="sale-badge">{product.sale.badge}</span> : null}
               </p>
-              <p className="pdp-summary">{product.summary}</p>
-              {product.details.length ? (
-                <ul className="pdp-specs">
-                  {product.details.map((detail) => (
-                    <li key={detail}>{detail}</li>
-                  ))}
-                </ul>
-              ) : null}
 
               <div className="pdp-option">
                 <p className="pdp-option-label">
@@ -277,6 +269,15 @@ export function ProductPage({
               >
                 <Icon name="fa-brands fa-whatsapp" /> Order now on WhatsApp
               </a>
+
+              <p className="pdp-summary">{product.summary}</p>
+              {product.details.length ? (
+                <ul className="pdp-specs">
+                  {product.details.map((detail) => (
+                    <li key={detail}>{detail}</li>
+                  ))}
+                </ul>
+              ) : null}
 
               <div className="pdp-links">
                 <a href={MESSENGER_URL} target="_blank" rel="noopener">

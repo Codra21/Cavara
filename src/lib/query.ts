@@ -62,7 +62,7 @@ export const listingQueryOptions = (query: ListQuery) => {
   });
 };
 
-/** One product with everything the product page and quick view show. `product` is null for an unknown slug. */
+/** One product with everything the product page shows. `product` is null for an unknown slug. */
 export const productQueryOptions = (slug: string) =>
   queryOptions({
     queryKey: ["product", slug],

@@ -87,7 +87,9 @@ export function BagDrawer() {
             <h2 id="bag-title">Your bag</h2>
             <p>
               {bagCount
-                ? `${pluralize(itemCount, "item")}${settled && !failed ? ` · ${formatPrice(subtotal)}` : ""}`
+                ? !settled && !failed
+                  ? `${pluralize(itemCount, "item")} · Loading details…`
+                  : `${pluralize(itemCount, "item")}${settled && !failed ? ` · ${formatPrice(subtotal)}` : ""}`
                 : "No items yet"}
             </p>
           </div>
@@ -268,38 +270,44 @@ export function BagDrawer() {
           <button className="button" type="button" disabled={!ready} onClick={() => setView("checkout")}>
             Checkout
           </button>
-          <a
-            className="button button-outline"
-            href={buyable.length ? whatsappUrl(bagOrderMessage(lines)) : "#"}
-            aria-disabled={buyable.length === 0}
-            target="_blank"
-            rel="noopener"
-            onClick={(event) => {
-              if (buyable.length === 0) event.preventDefault();
-            }}
-          >
-            <Icon name="fa-brands fa-whatsapp" /> Order on WhatsApp instead
-          </a>
-          <a
-            className="button button-outline"
-            href={MESSENGER_URL}
-            target="_blank"
-            rel="noopener"
-            aria-disabled={buyable.length === 0}
-            onClick={async (event) => {
-              if (buyable.length === 0) {
-                event.preventDefault();
-                return;
-              }
-              const copied = await copyText(bagOrderMessage(lines));
-              showToast(
-                copied ? "Order copied. Paste it into Messenger." : "Messenger opened. Please list your pieces there.",
-                { inBag: true },
-              );
-            }}
-          >
-            <Icon name="fa-brands fa-facebook-messenger" /> Copy order for Messenger
-          </a>
+          <div className="bag-footer-alt">
+            {/* The buttons are one word each; this line says what they do (WhatsApp prefills, Messenger copies). */}
+            <p className="bag-footer-alt-label">Or send your order by message</p>
+            <a
+              className="button button-outline"
+              href={buyable.length ? whatsappUrl(bagOrderMessage(lines)) : "#"}
+              aria-disabled={buyable.length === 0}
+              target="_blank"
+              rel="noopener"
+              onClick={(event) => {
+                if (buyable.length === 0) event.preventDefault();
+              }}
+            >
+              <Icon name="fa-brands fa-whatsapp" /> WhatsApp
+            </a>
+            <a
+              className="button button-outline"
+              href={MESSENGER_URL}
+              target="_blank"
+              rel="noopener"
+              aria-disabled={buyable.length === 0}
+              onClick={async (event) => {
+                if (buyable.length === 0) {
+                  event.preventDefault();
+                  return;
+                }
+                const copied = await copyText(bagOrderMessage(lines));
+                showToast(
+                  copied
+                    ? "Order copied. Paste it into Messenger."
+                    : "Messenger opened. Please list your pieces there.",
+                  { inBag: true },
+                );
+              }}
+            >
+              <Icon name="fa-brands fa-facebook-messenger" /> Messenger
+            </a>
+          </div>
           <button
             className="text-button"
             type="button"
