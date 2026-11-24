@@ -46,22 +46,19 @@ const priceKey = (productId: number, variant: number) => `${productId}:${variant
 export function CheckoutForm({
   lines: buyable,
   zones,
-  draft: controlledDraft,
-  onDraftChange,
+  draft,
+  onDraftChange: setDraft,
   onBack,
   onPlaced,
 }: {
   lines: BuyableLine[];
   zones: DeliveryZone[];
-  draft?: CheckoutDraft;
-  onDraftChange?: React.Dispatch<React.SetStateAction<CheckoutDraft>>;
+  draft: CheckoutDraft;
+  onDraftChange: React.Dispatch<React.SetStateAction<CheckoutDraft>>;
   onBack: () => void;
   onPlaced: (order: PlacedOrder) => void;
 }) {
   const id = useId();
-  const [localDraft, setLocalDraft] = useState<CheckoutDraft>(() => controlledDraft ?? EMPTY_DRAFT);
-  const draft = controlledDraft ?? localDraft;
-  const setDraft = onDraftChange ?? setLocalDraft;
   const [website, setWebsite] = useState("");
   const [errors, setErrors] = useState<Partial<Record<CheckoutField, string>>>({});
   const [message, setMessage] = useState<{ tone: "error" | "notice"; text: string } | null>(null);

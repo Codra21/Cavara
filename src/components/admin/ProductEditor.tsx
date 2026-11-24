@@ -186,15 +186,15 @@ function PictureUpload({
       </div>
       {summary.length ? (
         <ul aria-live="polite" className="text-xs text-muted-foreground">
-          {summary.map((line) => (
-            <li key={line}>{line}</li>
+          {summary.map((line, index) => (
+            <li key={`${index}-${line}`}>{line}</li>
           ))}
         </ul>
       ) : null}
       {errors.length ? (
         <ul role="alert" className="list-disc pl-5 text-sm text-destructive">
-          {errors.map((error) => (
-            <li key={error}>{error}</li>
+          {errors.map((error, index) => (
+            <li key={`${index}-${error}`}>{error}</li>
           ))}
         </ul>
       ) : null}
@@ -291,7 +291,7 @@ function VariantCard({
               aria-label={`Pick ${label} colour`}
               value={HEX_COLOUR.test(variant.swatch) ? variant.swatch : "#000000"}
               onChange={(e) => onChange({ ...variant, swatch: e.target.value.toUpperCase() })}
-              className="h-9 w-10 shrink-0 cursor-pointer rounded-sm border border-input bg-transparent p-1"
+              className="h-8 w-10 shrink-0 cursor-pointer rounded-sm border border-input bg-transparent p-1"
             />
             <Input
               id={`${id}-swatch`}
@@ -303,7 +303,7 @@ function VariantCard({
         </Field>
         {counted ? (
           <div className="grid content-start gap-1.5">
-            <Label htmlFor={`${id}-preorder`}>Availability</Label>
+            <span className="text-sm leading-none font-medium">Availability</span>
             <div className="flex items-center gap-2">
               <Checkbox
                 id={`${id}-preorder`}
@@ -490,6 +490,7 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (save.isPending) return;
     setConflict(false);
     const payload: ProductFormValues = {
       ...current,

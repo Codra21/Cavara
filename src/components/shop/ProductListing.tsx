@@ -120,9 +120,10 @@ export function ProductListing({ category, search }: { category?: string; search
   }, [debounced]);
   useEffect(() => {
     const fromUrl = search.q ?? "";
-    if (fromUrl === pushed.current) return;
+    if (fromUrl === pushed.current && (fromUrl !== "" || text === "")) return;
     pushed.current = fromUrl;
     setText(fromUrl);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- syncs when URL search changes or is cleared
   }, [search.q]);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -152,6 +153,18 @@ export function ProductListing({ category, search }: { category?: string; search
     focusFrom.current = null;
   }, [cards.length]);
 
+  if (results[0]?.isError) {
+    return (
+      <section className="section shop-section">
+        <div className="container">
+          <p className="bag-error">Could not load products right now.</p>
+          <button className="button button-outline" type="button" onClick={() => void results[0]?.refetch()}>
+            Try again
+          </button>
+        </div>
+      </section>
+    );
+  }
   if (!head) return null;
   const { facets, total, pageCount } = head;
   const lastResult = results[results.length - 1];
@@ -359,7 +372,7 @@ export function ProductListing({ category, search }: { category?: string; search
             <ProductCard
               key={product.id}
               product={product}
-              categoryName={categoryNames[product.category] ?? ""}
+              categoryName={category ? "" : (categoryNames[product.category] ?? "")}
               index={index}
             />
           ))}

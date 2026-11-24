@@ -13,16 +13,16 @@ export interface SeoProduct extends Pick<Product, "id" | "slug" | "name" | "pric
  * Absolute URL for an image or path. Catalogue images are already absolute on production
  * (https://images.cavarabd.com/…); local and fallback paths start with "/" and get the site origin.
  */
+const trimSlash = (siteUrl: string) => siteUrl.replace(/\/+$/, "");
+
 export function absoluteUrl(siteUrl: string, src: string): string {
   if (/^https?:\/\//i.test(src)) return src;
-  return `${siteUrl.replace(/\/+$/, "")}${encodeURI(src.startsWith("/") ? src : `/${src}`)}`;
+  return `${trimSlash(siteUrl)}${encodeURI(src.startsWith("/") ? src : `/${src}`)}`;
 }
 
 export function productUrl(siteUrl: string, product: Pick<Product, "slug">): string {
-  return `${siteUrl.replace(/\/+$/, "")}/products/${product.slug}`;
+  return `${trimSlash(siteUrl)}/products/${product.slug}`;
 }
-
-const trimSlash = (siteUrl: string) => siteUrl.replace(/\/+$/, "");
 
 /** The all-products page. Filters, sort and page numbers are never part of the canonical URL. */
 export const productsUrl = (siteUrl: string) => `${trimSlash(siteUrl)}/products`;

@@ -121,7 +121,6 @@ export function saleBadge(strike: number, price: number): string {
   return percent >= 1 ? `${percent}% off` : "Sale";
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // Admin form: shared by the form and the server function.
 
 /** Dhaka is UTC+6 all year (no daylight saving), the same offset `shopDay` uses. */
@@ -188,7 +187,6 @@ export const discountInputSchema = z
   }));
 
 export type DiscountInput = z.output<typeof discountInputSchema>;
-export type DiscountRequest = z.input<typeof discountInputSchema>;
 
 export const saveDiscountSchema = z.object({
   /** null creates a sale. */
@@ -197,8 +195,6 @@ export const saveDiscountSchema = z.object({
   revision: z.string().max(64),
   input: discountInputSchema,
 });
-
-export type SaveDiscountRequest = z.input<typeof saveDiscountSchema>;
 
 /** A sale as the admin list and form see it. */
 export interface AdminDiscount extends DiscountInput {

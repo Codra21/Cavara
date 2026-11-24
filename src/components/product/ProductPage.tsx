@@ -126,7 +126,8 @@ export function ProductPage({
   const category = loadedCategory ?? { id: product.category, name: "Collection" };
   // A colour picked earlier on another page can be out of range after the editor removed colours.
   const picked = selectedVariant(product.id);
-  const variantIndex = product.variants[picked] ? picked : 0;
+  const urlVariant = initialVariant !== undefined && product.variants[initialVariant] ? initialVariant : undefined;
+  const variantIndex = product.variants[picked] ? picked : (urlVariant ?? 0);
   const variant = getVariant(product, variantIndex);
   const stockTag = availabilityTag(variant.availability);
   const pageUrl = `${SITE_URL}/products/${product.slug}`;
@@ -154,11 +155,10 @@ export function ProductPage({
     )} to compare`,
   ].slice(0, 4);
 
-  // New product: reset local state, apply ?variant=, remember it, focus the title.
+  // New product: reset local state, remember it, focus the title.
   useEffect(() => {
     setQuantity(1);
     setTab("description");
-    if (initialVariant !== undefined && product.variants[initialVariant]) selectVariant(product.id, initialVariant);
     rememberViewed(product.id);
     document.documentElement.dataset.view = "product";
     window.requestAnimationFrame(() => titleRef.current?.focus({ preventScroll: true }));
@@ -167,6 +167,12 @@ export function ProductPage({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs per product
   }, [product.id]);
+
+  // Apply ?variant= on direct loads and same-product variant links (e.g. from the bag drawer).
+  useEffect(() => {
+    if (initialVariant !== undefined && product.variants[initialVariant]) selectVariant(product.id, initialVariant);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- syncs URL variant param
+  }, [product.id, initialVariant]);
 
   // Sticky buy bar once the main buy row scrolls away.
   useEffect(() => {
@@ -261,14 +267,16 @@ export function ProductPage({
                   {addLabel}
                 </button>
               </div>
-              <a
-                className="button button-outline pdp-now"
-                href={whatsappUrl(singleOrderMessage(product, variant, quantity))}
-                target="_blank"
-                rel="noopener"
-              >
-                <Icon name="fa-brands fa-whatsapp" /> Order now on WhatsApp
-              </a>
+              {stockTag === null ? (
+                <a
+                  className="button button-outline pdp-now"
+                  href={whatsappUrl(singleOrderMessage(product, variant, quantity))}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Icon name="fa-brands fa-whatsapp" /> Order now on WhatsApp
+                </a>
+              ) : null}
 
               <p className="pdp-summary">{product.summary}</p>
               {product.details.length ? (
@@ -421,16 +429,18 @@ export function ProductPage({
           </TabsPanel>
         </Tabs>
 
-        <section className="pdp-related" aria-labelledby="pdp-related-title">
-          <h2 id="pdp-related-title" data-reveal="">
-            Related pieces
-          </h2>
-          <ul className="pdp-grid">
-            {related?.products.map((item) => (
-              <PageCard key={item.id} product={item} categoryName={related.categoryNames[item.category] ?? ""} />
-            ))}
-          </ul>
-        </section>
+        {related?.products.length ? (
+          <section className="pdp-related" aria-labelledby="pdp-related-title">
+            <h2 id="pdp-related-title" data-reveal="">
+              Related pieces
+            </h2>
+            <ul className="pdp-grid">
+              {related.products.map((item) => (
+                <PageCard key={item.id} product={item} categoryName={related.categoryNames[item.category] ?? ""} />
+              ))}
+            </ul>
+          </section>
+        ) : null}
 
         {recentProducts.length ? (
           <section className="pdp-related" aria-labelledby="pdp-recent-title">

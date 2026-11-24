@@ -24,12 +24,19 @@ export function BlockPhoneCard({ phone, orderId }: { phone: string; orderId: str
   const done = async () => {
     setOpen(false);
     setReason("");
-    await queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEY });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "blocked-phones"] }),
+      queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "phone-blocked"] }),
+      queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "audit"] }),
+    ]);
   };
   const block = useMutation({
     mutationFn: () => blockPhoneFn({ data: { phone, reason, orderId } }),
     onSuccess: done,
-    onError: (error) => setProblem(error.message || "Could not block this number. Try again."),
+    onError: (error) => {
+      setOpen(false);
+      setProblem(error.message || "Could not block this number. Try again.");
+    },
   });
   const unblock = useMutation({
     mutationFn: () => unblockPhoneFn({ data: { phone } }),

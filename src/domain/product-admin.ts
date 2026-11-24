@@ -82,7 +82,6 @@ export const productInputSchema = z
 
 export type ProductInput = z.output<typeof productInputSchema>;
 export type ProductFormValues = z.input<typeof productInputSchema>;
-export type VariantInput = z.output<typeof variantInputSchema>;
 
 export const saveProductSchema = z.object({
   /** null creates a new product. */
@@ -91,8 +90,6 @@ export const saveProductSchema = z.object({
   revision: z.string().max(64),
   product: productInputSchema,
 });
-
-export type SaveProductRequest = z.input<typeof saveProductSchema>;
 
 export interface AdminVariant {
   id: number;

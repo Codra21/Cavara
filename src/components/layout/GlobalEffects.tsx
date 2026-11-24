@@ -125,12 +125,17 @@ export function GlobalEffects() {
 
   useEffect(() => {
     document.body.classList.toggle("is-locked", dialogOpen);
+    return () => {
+      document.body.classList.remove("is-locked");
+    };
   }, [dialogOpen]);
 
   // "/" jumps to product search.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      const typing = (event.target as Element).matches?.("input, textarea, select");
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      const target = event.target as HTMLElement | null;
+      const typing = Boolean(target?.isContentEditable || target?.matches?.("input, textarea, select"));
       if (event.key !== "/" || typing || dialogOpenRef.current) return;
       event.preventDefault();
       void goToShop({ focusSearch: true });

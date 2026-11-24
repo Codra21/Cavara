@@ -107,7 +107,6 @@
     --space-5: 24px;
     --space-6: 32px;
     --space-7: 48px;
-    --space-8: 64px;
     --section-space: clamp(var(--space-7), 6.5vw, 96px);
     --section-space-tight: clamp(var(--space-5), 3vw, 40px);
     --gutter: clamp(var(--space-4), 2.6vw, 40px);
@@ -116,11 +115,9 @@
     --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
     --ease-media: cubic-bezier(0.5, 1, 0.89, 1);
     --ease-card: cubic-bezier(0.37, 0, 0.63, 1);
-    --shadow-soft: 0 2px 20px 0 rgb(var(--shadow-color) / 0.1);
     --shadow-float: 0 18px 50px -20px rgb(var(--shadow-color) / 0.4);
   }
 
-  /* ---------- Base ---------- */
   *,
   *::before,
   *::after {
@@ -266,7 +263,6 @@
     transform: translateY(0);
   }
 
-  /* ---------- Type helpers ---------- */
   .sub-heading {
     display: inline-block;
     padding-bottom: 1px;
@@ -336,7 +332,6 @@
     line-height: 1.6;
   }
 
-  /* ---------- Controls ---------- */
   .button,
   .text-link,
   .icon-button,
@@ -455,7 +450,6 @@
     background: var(--surface-alt);
   }
 
-  /* ---------- Brand ---------- */
   .brand {
     min-height: 44px;
     display: inline-flex;
@@ -496,7 +490,6 @@
     mask-image: url("/assets/brand/cavara-logo-word-mask.png");
   }
 
-  /* ---------- Header ---------- */
   .site-header {
     position: sticky;
     top: 0;
@@ -660,14 +653,6 @@
     }
   }
 
-  @keyframes menu-in {
-    from {
-      opacity: 0;
-      transform: translateY(-6px) scale(0.97);
-    }
-  }
-
-  /* ---------- Hero slider ---------- */
   .studio-hero-frame {
     position: relative;
     height: clamp(540px, calc(100svh - 150px), 720px);
@@ -968,7 +953,6 @@
     cursor: none;
   }
 
-  /* ---------- Collections ---------- */
   .studio-category-row {
     display: grid;
     grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -1048,7 +1032,6 @@
     text-transform: uppercase;
   }
 
-  /* ---------- Shop ---------- */
   .shop {
     scroll-margin-top: 0;
   }
@@ -1220,17 +1203,31 @@
     gap: 48px clamp(14px, 2vw, 30px);
   }
 
+  /* The listing sits right under the sticky header, so the homepage section pad leaves a hole before the first card. */
+  .listing {
+    padding-block: var(--space-5) var(--space-6);
+  }
+
   .listing .section-head {
-    margin-bottom: clamp(24px, 3vw, 36px);
+    margin-bottom: var(--space-4);
+  }
+
+  .listing .section-head h1 {
+    margin-top: var(--space-2);
   }
 
   .listing .section-head .section-note {
     max-width: 56ch;
-    margin-top: 10px;
+    margin-top: var(--space-2);
   }
 
-  .listing-crumbs ol {
-    padding-top: 8px;
+  .listing .shop-filters {
+    margin-bottom: var(--space-4);
+  }
+
+  /* Row only: this rule outranks the 640px query, which keeps its own column gap. */
+  .listing .product-grid {
+    row-gap: var(--space-6);
   }
 
   /* Listing controls row: search, availability, price, sort and "Clear filters". */
@@ -1607,7 +1604,6 @@
     opacity: 0 !important;
   }
 
-  /* ---------- Lookbook (split deal-style banner) ---------- */
   .studio-lookbook {
     padding-block: var(--section-space-tight);
   }
@@ -1853,7 +1849,6 @@
     }
   }
 
-  /* ---------- Carousel ---------- */
   .studio-carousel-section .container-wide {
     position: relative;
   }
@@ -1944,7 +1939,6 @@
     font-variant-numeric: tabular-nums;
   }
 
-  /* ---------- Promo strip ---------- */
   .studio-promo {
     padding-block: var(--section-space-tight);
   }
@@ -2027,7 +2021,6 @@
     color: var(--ink);
   }
 
-  /* ---------- Story ---------- */
   .story-grid {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -2115,7 +2108,6 @@
     line-height: 1.6;
   }
 
-  /* ---------- Ordering ---------- */
   .ordering {
     padding-block: var(--section-space-tight) var(--section-space);
   }
@@ -2220,7 +2212,6 @@
     white-space: nowrap;
   }
 
-  /* ---------- Footer ---------- */
   .site-footer {
     padding-bottom: var(--edge);
   }
@@ -2377,7 +2368,6 @@
     color: var(--dark);
   }
 
-  /* ---------- Floating elements ---------- */
   .floating-chat {
     position: fixed;
     right: max(20px, env(safe-area-inset-right));
@@ -2456,14 +2446,6 @@
     }
   }
 
-  /* ---------- Dialogs ---------- */
-  /* ui-sdk Dialog: a popover div replaces the native <dialog>, so it needs the insets <dialog> got from the UA. */
-  .bag-drawer {
-    inset: 0;
-    height: fit-content;
-    color: var(--ink);
-  }
-
   .modal-scrim {
     position: fixed;
     inset: 0;
@@ -2474,16 +2456,8 @@
     animation: fade-in 0.3s ease;
   }
 
-  .bag-drawer[data-open] {
-    animation: dialog-in 0.35s var(--ease-out);
-  }
-
   .modal-scrim[data-ending-style] {
     animation: fade-out 0.18s ease forwards;
-  }
-
-  .bag-drawer[data-ending-style] {
-    animation: dialog-out 0.18s ease-in forwards;
   }
 
   @keyframes fade-in {
@@ -2498,30 +2472,10 @@
     }
   }
 
-  @keyframes dialog-in {
-    from {
-      opacity: 0;
-      transform: translateY(20px);
-    }
-  }
-
-  @keyframes dialog-out {
-    to {
-      opacity: 0;
-      transform: translateY(12px);
-    }
-  }
-
   .dialog-surface {
     position: relative;
     background: var(--surface);
     color: var(--body);
-  }
-
-  @keyframes image-in {
-    from {
-      opacity: 0.35;
-    }
   }
 
   .quantity {
@@ -2566,9 +2520,11 @@
 
   /* Bag drawer */
   .bag-drawer {
+    inset: 0;
     width: min(460px, 100vw);
     height: 100dvh;
     margin: 0 0 0 auto;
+    color: var(--ink);
   }
 
   .bag-drawer[data-open] {
@@ -2966,15 +2922,12 @@
     min-height: 44px;
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    list-style: none;
     color: var(--ink);
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-  }
-
-  .checkout-coupon summary {
-    justify-content: space-between;
-    list-style: none;
   }
 
   .checkout-coupon summary::-webkit-details-marker {
@@ -3121,20 +3074,8 @@
     font-variant-numeric: tabular-nums;
   }
 
-  .noscript {
-    max-width: 640px;
-    margin: 24px auto;
-    padding: 16px;
-    text-align: center;
-  }
-
-  /* ---------- Product page ---------- */
   .pdp {
     padding-bottom: var(--section-space);
-  }
-
-  [data-view="product"] main > :not(.pdp) {
-    display: none !important;
   }
 
   .pdp-crumbs ol {
@@ -3174,6 +3115,11 @@
   .pdp-crumbs [aria-current] {
     color: var(--ink);
     font-weight: 600;
+  }
+
+  /* Same specificity as .pdp-crumbs ol above, so it has to come after it; the 640px query still wins on mobile. */
+  .listing-crumbs ol {
+    padding: 0 0 var(--space-2);
   }
 
   .pdp-main {
@@ -3664,7 +3610,6 @@
     bottom: calc(100px + env(safe-area-inset-bottom));
   }
 
-  /* ---------- Scroll reveals ---------- */
   .has-reveal [data-reveal] {
     transition:
       opacity 0.9s ease var(--reveal-delay, 0ms),
@@ -3676,7 +3621,6 @@
     transform: translateY(40px);
   }
 
-  /* ---------- Responsive ---------- */
   @media (max-width: 1200px) {
     .primary-nav a:nth-child(5) {
       display: none;
@@ -3750,7 +3694,6 @@
     .studio-slide-word {
       top: auto;
       bottom: 0;
-      left: 50%;
       font-size: clamp(64px, 17vw, 140px);
       writing-mode: horizontal-tb;
       transform: translate(-50%, 0) rotate(0deg);
@@ -3945,7 +3888,7 @@
       background: none;
       color: var(--ink);
       font: inherit;
-      font-size: 11px;
+      font-size: 12px;
       font-weight: 600;
       line-height: 1.2;
       text-decoration: none;
@@ -3980,8 +3923,14 @@
     }
 
     .pdp-bar {
-      bottom: calc(62px + env(safe-area-inset-bottom));
-      padding-bottom: 0;
+      bottom: 0;
+      padding-bottom: env(safe-area-inset-bottom);
+      z-index: 36;
+    }
+
+    [data-view="product"]:has(.pdp-bar.is-visible) .studio-dock {
+      transform: translateY(100%);
+      pointer-events: none;
     }
 
     .pdp-bar-inner {
@@ -4063,7 +4012,6 @@
     .shop-filters {
       display: grid;
       grid-template-columns: 1fr;
-      gap: var(--space-3);
       margin-bottom: var(--space-5);
     }
 
@@ -4110,17 +4058,6 @@
       top: var(--space-2);
       left: var(--space-2);
       padding: 2px var(--space-2);
-      font-size: 10px;
-    }
-
-    .product-name,
-    .studio-carousel-name {
-      font-size: 15px;
-    }
-
-    .product-price,
-    .studio-carousel-price {
-      font-size: 15px;
     }
 
     .studio-carousel {
@@ -4438,11 +4375,6 @@
     }
   }
 
-  .skeleton-media {
-    position: absolute;
-    inset: 0;
-  }
-
   .skeleton-line {
     border-radius: var(--radius-sm);
   }
@@ -4553,7 +4485,6 @@
     vertical-align: middle;
   }
 
-  /* ---------- Turnstile check ---------- */
   /* The pre-clearance widget (src/lib/turnstile.ts) lives here, clipped to nothing. data-active is set only after a
      click the shopper made was blocked and Cloudflare wants a tick; then a centred card shows over a scrim. */
   .turnstile-panel {

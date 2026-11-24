@@ -29,7 +29,7 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
   const queryClient = useQueryClient();
   const [rows, setRows] = useState<Row[]>(() => toRows(zones));
   const [problems, setProblems] = useState<string[]>([]);
-  const [notice, setNotice] = useState<string | null>(null);
+  const [notice, setNotice] = useState<{ text: string; warning: boolean } | null>(null);
   const dirty =
     JSON.stringify(rows.map(({ key: _key, ...row }) => row)) !==
     JSON.stringify(toRows(zones).map(({ key: _key, ...row }) => row));
@@ -56,15 +56,23 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
         return;
       }
       setProblems([]);
-      setNotice("warning" in result && result.warning ? result.warning : "Saved. Checkout uses the new charges now.");
+      const warning = Boolean("warning" in result && result.warning);
+      setNotice({
+        text: "warning" in result && result.warning ? result.warning : "Saved. Checkout uses the new charges now.",
+        warning,
+      });
       setRows(toRows(result.zones));
-      await queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "zones"] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "zones"] }),
+        queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "audit"] }),
+      ]);
     },
     onError: (error) => setProblems([error.message || "Could not save. Try again."]),
   });
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (save.isPending) return;
     const input = rows.map((row) => ({
       id: row.id,
       name: row.name,
@@ -108,9 +116,9 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
           </Alert>
         ) : null}
         {notice && !dirty ? (
-          <Alert variant="success" role="status">
+          <Alert variant={notice.warning ? "warning" : "success"} role="status">
             <CheckCircle2 />
-            <AlertDescription>{notice}</AlertDescription>
+            <AlertDescription>{notice.text}</AlertDescription>
           </Alert>
         ) : null}
       </div>
@@ -159,7 +167,7 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
                     onChange={(event) => update(index, { charge: event.target.value })}
                   />
                 </div>
-                <div className="flex h-9 items-center gap-2">
+                <div className="flex h-8 items-center gap-2">
                   <Checkbox
                     id={`${id}-${row.key}-active`}
                     checked={row.active}
@@ -167,7 +175,7 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
                   />
                   <Label htmlFor={`${id}-${row.key}-active`}>Active</Label>
                 </div>
-                <div className="flex h-9 items-center gap-1">
+                <div className="flex h-8 items-center gap-1">
                   <Button
                     type="button"
                     variant="ghost"

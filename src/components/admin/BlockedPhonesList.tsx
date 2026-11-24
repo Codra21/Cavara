@@ -17,7 +17,12 @@ export function BlockedPhonesList({ blocked }: { blocked: BlockedPhone[] }) {
   const [problem, setProblem] = useState<string | null>(null);
   const unblock = useMutation({
     mutationFn: (phone: string) => unblockPhoneFn({ data: { phone } }),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEY }),
+    onSuccess: () =>
+      Promise.all([
+        queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "blocked-phones"] }),
+        queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "phone-blocked"] }),
+        queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "audit"] }),
+      ]),
     onError: (error) => setProblem(error.message || "Could not unblock this number. Try again."),
   });
 

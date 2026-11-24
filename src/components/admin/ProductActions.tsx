@@ -137,7 +137,10 @@ export function BulkBar({
       onClear();
       await invalidateProductData(queryClient);
     },
-    onError: (error) => onNotice({ kind: "error", text: error.message || "Could not apply that. Try again." }),
+    onError: (error) => {
+      setConfirmArchive(false);
+      onNotice({ kind: "error", text: error.message || "Could not apply that. Try again." });
+    },
   });
 
   const ids = selected.map((row) => row.id);

@@ -13,8 +13,9 @@ interface ProductSearch {
 
 export const Route = createFileRoute("/products/$slug")({
   validateSearch: (search: Record<string, unknown>): ProductSearch => {
-    const variant = Number(search.variant);
-    return Number.isInteger(variant) && variant >= 0 ? { variant } : {};
+    const raw = search.variant;
+    const variant = typeof raw === "string" && raw.trim() !== "" ? Number(raw) : raw;
+    return typeof variant === "number" && Number.isInteger(variant) && variant >= 0 ? { variant } : {};
   },
   loader: async ({ context, params }) => {
     // A slug the editor could never have written is not found; the server function would reject it as bad input.
@@ -35,7 +36,8 @@ export const Route = createFileRoute("/products/$slug")({
     if (!product) return {};
     const category = loaderData?.category ?? undefined;
     const url = productUrl(SITE_URL, product);
-    const image = absoluteUrl(SITE_URL, getVariant(product).images[0] ?? "/og-image.jpg");
+    const variant = getVariant(product);
+    const image = absoluteUrl(SITE_URL, variant.images[0] ?? "/og-image.jpg");
     const title = `${product.name} — Cavara`;
     const description = metaDescription(product, SHARE_DESCRIPTION);
     return {
@@ -47,7 +49,7 @@ export const Route = createFileRoute("/products/$slug")({
         { property: "og:description", content: description },
         { property: "og:url", content: url },
         { property: "og:image", content: image },
-        { property: "og:image:alt", content: `${product.name}, ${getVariant(product).name}` },
+        { property: "og:image:alt", content: `${product.name}, ${variant.name}` },
         { property: "product:price:amount", content: String(product.price) },
         { property: "product:price:currency", content: "BDT" },
         { name: "twitter:title", content: title },

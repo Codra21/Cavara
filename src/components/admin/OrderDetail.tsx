@@ -141,7 +141,12 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
         return;
       }
       // The detail remounts on the new version with fresh state; lists and the activity log refetch.
-      await queryClient.invalidateQueries({ queryKey: ADMIN_QUERY_KEY });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "orders"] }),
+        queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "order", order.id] }),
+        queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "dashboard"] }),
+        queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "audit"] }),
+      ]);
     },
     onError: (error) => {
       setConfirmCancel(false);
@@ -229,6 +234,7 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
               className="grid gap-4"
               onSubmit={(event) => {
                 event.preventDefault();
+                if (save.isPending) return;
                 setProblem(null);
                 if (status === "cancelled" && order.status !== "cancelled") {
                   setConfirmCancel(true);

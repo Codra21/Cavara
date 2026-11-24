@@ -193,7 +193,6 @@ async function readObject<T>(
   }
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // Full rebuild
 
 interface Rebuilt {
@@ -231,7 +230,6 @@ async function rebuildOnMiss(sources: CatalogSources, cache: Cache | undefined):
   return rebuilt;
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // Reads
 
 /** The summary: every published product, compact. Throws only when D1 is reached and fails (invariant 5). */
@@ -334,7 +332,6 @@ export async function getProductDetail(
   return doc.product;
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // Invalidation and writes
 
 /** Clears this isolate's copies and this data center's edge copies of the summary and legacy documents. */

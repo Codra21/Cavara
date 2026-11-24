@@ -23,6 +23,7 @@ import { StoreProvider } from "@/components/store/StoreProvider";
 import { INPUT_BOOT } from "@/lib/dom";
 import { THEME_BOOT, THEME_COLORS } from "@/lib/theme";
 import { categoriesQueryOptions } from "@/lib/query";
+import { safeLoad } from "@/lib/safe-load";
 
 /** Self-hosted Plus Jakarta Sans (declared in site.css). A font preload must be crossorigin even when same-origin. */
 const PRIMARY_FONT = "/fonts/plus-jakarta-sans-latin-wght-normal.woff2";
@@ -33,14 +34,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   // The footer links, the home page's collection tiles and the admin editor's image origin need the categories on
   // every page; they come from the summary snapshot, so this reads no D1.
   loader: async ({ context }) => {
-    try {
-      await context.queryClient.query(categoriesQueryOptions());
-    } catch (error) {
-      // Router writes a failed loader's error message into the page's hydration data. A database error message
-      // ("D1_ERROR: no such table…") must not reach the HTML, so log the real one and rethrow a generic one.
-      console.error("catalogue load failed:", error);
-      throw new Error("The catalogue could not be loaded");
-    }
+    await safeLoad("catalogue", () => context.queryClient.query(categoriesQueryOptions()));
   },
   head: () => ({
     meta: [

@@ -334,6 +334,7 @@ function DiscountForm({
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (pending) return;
     const parsed = discountInputSchema.safeParse(toRequest(draft));
     if (!parsed.success) {
       onProblems([...new Set(parsed.error.issues.map((issue) => issue.message))]);
@@ -419,7 +420,11 @@ function DiscountForm({
 
             {draft.scope === "product" ? (
               <div className="grid gap-1.5">
-                <Label htmlFor={`${id}-product`}>Product</Label>
+                {draft.productId !== null ? (
+                  <span className="text-sm leading-none font-medium">Product</span>
+                ) : (
+                  <Label htmlFor={`${id}-product`}>Product</Label>
+                )}
                 {draft.productId !== null ? (
                   <div className="flex items-center justify-between gap-2 rounded-md border border-border px-3 py-1.5 text-sm">
                     <span className="min-w-0 truncate">{draft.productName || `Product ${draft.productId}`}</span>

@@ -5,7 +5,7 @@ import { addBagLine, clampQty, normalizeBag } from "@/domain/bag";
 import type { BagItem } from "@/lib/types";
 import { applyTheme, isTheme, onSystemThemeChange, saveTheme, storedTheme, systemTheme, type Theme } from "@/lib/theme";
 
-export interface ToastState {
+interface ToastState {
   id: number;
   message: string;
   actionLabel?: string;
@@ -22,7 +22,6 @@ interface StoreValue {
   updateBagItem: (productId: number, variant: number, qty: number) => void;
   clearBag: () => void;
 
-  selectedVariants: Record<number, number>;
   selectedVariant: (productId: number) => number;
   selectVariant: (productId: number, variant: number) => void;
 
@@ -185,7 +184,6 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       addToBag,
       updateBagItem,
       clearBag,
-      selectedVariants,
       selectedVariant,
       selectVariant,
       theme,

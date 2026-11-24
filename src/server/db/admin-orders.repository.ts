@@ -198,20 +198,22 @@ const COUPON_USE_FITS = `NOT EXISTS (SELECT 1 FROM orders o JOIN discounts d ON 
   WHERE o.id = ? AND o.coupon_returned = 1 AND d.usage_limit IS NOT NULL AND d.used_count >= d.usage_limit)`;
 
 async function reopenRefusal(db: D1Database, orderId: string): Promise<string | null> {
-  const short = await readReopenShortages(db, orderId);
+  const [short, spent] = await Promise.all([
+    readReopenShortages(db, orderId),
+    db
+      .prepare(
+        `SELECT d.code FROM orders o JOIN discounts d ON d.id = o.coupon_id
+         WHERE o.id = ? AND o.coupon_returned = 1 AND d.usage_limit IS NOT NULL AND d.used_count >= d.usage_limit`,
+      )
+      .bind(orderId)
+      .first<{ code: string }>(),
+  ]);
   if (short.length > 0) {
     const parts = short.map(
       (line) => `${line.productName} (${line.variantName}) has ${line.stock} left, the order needs ${line.qty}`,
     );
     return `This order cannot be reopened yet: ${parts.join("; ")}. Add stock first.`;
   }
-  const spent = await db
-    .prepare(
-      `SELECT d.code FROM orders o JOIN discounts d ON d.id = o.coupon_id
-       WHERE o.id = ? AND o.coupon_returned = 1 AND d.usage_limit IS NOT NULL AND d.used_count >= d.usage_limit`,
-    )
-    .bind(orderId)
-    .first<{ code: string }>();
   return spent
     ? `This order cannot be reopened: its coupon ${spent.code} has no uses left. Raise the coupon's use limit first.`
     : null;

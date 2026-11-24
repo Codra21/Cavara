@@ -289,12 +289,3 @@ export async function insertOrder(db: D1Database, order: NewOrder): Promise<bool
   ]);
   return placed?.meta.changes === 1;
 }
-
-export async function listActiveZones(db: D1Database): Promise<DeliveryZone[]> {
-  const { results } = await db
-    .prepare("SELECT id, name, charge, sort FROM delivery_zones WHERE active = 1")
-    .all<DeliveryZone & { sort: number }>();
-  return results
-    .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
-    .map(({ id, name, charge }) => ({ id, name, charge }));
-}

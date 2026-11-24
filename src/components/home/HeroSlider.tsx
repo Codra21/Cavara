@@ -50,8 +50,8 @@ export function HeroSlider() {
 
   useEffect(() => {
     if (!running) return;
-    const timer = window.setInterval(() => setIndex((current) => (current + 1) % total), SLIDE_INTERVAL);
-    return () => window.clearInterval(timer);
+    const timer = window.setTimeout(() => setIndex((current) => (current + 1) % total), SLIDE_INTERVAL);
+    return () => window.clearTimeout(timer);
   }, [running, index, total]);
 
   if (total === 0) return null;
@@ -62,8 +62,12 @@ export function HeroSlider() {
       className={`studio-hero${running ? " is-running" : ""}`}
       aria-roledescription="carousel"
       aria-labelledby="studio-hero-title"
-      onPointerEnter={() => setHeld(true)}
-      onPointerLeave={() => setHeld(Boolean(sectionRef.current?.contains(document.activeElement)))}
+      onPointerEnter={(event) => {
+        if (event.pointerType === "mouse") setHeld(true);
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType === "mouse") setHeld(Boolean(sectionRef.current?.contains(document.activeElement)));
+      }}
       onFocus={() => setHeld(true)}
       onBlur={(event) => {
         if (!sectionRef.current?.contains(event.relatedTarget as Node | null)) setHeld(false);

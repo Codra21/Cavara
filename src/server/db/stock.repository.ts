@@ -140,20 +140,16 @@ export async function adjustStock(
     db
       .prepare(
         `UPDATE product_variants AS v SET stock = ${newStock}, availability = ${availabilitySql(newStock)}
-         WHERE ${predicate}`,
+         WHERE ${predicate}
+         RETURNING stock, availability`,
       )
       .bind(...newStockParams, ...newStockParams, ...predicateParams),
   );
   const results = await db.batch(statements);
-  if (results.at(-1)?.meta.changes !== 1) {
+  const after = results.at(-1)?.results[0] as { stock: number; availability: Availability } | undefined;
+  if (!after) {
     return { ok: false, error: "This colour's count changed in the meantime. Reload and try again." };
   }
-
-  const after = await db
-    .prepare("SELECT stock, availability FROM product_variants WHERE id = ?")
-    .bind(input.variantId)
-    .first<{ stock: number; availability: Availability }>();
-  if (!after) return { ok: false, error: "This colour no longer exists. Reload the product." };
   return {
     ok: true,
     stock: after.stock,

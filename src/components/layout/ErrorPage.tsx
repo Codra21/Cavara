@@ -11,10 +11,7 @@ import { WHATSAPP_URL } from "@/lib/config";
  * `standalone` is for the root boundary, which replaces the whole layout (no header or footer), so it carries its
  * own logo. Child routes fail inside the layout and leave it out.
  */
-export function ServerErrorPage({
-  error,
-  standalone = false,
-}: Pick<ErrorComponentProps, "error"> & { standalone?: boolean }) {
+function ServerErrorPage({ error, standalone = false }: Pick<ErrorComponentProps, "error"> & { standalone?: boolean }) {
   // Server render only: log once to the Worker log (the router swallows loader errors, so nothing else would).
   if (typeof document === "undefined") console.error("page render failed:", error);
 

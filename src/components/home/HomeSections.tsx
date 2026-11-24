@@ -196,12 +196,14 @@ export function CarouselSection() {
     track.addEventListener("pointerdown", onDown);
     window.addEventListener("pointermove", onMove);
     window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     window.addEventListener("resize", updateEdges, { passive: true });
     updateEdges();
     return () => {
       track.removeEventListener("pointerdown", onDown);
       window.removeEventListener("pointermove", onMove);
       window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
       window.removeEventListener("resize", updateEdges);
     };
   }, []);

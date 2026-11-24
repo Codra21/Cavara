@@ -186,7 +186,6 @@ export function checkoutFieldErrors(issues: { path: PropertyKey[]; message: stri
   return errors;
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // Admin: order status changes (unit 7b)
 
 /**
@@ -360,7 +359,6 @@ export function parseOrderSearch(raw: string): { phone: string } | { reference: 
   return /^[2-9A-HJKMNP-Z]{6}$/.test(reference) ? { reference: `CV-${reference}` } : null;
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // Admin: delivery zones
 
 export const zoneInputSchema = z.object({

@@ -115,14 +115,19 @@ export async function sendTelegram(
 
 /** Runs one hourly check. Returns the messages sent (for tests and logs). Errors are thrown to the cron handler. */
 export async function runUsageAlert(env: UsageEnv, now = new Date(), fetcher: typeof fetch = fetch): Promise<string[]> {
+  const ready: Required<UsageEnv> = {
+    USAGE_ACCOUNT_ID: env.USAGE_ACCOUNT_ID?.trim() ?? "",
+    CF_ANALYTICS_TOKEN: env.CF_ANALYTICS_TOKEN?.trim() ?? "",
+    TELEGRAM_BOT_TOKEN: env.TELEGRAM_BOT_TOKEN?.trim() ?? "",
+    TELEGRAM_USAGE_CHAT_ID: env.TELEGRAM_USAGE_CHAT_ID?.trim() ?? "",
+  };
   const missing = (
     ["USAGE_ACCOUNT_ID", "CF_ANALYTICS_TOKEN", "TELEGRAM_BOT_TOKEN", "TELEGRAM_USAGE_CHAT_ID"] as const
-  ).filter((name) => !env[name]);
+  ).filter((name) => !ready[name]);
   if (missing.length) {
-    console.warn(`usage alert skipped: ${missing.join(", ")} not set (see context/deploy-setup.md)`);
+    console.warn(`usage alert skipped: ${missing.join(", ")} not set`);
     return [];
   }
-  const ready = env as Required<UsageEnv>;
   const result = await fetchTotals(ready, now, fetcher);
   if (!result) return [];
 

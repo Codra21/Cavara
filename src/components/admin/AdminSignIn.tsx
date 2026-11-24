@@ -17,6 +17,7 @@ export function AdminSignIn({ onSignedIn }: { onSignedIn: () => void }) {
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (pending) return;
     setPending(true);
     setError(null);
     try {

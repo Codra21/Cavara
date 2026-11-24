@@ -117,7 +117,7 @@ export async function runAttackMode(
 ): Promise<AttackReport | null> {
   const missing = REQUIRED.filter((name) => !env[name]?.trim());
   if (missing.length) {
-    console.warn(`attack mode skipped: ${missing.join(", ")} not set (see docs/abuse-defense-plan.md)`);
+    console.warn(`attack mode skipped: ${missing.join(", ")} not set`);
     return null;
   }
   const ready = env as Required<AttackEnv>;

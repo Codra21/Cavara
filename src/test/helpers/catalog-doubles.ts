@@ -82,7 +82,7 @@ export interface StatementLog {
 export function meteredD1() {
   const log: StatementLog[] = [];
   const db = createTestD1({ observe: (sql, rows) => log.push({ sql, rows }) });
-  const isRead = (entry: StatementLog) => /^\s*select\b/i.test(entry.sql);
+  const isRead = (entry: StatementLog) => /^\s*(select|with)\b/i.test(entry.sql);
   return {
     db,
     log,

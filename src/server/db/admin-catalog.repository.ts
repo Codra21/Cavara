@@ -154,16 +154,20 @@ export async function saveProduct(db: D1Database, options: SaveProductOptions): 
 
     // Reads before the batch: these only shape the statements. The revision guard makes them safe, because any
     // change that slips in between also changes the revision, and then the whole batch writes nothing.
-    const [categoryResult, existingResult, maxResult] = await db.batch<{ id: number | string }>([
+    const preReads = [
       db.prepare("SELECT id FROM categories WHERE id = ?").bind(input.categoryId),
-      db.prepare("SELECT id FROM product_variants WHERE product_id = ?").bind(options.id ?? -1),
-      db.prepare("SELECT COALESCE(MAX(id), 0) + 1 AS id FROM products"),
-    ]);
+      creating
+        ? db.prepare("SELECT COALESCE(MAX(id), 0) + 1 AS id FROM products")
+        : db.prepare("SELECT id FROM product_variants WHERE product_id = ?").bind(options.id as number),
+    ];
+    const [categoryResult, secondResult] = await db.batch<{ id: number | string }>(preReads);
     if (!categoryResult?.results.length)
       return { ok: false, error: "That category no longer exists. Reload and pick another." };
 
-    const id = creating ? Number(maxResult?.results[0]?.id ?? 1) : (options.id as number);
-    const existingIds = new Set((existingResult?.results ?? []).map((row) => Number(row.id)));
+    const id = creating ? Number(secondResult?.results[0]?.id ?? 1) : (options.id as number);
+    const existingIds = creating
+      ? new Set<number>()
+      : new Set((secondResult?.results ?? []).map((row) => Number(row.id)));
     const keptIds = input.variants.flatMap((variant) => (variant.id === null ? [] : [variant.id]));
     if (keptIds.some((variantId) => !existingIds.has(variantId))) {
       return {

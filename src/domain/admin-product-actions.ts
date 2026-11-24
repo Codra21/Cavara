@@ -1,6 +1,7 @@
 // Rules for the admin list's bulk actions and for duplicating a product. Pure: no React, no D1.
 import { z } from "zod";
 import { ADMIN_PAGE_SIZE } from "./admin-product-list";
+import { pluralize } from "./catalog";
 import type { ProductStatus } from "./product-admin";
 
 /** One page of the list, so a selection never needs a second query to be understood. */
@@ -122,15 +123,13 @@ const SKIP_TEXT: Record<BulkSkipReason, string> = {
   changed: "changed while the action ran",
 };
 
-const plural = (count: number, noun: string) => `${count} ${noun}${count === 1 ? "" : "s"}`;
-
 /** The sentence shown after an action, e.g. "Published 3 products. Left alone: 1 already as asked." */
 export function describeBulkResult(action: BulkActionName, applied: number, skipped: BulkSkip[]): string {
-  const done = applied > 0 ? `${PAST[action]} ${plural(applied, "product")}.` : "Nothing changed.";
+  const done = applied > 0 ? `${PAST[action]} ${pluralize(applied, "product")}.` : "Nothing changed.";
   if (skipped.length === 0) return done;
   const counts = new Map<BulkSkipReason, number>();
   for (const skip of skipped) counts.set(skip.reason, (counts.get(skip.reason) ?? 0) + 1);
-  const parts = [...counts].map(([reason, count]) => `${plural(count, "product")} ${SKIP_TEXT[reason]}`);
+  const parts = [...counts].map(([reason, count]) => `${pluralize(count, "product")} ${SKIP_TEXT[reason]}`);
   return `${done} Left alone: ${parts.join("; ")}.`;
 }
 

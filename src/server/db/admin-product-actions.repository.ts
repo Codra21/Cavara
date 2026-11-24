@@ -152,7 +152,6 @@ export async function bulkUpdateProducts(db: D1Database, options: BulkUpdateOpti
   };
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // Duplicate
 
 export interface DuplicateOptions {

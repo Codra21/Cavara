@@ -7,7 +7,7 @@ export const Route = createFileRoute("/products/")({
   validateSearch: (search: Record<string, unknown>): ListSearch => parseListSearch(search),
   loaderDeps: ({ search }) => search,
   loader: async ({ context, deps }) => {
-    const { category, pageCount } = await loadListing(context.queryClient, undefined, deps);
+    const { pageCount } = await loadListing(context.queryClient, undefined, deps);
     // A page past the end (a stale link, or products removed since) goes to the last page.
     if (deps.page && deps.page > pageCount)
       throw redirect({
@@ -15,7 +15,6 @@ export const Route = createFileRoute("/products/")({
         search: { ...deps, page: pageCount > 1 ? pageCount : undefined },
         statusCode: 302,
       });
-    return { category };
   },
   head: () => listingHead(null),
   component: ProductsRoute,

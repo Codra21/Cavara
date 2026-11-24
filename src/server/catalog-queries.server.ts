@@ -98,7 +98,6 @@ export async function getRelatedProducts(sources: CatalogSources, slug: string):
 
 export interface ProductPageData {
   imageBase: string;
-  /** null when no published product has this slug. */
   product: PublicProduct | null;
   category: Category | null;
 }
@@ -166,9 +165,7 @@ export async function getCategories(sources: CatalogSources): Promise<Categories
 export interface HomeData {
   imageBase: string;
   categoryNames: Record<string, string>;
-  /** Featured products in display order. */
   featured: ProductCard[];
-  /** Newest products first. */
   newest: ProductCard[];
   /** The hero slides' products, in slide order (a product that is no longer published is left out). */
   hero: ProductCard[];

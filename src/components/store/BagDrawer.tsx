@@ -51,9 +51,8 @@ export function BagDrawer() {
   const placedRef = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    if (bagOpen) window.requestAnimationFrame(() => closeRef.current?.focus());
     // A finished order is shown once; reopening the bag starts fresh. The checkout draft survives closing.
-    else setView((current) => (current === "placed" ? "bag" : current));
+    if (!bagOpen) setView((current) => (current === "placed" ? "bag" : current));
   }, [bagOpen]);
 
   // An emptied bag cannot be checked out, and neither can one that holds a line the shop no longer sells.
@@ -206,7 +205,9 @@ export function BagDrawer() {
                               min={0}
                               max={MAX_QTY}
                               label={`Quantity for ${product.name}`}
-                              onChange={(next) => updateBagItem(item.id, item.variant, next)}
+                              onChange={(next) =>
+                                next <= 0 ? remove(line, product.name) : updateBagItem(item.id, item.variant, next)
+                              }
                             />
                           ) : (
                             <span className="stock-tag">Out of stock</span>

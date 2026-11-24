@@ -80,6 +80,9 @@ describe("runUsageAlert", () => {
     expect(await runUsageAlert({ ...env, TELEGRAM_USAGE_CHAT_ID: "" }, at("2026-11-06T14:10:00Z"), fetcher)).toEqual(
       [],
     );
+    expect(await runUsageAlert({ ...env, TELEGRAM_USAGE_CHAT_ID: "  " }, at("2026-11-06T14:10:00Z"), fetcher)).toEqual(
+      [],
+    );
     expect(calls).toHaveLength(0);
   });
 

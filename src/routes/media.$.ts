@@ -27,12 +27,21 @@ async function mediaResponse(key: string, ifNoneMatch: string | null, withBody: 
   const contentType = contentTypeForKey(key);
   if (!isImageKey(key) || !contentType) return new Response("Not found", { status: 404 });
 
-  const object = await getImages().get(key);
+  const bucket = getImages();
+  const object = !withBody && bucket.head ? await bucket.head(key) : await bucket.get(key);
   if (!object) return new Response("Not found", { status: 404 });
 
   const headers = imageHeaders(contentType, object.httpEtag, object.size);
-  if (notModified(ifNoneMatch, object.httpEtag)) return new Response(null, { status: 304, headers });
-  return new Response(withBody ? object.body : null, { headers });
+  const body: ReadableStream | null = "body" in object ? (object.body as ReadableStream) : null;
+  if (notModified(ifNoneMatch, object.httpEtag)) {
+    void body?.cancel();
+    return new Response(null, { status: 304, headers });
+  }
+  if (!withBody) {
+    void body?.cancel();
+    return new Response(null, { headers });
+  }
+  return new Response(body, { headers });
 }
 
 // Streams a product image from R2. Used when IMAGE_BASE_URL is blank (local dev, or before the bucket's custom

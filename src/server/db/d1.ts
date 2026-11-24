@@ -80,6 +80,7 @@ export interface ExecutionContext {
 
 export interface R2Bucket {
   get(key: string): Promise<R2ObjectBody | null>;
+  head?(key: string): Promise<R2Object | null>;
   /** Resolves to null (and stores nothing) when an `onlyIf` precondition fails. */
   put(
     key: string,

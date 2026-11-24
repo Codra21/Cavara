@@ -42,11 +42,15 @@ interface SiteverifyBody {
 
 /** Lower-case host name without port or IPv6 brackets. */
 export function hostName(host: string): string {
-  return host
-    .trim()
-    .toLowerCase()
-    .replace(/:\d+$/, "")
-    .replace(/^\[(.*)\]$/, "$1");
+  const trimmed = host.trim().toLowerCase();
+  const bracketed = /^\[([^\]]+)\](?::\d+)?$/.exec(trimmed);
+  const inner = bracketed?.[1];
+  if (inner) return inner;
+  const firstColon = trimmed.indexOf(":");
+  if (firstColon !== -1 && firstColon === trimmed.lastIndexOf(":")) {
+    return trimmed.slice(0, firstColon);
+  }
+  return trimmed;
 }
 
 export function isLocalHost(host: string): boolean {

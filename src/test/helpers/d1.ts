@@ -25,6 +25,11 @@ class Statement implements D1PreparedStatement {
   ) {}
 
   bind(...values: unknown[]): D1PreparedStatement {
+    if (values.length > 100) {
+      throw new Error(
+        `D1 allows at most 100 bound parameters per statement (got ${values.length}). Pass a JSON array via json_each(?) instead.`,
+      );
+    }
     return new Statement(this.db, this.sql, values as SQLQueryBindings[], this.observe);
   }
 
@@ -79,4 +84,23 @@ export function createTestD1(options: { migrations?: string[]; observe?: Stateme
     batch: async <T = unknown>(statements: D1PreparedStatement[]) =>
       sqlite.transaction(() => statements.map((statement) => (statement as Statement).execute<T>()))(),
   };
+}
+
+const SMALL_TABLE_ALLOWLIST = new Set(["categories", "delivery_zones", "sqlite_master"]);
+
+export function assertIndexedQueryPlan(db: TestD1, sql: string, params: SQLQueryBindings[] = []): string[] {
+  const rows = db.sqlite.query(`EXPLAIN QUERY PLAN ${sql}`).all(...params) as Array<{ detail: string }>;
+  const details = rows.map((row) => row.detail);
+  for (const detail of details) {
+    if (/USE TEMP B-TREE/i.test(detail)) {
+      throw new Error(`Query builds a temp B-tree (${detail}). Add a matching index or sort in JS.\nSQL: ${sql}`);
+    }
+    const table = /\bSCAN\s+(?:TABLE\s+)?(\w+)/i.exec(detail)?.[1];
+    if (table && !SMALL_TABLE_ALLOWLIST.has(table)) {
+      throw new Error(
+        `Query performs a full table SCAN on ${table} (${detail}). Add an index or rewrite as an indexed lookup.\nSQL: ${sql}`,
+      );
+    }
+  }
+  return details;
 }

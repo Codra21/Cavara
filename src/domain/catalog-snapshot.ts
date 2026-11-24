@@ -130,7 +130,6 @@ export const detailIsCurrent = (detailGen: string, summaryGen: string) => detail
 export const comparePosition = (a: { sort: number; id: number }, b: { sort: number; id: number }) =>
   a.sort - b.sort || a.id - b.id;
 
-// ---------------------------------------------------------------------------------------------------------------
 // Projections
 
 export function toProductSummary(product: ProductDetail): ProductSummary {
@@ -195,7 +194,6 @@ export function toSummary(full: FullCatalog, gen: string): CatalogSummary {
   };
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // Stored form
 
 /**
@@ -341,7 +339,6 @@ export function decodeDetail(json: string): ProductDetailDoc {
   return { gen: doc.gen, product };
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // In-place patches (pure; the R2 read-modify-write lives in src/server/catalog-cache.server.ts)
 
 /** Replaces, inserts or (with null) removes one product, keeping `sort`, then id order. */
@@ -399,7 +396,6 @@ export const patchLegacyZones = (catalog: Catalog, zones: DeliveryZone[]): Catal
   deliveryZones: zones,
 });
 
-// ---------------------------------------------------------------------------------------------------------------
 // Lookups
 
 export interface SummaryIndex {
@@ -424,7 +420,6 @@ export function summaryIndex(summary: CatalogSummary): SummaryIndex {
   return index;
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // Sale prices
 
 /** One product with the best active sale applied (see src/domain/discounts.ts), or unchanged when none applies. */
@@ -471,7 +466,6 @@ export function priceDetail(
     : detail;
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // Public shapes: what the server functions return. Image keys are already URLs; `sort` and any cost data are gone.
 
 export type ProductCard = Omit<ProductSummary, "sort">;

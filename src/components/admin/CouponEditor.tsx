@@ -91,7 +91,7 @@ const toRequest = (draft: Draft) => ({
   type: draft.type,
   value: draft.value.trim() === "" ? Number.NaN : Number(draft.value),
   minOrder: optionalNumber(draft.minOrder),
-  maxDiscount: optionalNumber(draft.maxDiscount),
+  maxDiscount: draft.type === "percent" ? optionalNumber(draft.maxDiscount) : null,
   usageLimit: optionalNumber(draft.usageLimit),
   startsAt: dhakaLocalToIso(draft.startsAt) ?? "",
   endsAt: draft.endsAt === "" ? null : (dhakaLocalToIso(draft.endsAt) ?? ""),
@@ -320,6 +320,7 @@ function CouponForm({
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
+    if (pending) return;
     const parsed = couponInputSchema.safeParse(toRequest(draft));
     if (!parsed.success) {
       onProblems([...new Set(parsed.error.issues.map((issue) => issue.message))]);

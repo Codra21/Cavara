@@ -4,7 +4,7 @@
 // - readPublishedCatalog: everything published. Used by the full rebuild (a cache miss, a migration, a failed patch).
 // - readSnapshotProduct / readActiveZones: one product's rows, or the zones. Used by a save to patch the snapshots in
 //   place. Their cost does not depend on how many products the shop has.
-// D1 bills rows read, index entries included; every query here starts from an index (see catalog-snapshot.test.ts,
+// D1 bills rows read, index entries included; every query here starts from an index (see catalog-refresh.test.ts,
 // which checks the plans). Request paths never call this file: they go through src/server/catalog-cache.server.ts.
 import { type FullCatalog, type ProductDetail, toLegacyCatalog } from "@/domain/catalog-snapshot";
 import type { SaleRule } from "@/domain/discounts";

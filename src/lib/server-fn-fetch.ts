@@ -24,10 +24,11 @@ function canReplay(init: Parameters<CustomFetch>[1]): boolean {
  */
 export function withChallengeRecovery(base: CustomFetch, recover: () => Promise<void>): CustomFetch {
   return async (input, init) => {
-    if (!canReplay(init)) return base(input, init);
+    if ((input instanceof Request && input.bodyUsed) || !canReplay(init)) return base(input, init);
     // A Request is consumed by sending it, so the first send uses a copy.
     const first = await base(input instanceof Request ? input.clone() : input, init);
     if (!isChallenged(first)) return first;
+    void first.body?.cancel();
     await recover().catch(() => undefined);
     return base(input, init);
   };

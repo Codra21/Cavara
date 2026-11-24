@@ -79,7 +79,6 @@ function loadApi(): Promise<TurnstileApi | null> {
   return scriptPromise;
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // Showing a widget that needs the visitor. The panel (TurnstilePanel) and a checkout holder both use `data-active`.
 
 function setActive(element: HTMLElement | null, active: boolean) {
@@ -112,7 +111,6 @@ function createSlot(parent?: HTMLElement | null): HTMLElement {
   return element;
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // Pre-clearance
 
 interface Clearance {
@@ -197,6 +195,7 @@ function startClearance(revealed: boolean): Clearance {
         "before-interactive-callback": state.hooks.before,
         "after-interactive-callback": state.hooks.after,
       }) ?? null;
+    if (!state.widgetId) state.settle();
   });
   return state;
 }
@@ -227,7 +226,6 @@ export function startTurnstile(): void {
   void ensureClearance();
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // Per-action tokens
 
 /**

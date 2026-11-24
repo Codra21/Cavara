@@ -47,11 +47,10 @@ export function ProductCard({ product, categoryName, index }: { product: Card; c
             width={800}
             height={1000}
           />
-          {product.images[1] ? (
+          {altImage ? (
             <img
               className="product-image-alt"
-              src={altImage ?? image}
-              hidden={!altImage}
+              src={altImage}
               alt=""
               loading="lazy"
               decoding="async"

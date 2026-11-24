@@ -1,4 +1,5 @@
 import { STORAGE_KEYS } from "./config";
+import { storageGet, storageSet } from "./dom";
 
 export type Theme = "light" | "dark";
 
@@ -11,12 +12,8 @@ export const isTheme = (value: unknown): value is Theme => value === "light" || 
 
 /** The visitor's explicit choice, or null when the site should follow the system setting. */
 export function storedTheme(): Theme | null {
-  try {
-    const value = localStorage.getItem(STORAGE_KEYS.theme);
-    return isTheme(value) ? value : null;
-  } catch {
-    return null;
-  }
+  const value = storageGet(STORAGE_KEYS.theme);
+  return isTheme(value) ? value : null;
 }
 
 export function systemTheme(): Theme {
@@ -29,11 +26,7 @@ export function applyTheme(theme: Theme) {
 }
 
 export function saveTheme(theme: Theme) {
-  try {
-    localStorage.setItem(STORAGE_KEYS.theme, theme);
-  } catch {
-    // Storage can be unavailable (private mode); the choice then lasts for this page only.
-  }
+  storageSet(STORAGE_KEYS.theme, theme);
 }
 
 /** Runs to follow live system changes while the visitor has not chosen a theme. Returns an unsubscribe. */

@@ -263,15 +263,15 @@ describe("saveProduct", () => {
     expect(shown?.variants[0]?.images).toEqual(loaded.variants[0]!.images.map((key) => mediaUrl("", key)));
   });
 
-  // The pre-write read is three statements. Creating with a picture is four, so the two batches stay distinct.
+  // The pre-write read is two statements. Creating with a picture is four, so the two batches stay distinct.
   function stealNextId(db: TestD1, once: boolean) {
     const batch = db.batch.bind(db);
     let reads = 0;
     db.batch = (async (statements) => {
       const results = await batch(statements);
-      if (statements.length === 3 && (!once || reads === 0)) {
+      if (statements.length === 2 && (!once || reads === 0)) {
         reads += 1;
-        const nextId = Number((results[2]?.results[0] as { id: number }).id);
+        const nextId = Number((results[1]?.results[0] as { id: number }).id);
         db.sqlite.run(
           "INSERT INTO products (id, slug, name, category_id, price) VALUES (?, ?, 'Racer', 'drinkware', 100)",
           [nextId, `racer-${reads}`],

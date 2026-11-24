@@ -33,7 +33,9 @@ const summary: string[] = [];
 
 function wrangler(args: string[]) {
   const run = Bun.spawnSync(["bunx", "wrangler", ...args], { cwd: appRoot, stdout: "pipe", stderr: "pipe" });
-  return { ok: run.exitCode === 0, out: `${run.stdout.toString()}\n${run.stderr.toString()}` };
+  const stdout = run.stdout.toString();
+  const stderr = run.stderr.toString();
+  return { ok: run.exitCode === 0, stdout, stderr, out: `${stdout}\n${stderr}` };
 }
 
 function fail(message: string): never {
@@ -61,7 +63,7 @@ function pendingMigrations(database: string[]): string[] {
 /** `--backup-only`: steps 2 and 3 only (bookmark and R2 export), e.g. before a risky manual change. */
 const backupOnly = process.argv.includes("--backup-only");
 
-const pending = pendingMigrations(PROD);
+const pending = backupOnly ? [] : pendingMigrations(PROD);
 if (!pending.length && !backupOnly) {
   console.log("cavara-prod is up to date; no migrations to apply.");
   process.exit(0);
@@ -83,8 +85,9 @@ if (!backupOnly) {
 const info = wrangler(["d1", "time-travel", "info", ...PROD, "--json"]);
 let bookmark = "";
 try {
-  bookmark = (JSON.parse(info.out.slice(info.out.indexOf("{"), info.out.lastIndexOf("}") + 1)) as { bookmark: string })
-    .bookmark;
+  bookmark = (
+    JSON.parse(info.stdout.slice(info.stdout.indexOf("{"), info.stdout.lastIndexOf("}") + 1)) as { bookmark: string }
+  ).bookmark;
 } catch {
   // handled below
 }

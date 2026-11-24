@@ -53,7 +53,7 @@ const PRODUCT_BADGE_META: Record<
   archived: { variant: "outline", icon: Archive },
 };
 
-export function StatusBadge({ status }: { status: ProductStatus }) {
+function StatusBadge({ status }: { status: ProductStatus }) {
   const { variant, icon: Icon } = PRODUCT_BADGE_META[status];
   return (
     <Badge variant={variant}>

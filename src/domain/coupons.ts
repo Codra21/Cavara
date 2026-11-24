@@ -9,6 +9,7 @@
 // - Cancelling an order that was never paid gives its use back, and reopening it takes a use again (refused when none
 //   is left). A paid or refunded order keeps its use. The rule lives in updateOrderStatus.
 import { z } from "zod";
+import { MAX_QTY } from "@/lib/config";
 import { formatPrice } from "@/domain/catalog";
 import { DISCOUNT_TYPES, isoDate, isSaleActive } from "@/domain/discounts";
 
@@ -83,24 +84,33 @@ export function evaluateCoupon(rule: CouponRule | null, itemsTotal: number, nowM
   return { ok: true, discount, itemsTotal, subtotal: itemsTotal - discount };
 }
 
-// ---------------------------------------------------------------------------------------------------------------
 // Public code check
 
-export const couponCheckSchema = z.object({
-  code: z.string().max(40),
-  items: z
-    .array(
-      z.object({
-        productId: z.number().int().positive(),
-        variant: z.number().int().min(0).max(50),
-        qty: z.number().int().min(1).max(100),
-      }),
-    )
-    .min(1)
-    .max(30),
-});
-
-export type CouponCheckRequest = z.input<typeof couponCheckSchema>;
+export const couponCheckSchema = z
+  .object({
+    code: z.string().max(40),
+    items: z
+      .array(
+        z.object({
+          productId: z.number().int().positive(),
+          variant: z.number().int().min(0).max(50),
+          qty: z.number().int().min(1).max(MAX_QTY),
+        }),
+      )
+      .min(1)
+      .max(30),
+  })
+  .superRefine((data, ctx) => {
+    const seen = new Set<string>();
+    for (const item of data.items) {
+      const key = `${item.productId}:${item.variant}`;
+      if (seen.has(key)) {
+        ctx.addIssue({ code: "custom", path: ["items"], message: "Duplicate items are not allowed." });
+        break;
+      }
+      seen.add(key);
+    }
+  });
 
 /** What the checkout form gets back for a code. `code` is the normalised spelling. */
 export type CouponAnswer =
@@ -109,7 +119,6 @@ export type CouponAnswer =
 
 export type CouponCheckResult = CouponAnswer | { ok: false; reason: "rate_limited" | "failed"; message: string };
 
-// ---------------------------------------------------------------------------------------------------------------
 // Admin form: shared by the form and the server function.
 
 const MAX_VALUE = 10_000_000;
@@ -156,7 +165,6 @@ export const couponInputSchema = z
   .transform((input) => ({ ...input, maxDiscount: input.type === "percent" ? input.maxDiscount : null }));
 
 export type CouponInput = z.output<typeof couponInputSchema>;
-export type CouponRequest = z.input<typeof couponInputSchema>;
 
 export const saveCouponSchema = z.object({
   /** null creates a coupon. */
@@ -165,8 +173,6 @@ export const saveCouponSchema = z.object({
   revision: z.string().max(64),
   input: couponInputSchema,
 });
-
-export type SaveCouponRequest = z.input<typeof saveCouponSchema>;
 
 /** A coupon as the admin list and form see it. */
 export interface AdminCoupon extends CouponInput {

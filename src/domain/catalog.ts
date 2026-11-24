@@ -18,4 +18,4 @@ export const isProductSlug = (value: unknown): value is string =>
 
 /** Shape check for a category id in a URL; whether it exists is the listing's answer (a 404 when it does not). */
 export const isCategorySlug = (value: unknown): value is string =>
-  typeof value === "string" && /^[a-z0-9-]{1,64}$/.test(value);
+  typeof value === "string" && value.length >= 1 && value.length <= 64 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
