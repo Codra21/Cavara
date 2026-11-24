@@ -42,7 +42,10 @@ for (const route of ["/", "/products", "/collections/drinkware"]) {
 }
 
 // 2. Real browser layout & console-error check across 375px, 768px, and 1440px
-const browser = await chromium.launch();
+// E2E_BROWSER_CHANNEL=chrome (or msedge) uses an installed browser instead of `playwright install chromium`.
+const browser = await chromium.launch(
+  process.env.E2E_BROWSER_CHANNEL ? { channel: process.env.E2E_BROWSER_CHANNEL } : {},
+);
 try {
   for (const vp of VIEWPORTS) {
     const ctx = await browser.newContext({ viewport: { width: vp.width, height: vp.height } });
@@ -55,7 +58,9 @@ try {
 
     for (const route of ROUTES) {
       consoleErrors.length = 0;
-      await page.goto(`${baseUrl}${route}`, { waitUntil: "networkidle" });
+      // Not "networkidle": the sitewide Turnstile frame keeps a connection open, so the network never goes idle.
+      await page.goto(`${baseUrl}${route}`, { waitUntil: "load" });
+      await page.waitForTimeout(1000);
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth);
       if (overflow) failures.push(`${vp.name} ${route}: horizontal overflow detected`);
       if (consoleErrors.length) failures.push(`${vp.name} ${route}: console errors: ${consoleErrors.join("; ")}`);
