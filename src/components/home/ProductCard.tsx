@@ -5,7 +5,7 @@ import { pluralize } from "@/domain/catalog";
 import { useStore } from "@/components/store/StoreProvider";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
 import { PriceTag } from "@/components/store/PriceTag";
-import { Swatch } from "@/components/ui/primitives";
+import { Swatch, SwatchGroup } from "@/components/ui/primitives";
 
 /**
  * A grid card built from the summary snapshot's card shape (listing pages and home rows). A colour has one picture
@@ -77,14 +77,19 @@ export function ProductCard({ product, categoryName, index }: { product: Card; c
         <p className="product-price">
           <PriceTag price={product.price} regularPrice={product.regularPrice} sale={product.sale} />
         </p>
-        <div className="product-swatches" role="group" aria-label={`${product.name} colours`}>
-          {visible.map((item, itemIndex) => (
-            <Swatch
-              key={item.name}
-              variant={item}
-              selected={itemIndex === selected}
-              onSelect={() => selectVariant(product.id, itemIndex)}
-            />
+        <SwatchGroup
+          label={`${product.name} colours`}
+          className="product-swatches"
+          value={variant.name}
+          onValueChange={(name) =>
+            selectVariant(
+              product.id,
+              product.variants.findIndex((item) => item.name === name),
+            )
+          }
+        >
+          {visible.map((item) => (
+            <Swatch key={item.name} variant={item} />
           ))}
           {hiddenCount > 0 ? (
             <button
@@ -96,7 +101,7 @@ export function ProductCard({ product, categoryName, index }: { product: Card; c
               +{hiddenCount}
             </button>
           ) : null}
-        </div>
+        </SwatchGroup>
         <p className="product-variant-name">{variant.name}</p>
       </div>
     </li>

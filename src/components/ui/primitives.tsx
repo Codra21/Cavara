@@ -1,3 +1,4 @@
+import { Radio, RadioGroup } from "@ui-sdk/react/radio";
 import type { ReactNode } from "react";
 import type { Availability } from "@/lib/types";
 
@@ -19,32 +20,54 @@ export function BrandLogo({ className = "" }: { className?: string }) {
   );
 }
 
+/** One-of-many colour picker. `value` is the selected colour's name; arrow keys move and select, as in any radio group. */
+export function SwatchGroup({
+  label,
+  className,
+  value,
+  onValueChange,
+  children,
+}: {
+  label: string;
+  className: string;
+  value: string;
+  onValueChange: (name: string) => void;
+  children: ReactNode;
+}) {
+  return (
+    <RadioGroup
+      className={className}
+      aria-label={label}
+      value={value}
+      onValueChange={(next) => {
+        if (next !== null) onValueChange(next);
+      }}
+    >
+      {children}
+    </RadioGroup>
+  );
+}
+
 export function Swatch({
   variant,
-  selected,
   size = "small",
-  onSelect,
 }: {
   /** A colour from a card, a detail object or the legacy catalogue. */
   variant: { name: string; swatch: string; availability?: Availability | undefined };
-  selected: boolean;
   size?: "small" | "large";
-  onSelect: () => void;
 }) {
   const soldOut = variant.availability === "out_of_stock";
   return (
-    <button
+    <Radio
       className="swatch"
-      type="button"
+      value={variant.name}
       data-swatch-size={size}
       data-sold-out={soldOut ? "" : undefined}
-      aria-pressed={selected}
-      aria-label={`${variant.name}${soldOut ? ", out of stock" : ""}${selected ? ", selected" : ""}`}
+      aria-label={`${variant.name}${soldOut ? ", out of stock" : ""}`}
       title={soldOut ? `${variant.name} (out of stock)` : variant.name}
-      onClick={onSelect}
     >
       <span style={{ background: variant.swatch }} />
-    </button>
+    </Radio>
   );
 }
 

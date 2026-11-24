@@ -13,7 +13,7 @@ import type { Category } from "@/lib/types";
 import { useStore } from "@/components/store/StoreProvider";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
 import { PriceTag } from "@/components/store/PriceTag";
-import { Icon, Quantity, Swatch } from "@/components/ui/primitives";
+import { Icon, Quantity, Swatch, SwatchGroup } from "@/components/ui/primitives";
 
 const TABS = [
   { id: "description", label: "Description" },
@@ -244,17 +244,21 @@ export function ProductPage({
                   Colour: <strong>{variant.name}</strong>
                   {stockTag ? <span className="stock-tag">{stockTag}</span> : null}
                 </p>
-                <div className="pdp-swatches" role="group" aria-label="Choose a colour">
-                  {product.variants.map((item, index) => (
-                    <Swatch
-                      key={item.name}
-                      variant={item}
-                      selected={index === variantIndex}
-                      size="large"
-                      onSelect={() => selectVariant(product.id, index)}
-                    />
+                <SwatchGroup
+                  label="Choose a colour"
+                  className="pdp-swatches"
+                  value={variant.name}
+                  onValueChange={(name) =>
+                    selectVariant(
+                      product.id,
+                      product.variants.findIndex((item) => item.name === name),
+                    )
+                  }
+                >
+                  {product.variants.map((item) => (
+                    <Swatch key={item.name} variant={item} size="large" />
                   ))}
-                </div>
+                </SwatchGroup>
               </div>
 
               <div className="pdp-buy" ref={buyRef}>

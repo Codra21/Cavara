@@ -123,13 +123,6 @@ export function GlobalEffects() {
 
   useReveals();
 
-  useEffect(() => {
-    document.body.classList.toggle("is-locked", dialogOpen);
-    return () => {
-      document.body.classList.remove("is-locked");
-    };
-  }, [dialogOpen]);
-
   // "/" jumps to product search.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {

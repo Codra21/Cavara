@@ -4,8 +4,8 @@ import { type ReactNode, useState } from "react";
 import { formatPrice } from "@/domain/catalog";
 import type { DayTotals } from "@/domain/dashboard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { SegmentedControl, SegmentedControlItem } from "@/components/ui/segmented-control";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { adminDashboardQuery } from "./queries";
 
@@ -179,24 +179,19 @@ export function DashboardPanel() {
               Delivery charges are not included.
             </CardDescription>
           </div>
-          <div role="group" aria-label="Period" className="flex gap-1 rounded-lg bg-muted p-0.5">
-            <Button
-              size="sm"
-              variant={view === "days" ? "default" : "ghost"}
-              aria-pressed={view === "days"}
-              onClick={() => setView("days")}
-            >
+          <SegmentedControl
+            aria-label="Period"
+            value={view}
+            onValueChange={(next) => next && setView(next)}
+            className="flex-nowrap bg-muted p-0.5 ring-0"
+          >
+            <SegmentedControlItem value="days">
               <Calendar /> Days
-            </Button>
-            <Button
-              size="sm"
-              variant={view === "months" ? "default" : "ghost"}
-              aria-pressed={view === "months"}
-              onClick={() => setView("months")}
-            >
+            </SegmentedControlItem>
+            <SegmentedControlItem value="months">
               <CalendarRange /> Months
-            </Button>
-          </div>
+            </SegmentedControlItem>
+          </SegmentedControl>
         </CardHeader>
         <CardContent className="px-0 pb-2">
           {view === "days" ? (

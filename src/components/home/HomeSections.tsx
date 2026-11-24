@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from "@ui-sdk/react/popover";
 import { cardImage, cardVariant } from "@/domain/catalog-snapshot";
 import { formatPrice, pluralize } from "@/domain/catalog";
 import { mediaUrl } from "@/domain/media";
@@ -41,30 +42,46 @@ export function CollectionsSection() {
   );
 }
 
+type LookbookProduct = NonNullable<ReturnType<typeof useHome>["lookbook"]>;
+
+export function LookbookSpot({ product, spot }: { product: LookbookProduct; spot: (typeof LOOKBOOK.spots)[number] }) {
+  const openProduct = useOpenProduct();
+  const [open, setOpen] = useState(false);
+  const variant = cardVariant(product, spot.variant);
+  const side = spot.x < 35 ? " is-start" : spot.x > 65 ? " is-end" : "";
+  const vertical = spot.y > 60 ? " is-bottom" : "";
+  return (
+    <div
+      className={`studio-spot${side}${vertical}${open ? " is-open" : ""}`}
+      style={{ "--x": `${spot.x}%`, "--y": `${spot.y}%` } as React.CSSProperties}
+    >
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger className="studio-spot-button" aria-label={`${product.name}, ${variant.name}`}>
+          <span aria-hidden="true" />
+        </PopoverTrigger>
+        <PopoverContent inline initialFocus="none" className="studio-spot-card">
+          <img src={cardImage(product, spot.variant)} alt="" loading="lazy" width={160} height={160} />
+          <div>
+            <PopoverTitle className="studio-spot-name" render={<p />}>
+              {product.name}
+            </PopoverTitle>
+            <p className="studio-spot-meta">
+              {variant.name} · {formatPrice(product.price)}
+            </p>
+            <button className="text-link" type="button" onClick={() => openProduct(product, spot.variant)}>
+              View piece
+            </button>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
+  );
+}
+
 export function LookbookSection() {
   const openProduct = useOpenProduct();
-  const [openSpot, setOpenSpot] = useState<number | null>(null);
-  const buttonRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const { imageBase } = useCategories();
   const product = useHome().lookbook;
-
-  useEffect(() => {
-    if (openSpot === null) return;
-    const onClick = (event: MouseEvent) => {
-      if (!(event.target as Element).closest?.(".studio-spot")) setOpenSpot(null);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key !== "Escape") return;
-      buttonRefs.current[openSpot]?.focus();
-      setOpenSpot(null);
-    };
-    document.addEventListener("click", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("click", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [openSpot]);
 
   if (!product) return null;
 
@@ -80,45 +97,9 @@ export function LookbookSection() {
               width={800}
               height={800}
             />
-            {LOOKBOOK.spots.map((spot, index) => {
-              const variant = cardVariant(product, spot.variant);
-              const open = openSpot === index;
-              const side = spot.x < 35 ? " is-start" : spot.x > 65 ? " is-end" : "";
-              const vertical = spot.y > 60 ? " is-bottom" : "";
-              return (
-                <div
-                  key={index}
-                  className={`studio-spot${side}${vertical}${open ? " is-open" : ""}`}
-                  style={{ "--x": `${spot.x}%`, "--y": `${spot.y}%` } as React.CSSProperties}
-                >
-                  <button
-                    ref={(element) => {
-                      buttonRefs.current[index] = element;
-                    }}
-                    className="studio-spot-button"
-                    type="button"
-                    aria-expanded={open}
-                    aria-controls={`lookbook-spot-${index}`}
-                    aria-label={`${product.name}, ${variant.name}`}
-                    onClick={() => setOpenSpot(open ? null : index)}
-                  >
-                    <span aria-hidden="true" />
-                  </button>
-                  <div className="studio-spot-card" id={`lookbook-spot-${index}`} hidden={!open}>
-                    <img src={cardImage(product, spot.variant)} alt="" loading="lazy" width={160} height={160} />
-                    <div>
-                      <p className="studio-spot-name">{product.name}</p>
-                      <p className="studio-spot-meta">
-                        {variant.name} · {formatPrice(product.price)}
-                      </p>
-                      <button className="text-link" type="button" onClick={() => openProduct(product, spot.variant)}>
-                        View piece
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              );
-            })}
+            {LOOKBOOK.spots.map((spot, index) => (
+              <LookbookSpot key={index} product={product} spot={spot} />
+            ))}
           </div>
           <div className="studio-lookbook-copy" data-reveal="">
             <span className="studio-lookbook-word" aria-hidden="true">

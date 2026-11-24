@@ -12,7 +12,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useId, useMemo, useRef, useState } from "react";
+import { useId, useMemo, useState } from "react";
 import { formatPrice } from "@/domain/catalog";
 import { IMAGE_OPTIMIZATION, MAX_SOURCE_BYTES, mediaUrl, UPLOAD_ACCEPT } from "@/domain/media";
 import { optimizeImage } from "@/lib/optimize-image";
@@ -37,6 +37,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
+import { FileInput, FileInputTrigger } from "@ui-sdk/react/file-input";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -58,6 +59,7 @@ const AVAILABILITY_LABELS: Record<Availability, string> = {
   preorder: "Pre-order",
 };
 
+const NO_FILES: File[] = [];
 const HEX_COLOUR = /^#[0-9a-f]{6}$/i;
 
 /** Whole taka from a number field; blank → null. */
@@ -113,7 +115,6 @@ function PictureUpload({
   room: number;
   onUploaded: (keys: string[]) => void;
 }) {
-  const input = useRef<HTMLInputElement>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [summary, setSummary] = useState<string[]>([]);
@@ -153,32 +154,25 @@ function PictureUpload({
     setSummary(notes);
     setErrors(problems);
     setStatus(null);
-    if (input.current) input.current.value = "";
   }
 
   return (
     <div className="grid gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <input
-          ref={input}
-          type="file"
-          accept={UPLOAD_ACCEPT}
+        <FileInput
           multiple
-          className="sr-only"
-          tabIndex={-1}
-          aria-hidden="true"
-          onChange={(event) => upload([...(event.target.files ?? [])])}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
+          accept={UPLOAD_ACCEPT}
+          value={NO_FILES}
+          onValueChange={(files) => upload(files)}
           disabled={Boolean(status) || room <= 0}
-          onClick={() => input.current?.click()}
-          aria-label={`Add pictures to ${label}`}
         >
-          <ImagePlus /> {status ?? "Add pictures"}
-        </Button>
+          <FileInputTrigger
+            render={<Button type="button" variant="outline" size="sm" />}
+            aria-label={`Add pictures to ${label}`}
+          >
+            <ImagePlus /> {status ?? "Add pictures"}
+          </FileInputTrigger>
+        </FileInput>
         <span className="text-xs text-muted-foreground">
           Any JPEG, PNG, WebP or AVIF. Pictures are resized to {IMAGE_OPTIMIZATION.maxEdge} px and converted to WebP
           before upload.

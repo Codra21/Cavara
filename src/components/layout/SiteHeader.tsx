@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { Popover, PopoverContent, PopoverTrigger } from "@ui-sdk/react/popover";
 import { useEffect, useRef, useState } from "react";
 import { NAV_LINKS } from "@/lib/config";
 import { pluralize } from "@/domain/catalog";
@@ -22,8 +23,6 @@ export function SiteHeader() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [tucked, setTucked] = useState(false);
-  const headerRef = useRef<HTMLElement>(null);
-  const menuToggleRef = useRef<HTMLButtonElement>(null);
   const countRef = useRef<HTMLSpanElement>(null);
   const menusOpen = useRef(false);
   menusOpen.current = menuOpen;
@@ -51,25 +50,6 @@ export function SiteHeader() {
     };
   }, []);
 
-  useEffect(() => {
-    if (!menuOpen) return;
-    const onClick = (event: MouseEvent) => {
-      if (!headerRef.current?.contains(event.target as Node)) setMenuOpen(false);
-    };
-    const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
-        setMenuOpen(false);
-        menuToggleRef.current?.focus();
-      }
-    };
-    document.addEventListener("click", onClick);
-    document.addEventListener("keydown", onKey);
-    return () => {
-      document.removeEventListener("click", onClick);
-      document.removeEventListener("keydown", onKey);
-    };
-  }, [menuOpen]);
-
   // Replay the bump animation whenever something is added.
   useEffect(() => {
     const count = countRef.current;
@@ -85,77 +65,74 @@ export function SiteHeader() {
     .join(" ");
 
   return (
-    <header className={classes} id="top" ref={headerRef}>
-      <div className="container-wide header-inner">
-        <div className="header-start">
-          <button
-            ref={menuToggleRef}
-            className="icon-button menu-toggle"
-            type="button"
-            aria-expanded={menuOpen}
-            aria-controls="mobile-nav"
-            onClick={() => setMenuOpen(!menuOpen)}
-          >
-            <Icon name={`fa-solid ${menuOpen ? "fa-xmark" : "fa-bars"}`} />
-            <SrOnly>{menuOpen ? "Close menu" : "Open menu"}</SrOnly>
-          </button>
-          <button
-            className="icon-button header-search-mobile"
-            type="button"
-            onClick={() => goToShop({ focusSearch: true })}
-          >
-            <Icon name="fa-solid fa-magnifying-glass" />
-            <SrOnly>Search products</SrOnly>
-          </button>
-          <Link className="brand" to="/" aria-label="Cavara home">
-            <BrandLogo />
-          </Link>
+    <header className={classes} id="top">
+      <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+        <div className="container-wide header-inner">
+          <div className="header-start">
+            <PopoverTrigger className="icon-button menu-toggle">
+              <Icon name={`fa-solid ${menuOpen ? "fa-xmark" : "fa-bars"}`} />
+              <SrOnly>{menuOpen ? "Close menu" : "Open menu"}</SrOnly>
+            </PopoverTrigger>
+            <button
+              className="icon-button header-search-mobile"
+              type="button"
+              onClick={() => goToShop({ focusSearch: true })}
+            >
+              <Icon name="fa-solid fa-magnifying-glass" />
+              <SrOnly>Search products</SrOnly>
+            </button>
+            <Link className="brand" to="/" aria-label="Cavara home">
+              <BrandLogo />
+            </Link>
+          </div>
+
+          <nav className="primary-nav" aria-label="Primary">
+            {NAV_LINKS.map((link) =>
+              "to" in link ? (
+                <Link key={link.label} to={link.to}>
+                  {link.label}
+                </Link>
+              ) : (
+                <Link key={link.label} to="/" hash={link.hash}>
+                  {link.label}
+                </Link>
+              ),
+            )}
+          </nav>
+
+          <div className="header-actions">
+            <button className="icon-button header-search" type="button" onClick={() => goToShop({ focusSearch: true })}>
+              <Icon name="fa-solid fa-magnifying-glass" />
+              <SrOnly>Search products</SrOnly>
+            </button>
+            <ThemeToggle />
+            <button className="bag-button" type="button" aria-label={bagLabel} onClick={openBag}>
+              <Icon name="fa-solid fa-bag-shopping" />
+              <span className="bag-count" ref={countRef}>
+                {bagCount}
+              </span>
+            </button>
+          </div>
         </div>
 
-        <nav className="primary-nav" aria-label="Primary">
-          {NAV_LINKS.map((link) =>
-            "to" in link ? (
-              <Link key={link.label} to={link.to}>
-                {link.label}
-              </Link>
-            ) : (
-              <Link key={link.label} to="/" hash={link.hash}>
-                {link.label}
-              </Link>
-            ),
-          )}
-        </nav>
-
-        <div className="header-actions">
-          <button className="icon-button header-search" type="button" onClick={() => goToShop({ focusSearch: true })}>
-            <Icon name="fa-solid fa-magnifying-glass" />
-            <SrOnly>Search products</SrOnly>
-          </button>
-          <ThemeToggle />
-          <button className="bag-button" type="button" aria-label={bagLabel} onClick={openBag}>
-            <Icon name="fa-solid fa-bag-shopping" />
-            <span className="bag-count" ref={countRef}>
-              {bagCount}
-            </span>
-          </button>
-        </div>
-      </div>
-
-      <nav className="mobile-nav" id="mobile-nav" aria-label="Mobile" hidden={!menuOpen}>
-        <div className="container">
-          {NAV_LINKS.map((link) =>
-            "to" in link ? (
-              <Link key={link.label} to={link.to} onClick={() => setMenuOpen(false)}>
-                {link.label}
-              </Link>
-            ) : (
-              <Link key={link.label} to="/" hash={link.hash} onClick={() => setMenuOpen(false)}>
-                {link.label}
-              </Link>
-            ),
-          )}
-        </div>
-      </nav>
+        <PopoverContent inline initialFocus="none" className="mobile-nav">
+          <div className="container">
+            <nav aria-label="Mobile">
+              {NAV_LINKS.map((link) =>
+                "to" in link ? (
+                  <Link key={link.label} to={link.to} onClick={() => setMenuOpen(false)}>
+                    {link.label}
+                  </Link>
+                ) : (
+                  <Link key={link.label} to="/" hash={link.hash} onClick={() => setMenuOpen(false)}>
+                    {link.label}
+                  </Link>
+                ),
+              )}
+            </nav>
+          </div>
+        </PopoverContent>
+      </Popover>
     </header>
   );
 }

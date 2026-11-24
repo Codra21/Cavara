@@ -150,10 +150,6 @@
       color 0.25s ease;
   }
 
-  body.is-locked {
-    overflow: hidden;
-  }
-
   img {
     display: block;
     max-width: 100%;
@@ -624,7 +620,7 @@
     animation: menu-drop 0.3s var(--ease-out);
   }
 
-  .mobile-nav .container {
+  .mobile-nav nav {
     display: grid;
     padding-block: 8px 16px;
   }
@@ -1267,6 +1263,11 @@
     padding-right: var(--space-3);
   }
 
+  /* The wrapper ui-sdk puts around each input drops out of layout, so the input stays the flex item it was. */
+  .price-field [data-slot="number-input"] {
+    display: contents;
+  }
+
   .price-field input {
     width: 84px;
     min-height: 44px;
@@ -1501,7 +1502,7 @@
     transform: scale(1.12);
   }
 
-  .swatch[aria-pressed="true"] span {
+  .swatch[data-checked] span {
     box-shadow:
       inset 0 0 0 1px rgb(0 0 0 / 0.16),
       0 0 0 2px var(--surface),

@@ -31,7 +31,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { SegmentedControl, SegmentedControlItem } from "@/components/ui/segmented-control";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Toggle } from "@/components/ui/toggle";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { BulkBar, DuplicateDialog, type Notice } from "./ProductActions";
 import { adminCategoriesQuery, adminProductCountsQuery, adminProductNamesQuery, adminProductsQuery } from "./queries";
@@ -204,29 +206,20 @@ export function ProductList() {
       ) : (
         <>
           <div className="flex flex-wrap items-center gap-2">
-            <div
-              role="group"
+            <SegmentedControl
               aria-label="Filter by status"
-              className="flex flex-wrap gap-1 rounded-lg bg-card p-1 ring-1 ring-border"
+              value={query.status ?? "all"}
+              onValueChange={(next) => next && changeFilter({ status: next === "all" ? undefined : next })}
             >
-              {(["all", "published", "draft", "archived"] as const).map((value) => {
-                const active = (query.status ?? "all") === value;
-                return (
-                  <Button
-                    key={value}
-                    size="sm"
-                    variant={active ? "default" : "ghost"}
-                    aria-pressed={active}
-                    onClick={() => changeFilter({ status: value === "all" ? undefined : value })}
-                  >
-                    {value === "all" ? "All" : STATUS_LABELS[value]}{" "}
-                    <span className={`tabular-nums ${active ? "opacity-80" : "text-muted-foreground"}`}>
-                      {counts.data?.[value] ?? ""}
-                    </span>
-                  </Button>
-                );
-              })}
-            </div>
+              {(["all", "published", "draft", "archived"] as const).map((value) => (
+                <SegmentedControlItem key={value} value={value}>
+                  {value === "all" ? "All" : STATUS_LABELS[value]}{" "}
+                  <span className="tabular-nums text-muted-foreground in-data-checked:text-inherit in-data-checked:opacity-80">
+                    {counts.data?.[value] ?? ""}
+                  </span>
+                </SegmentedControlItem>
+              ))}
+            </SegmentedControl>
             <Select
               value={query.category ?? ANY}
               onValueChange={(value) => changeFilter({ category: value === ANY ? undefined : value })}
@@ -243,28 +236,20 @@ export function ProductList() {
                 ))}
               </SelectContent>
             </Select>
-            <Button
-              size="sm"
-              variant={query.outOfStock ? "destructive" : "outline"}
-              className={query.outOfStock ? undefined : "bg-card"}
-              aria-pressed={Boolean(query.outOfStock)}
-              onClick={() => changeFilter({ outOfStock: query.outOfStock ? undefined : true })}
+            <Toggle
+              tone="destructive"
+              pressed={Boolean(query.outOfStock)}
+              onPressedChange={(pressed) => changeFilter({ outOfStock: pressed ? true : undefined })}
             >
               <AlertCircle /> Out of stock
-            </Button>
-            <Button
-              size="sm"
-              variant={query.lowStock ? "secondary" : "outline"}
-              className={
-                query.lowStock
-                  ? "border-warning-border bg-warning-soft text-warning hover:bg-warning-soft/80"
-                  : "bg-card"
-              }
-              aria-pressed={Boolean(query.lowStock)}
-              onClick={() => changeFilter({ lowStock: query.lowStock ? undefined : true })}
+            </Toggle>
+            <Toggle
+              tone="warning"
+              pressed={Boolean(query.lowStock)}
+              onPressedChange={(pressed) => changeFilter({ lowStock: pressed ? true : undefined })}
             >
               <AlertTriangle /> Low stock
-            </Button>
+            </Toggle>
             <Select
               value={query.sort}
               onValueChange={(value) => changeFilter({ sort: value as AdminProductSearch["sort"] })}

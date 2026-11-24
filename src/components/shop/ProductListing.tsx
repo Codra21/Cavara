@@ -1,5 +1,8 @@
 import { useQueries } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
+import { Input } from "@ui-sdk/react/input";
+import { Label } from "@ui-sdk/react/label";
+import { NumberInput, NumberInputControl } from "@ui-sdk/react/number-input";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { pluralize } from "@/domain/catalog";
 import {
@@ -46,8 +49,8 @@ function ListingLink({
   );
 }
 
-/** A price typed in a field: a whole number of taka, or nothing. */
-const toPrice = (text: string) => parseListSearch({ min: text.trim() }).min;
+/** A committed price field value: a whole number of taka, or nothing. */
+const toPrice = (value: number | null) => (value === null ? undefined : parseListSearch({ min: String(value) }).min);
 
 /** Page numbers to link: the first, the last and the ones beside the current page, with gaps marked as null. */
 function pageWindow(page: number, pageCount: number): (number | null)[] {
@@ -127,13 +130,14 @@ export function ProductListing({ category, search }: { category?: string; search
   }, [search.q]);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const [minText, setMinText] = useState(search.min?.toString() ?? "");
-  const [maxText, setMaxText] = useState(search.max?.toString() ?? "");
-  useEffect(() => setMinText(search.min?.toString() ?? ""), [search.min]);
-  useEffect(() => setMaxText(search.max?.toString() ?? ""), [search.max]);
-  const commitPrice = () => {
-    const min = toPrice(minText);
-    const max = toPrice(maxText);
+  const [minPrice, setMinPrice] = useState<number | null>(search.min ?? null);
+  const [maxPrice, setMaxPrice] = useState<number | null>(search.max ?? null);
+  useEffect(() => setMinPrice(search.min ?? null), [search.min]);
+  useEffect(() => setMaxPrice(search.max ?? null), [search.max]);
+  // Both bounds go together: a second commit can land before the first navigation re-renders.
+  const commitPrice = (bound: "min" | "max", value: number | null) => {
+    const min = toPrice(bound === "min" ? value : minPrice);
+    const max = toPrice(bound === "max" ? value : maxPrice);
     if (min !== search.min || max !== search.max) update({ min, max });
   };
 
@@ -264,7 +268,8 @@ export function ProductListing({ category, search }: { category?: string; search
           </div>
         ) : null}
 
-        {/* One row on desktop; secondary filters collapse behind one button on phones. */}
+        {/* One row on desktop; secondary filters collapse behind one button on phones. Not ui-sdk Collapsible: its
+            closed panel carries `hidden`, which Tailwind preflight forces to display:none on desktop too. */}
         <div className="shop-filters">
           <div className="shop-filters-bar">
             <form
@@ -279,17 +284,17 @@ export function ProductListing({ category, search }: { category?: string; search
               }}
             >
               <Icon name="fa-solid fa-magnifying-glass" />
-              <label className="sr-only" htmlFor="product-search">
+              <Label className="sr-only" htmlFor="product-search">
                 Search products
-              </label>
-              <input
+              </Label>
+              <Input
                 type="search"
                 id="product-search"
                 placeholder="Search cups, jars…"
                 autoComplete="off"
                 maxLength={80}
                 value={text}
-                onChange={(event) => setText(event.target.value)}
+                onValueChange={setText}
               />
             </form>
             <button
@@ -324,29 +329,35 @@ export function ProductListing({ category, search }: { category?: string; search
             {showPrice ? (
               <div className="sort-field price-field" role="group" aria-label="Price in taka">
                 <span>Price ৳</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
+                <NumberInput
+                  value={minPrice}
+                  onValueChange={setMinPrice}
+                  onValueCommit={(value) => commitPrice("min", value)}
                   min={0}
-                  aria-label="Lowest price"
-                  placeholder={facets.price ? String(facets.price.min) : "Min"}
-                  value={minText}
-                  onChange={(event) => setMinText(event.target.value)}
-                  onBlur={commitPrice}
-                  onKeyDown={(event) => event.key === "Enter" && commitPrice()}
-                />
+                  locale="en-US"
+                  format={{ useGrouping: false }}
+                >
+                  <NumberInputControl
+                    inputMode="numeric"
+                    aria-label="Lowest price"
+                    placeholder={facets.price ? String(facets.price.min) : "Min"}
+                  />
+                </NumberInput>
                 <span aria-hidden="true">to</span>
-                <input
-                  type="number"
-                  inputMode="numeric"
+                <NumberInput
+                  value={maxPrice}
+                  onValueChange={setMaxPrice}
+                  onValueCommit={(value) => commitPrice("max", value)}
                   min={0}
-                  aria-label="Highest price"
-                  placeholder={facets.price ? String(facets.price.max) : "Max"}
-                  value={maxText}
-                  onChange={(event) => setMaxText(event.target.value)}
-                  onBlur={commitPrice}
-                  onKeyDown={(event) => event.key === "Enter" && commitPrice()}
-                />
+                  locale="en-US"
+                  format={{ useGrouping: false }}
+                >
+                  <NumberInputControl
+                    inputMode="numeric"
+                    aria-label="Highest price"
+                    placeholder={facets.price ? String(facets.price.max) : "Max"}
+                  />
+                </NumberInput>
               </div>
             ) : null}
             <label className="sort-field">

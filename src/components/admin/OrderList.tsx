@@ -28,6 +28,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { SegmentedControl, SegmentedControlItem } from "@/components/ui/segmented-control";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { adminTimeFormat } from "./ActivityLog";
 import { adminOrdersQuery, type OrderStatusFilter } from "./queries";
@@ -109,24 +110,18 @@ export function OrderList() {
             className="bg-card pl-8.5"
           />
         </div>
-        <div
-          role="group"
+        <SegmentedControl
           aria-label="Filter by status"
-          className="flex flex-wrap gap-1 rounded-lg bg-card p-1 ring-1 ring-border"
+          value={search ? null : status}
+          onValueChange={(next) => next && setStatus(next)}
+          disabled={Boolean(search)}
         >
           {FILTERS.map((value) => (
-            <Button
-              key={value}
-              size="sm"
-              variant={!search && status === value ? "default" : "ghost"}
-              aria-pressed={!search && status === value}
-              disabled={Boolean(search)}
-              onClick={() => setStatus(value)}
-            >
+            <SegmentedControlItem key={value} value={value}>
               {value === "all" ? "All" : STATUS_LABELS[value]}
-            </Button>
+            </SegmentedControlItem>
           ))}
-        </div>
+        </SegmentedControl>
       </div>
       {search || incomplete ? (
         <p className="-mt-3 text-xs text-muted-foreground" aria-live="polite">
