@@ -257,7 +257,11 @@ export async function updateOrderStatus(
   // The coupon this order used and whether it gave the use back (a cancel while unpaid). Read with the order above.
   const couponId = read.couponId;
   const returnsCouponUse =
-    cancelling && couponId !== null && read.couponReturned === 0 && input.paymentStatus === "unpaid";
+    cancelling &&
+    couponId !== null &&
+    read.couponReturned === 0 &&
+    current.paymentStatus === "unpaid" &&
+    input.paymentStatus === "unpaid";
   const claimsCouponUse = reopening && couponId !== null && read.couponReturned === 1;
 
   const at = now.toISOString();

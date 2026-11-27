@@ -826,6 +826,17 @@ describe("coupon use on cancel and reopen", () => {
     expect(usedCount(db, coupon)).toBe(1);
   });
 
+  test("cancelling a previously paid order while setting paymentStatus to unpaid still keeps its coupon use", async () => {
+    const coupon = addCoupon(db, { usage_limit: 1 });
+    const id = await place(coupon);
+    expect(usedCount(db, coupon)).toBe(1);
+
+    expect((await step(id, "confirmed", "paid")).ok).toBe(true);
+    expect((await step(id, "cancelled", "unpaid")).ok).toBe(true);
+    expect(usedCount(db, coupon)).toBe(1);
+    expect(returned(id)).toBe(0);
+  });
+
   test("a paid or refunded order keeps its use when cancelled, and a reopen claims nothing", async () => {
     const coupon = addCoupon(db, { usage_limit: 5 });
     const paid = await place(coupon);
