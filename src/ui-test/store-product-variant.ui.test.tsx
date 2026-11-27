@@ -1,8 +1,11 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { render } from "@testing-library/react";
+import { useEffect } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { expect, test, vi } from "vitest";
 import type { PublicProduct } from "@/domain/catalog-snapshot";
-import { StoreProvider } from "@/components/store/StoreProvider";
+import { StoreProvider, useStore } from "@/components/store/StoreProvider";
+import { STORAGE_KEYS } from "@/lib/config";
 
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, ...rest }: { children: React.ReactNode }) => <a {...rest}>{children}</a>,
@@ -50,4 +53,25 @@ test("ProductPage honours initialVariant on SSR before client effects run", () =
   );
   expect(html).toContain("<strong>Crimson</strong>");
   expect(html).toContain("/media/b.webp");
+});
+
+test("rememberViewed on initial mount preserves previously stored recently-viewed products", () => {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }),
+  });
+  localStorage.setItem(STORAGE_KEYS.recent, JSON.stringify([10, 20]));
+  function Viewer({ id }: { id: number }) {
+    const { rememberViewed } = useStore();
+    useEffect(() => {
+      rememberViewed(id);
+    }, [id, rememberViewed]);
+    return null;
+  }
+  render(
+    <StoreProvider>
+      <Viewer id={30} />
+    </StoreProvider>,
+  );
+  expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.recent) ?? "[]")).toEqual([30, 10, 20]);
 });

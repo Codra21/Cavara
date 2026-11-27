@@ -80,6 +80,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [bagOpen, setBagOpen] = useState(false);
   const [recent, setRecent] = useState<number[]>([]);
   const [hydrated, setHydrated] = useState(false);
+  const hydratedRef = useRef(false);
   const toastTimer = useRef<number | undefined>(undefined);
 
   useEffect(() => {
@@ -93,6 +94,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       applyTheme(next);
       setTheme(next);
     });
+    hydratedRef.current = true;
     setHydrated(true);
 
     const onStorage = (event: StorageEvent) => {
@@ -172,7 +174,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const rememberViewed = useCallback((productId: number) => {
     setRecent((current) => {
-      const next = [productId, ...current.filter((id) => id !== productId)].slice(0, RECENT_LIMIT);
+      // Child effects (ProductPage) run before StoreProvider's hydration effect; read storage first so we don't wipe it.
+      const base = hydratedRef.current ? current : loadRecent();
+      const next = [productId, ...base.filter((id) => id !== productId)].slice(0, RECENT_LIMIT);
       storageSet(STORAGE_KEYS.recent, JSON.stringify(next));
       return next;
     });
