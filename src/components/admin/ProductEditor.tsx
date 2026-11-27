@@ -857,13 +857,23 @@ export function ProductEditor({
               }}
             />
           </Field>
-          <div className="flex items-center gap-2 self-center">
-            <Checkbox
-              id={`${id}-featured`}
-              checked={values.featured}
-              onCheckedChange={(checked) => set("featured", checked === true)}
-            />
-            <Label htmlFor={`${id}-featured`}>Featured</Label>
+          <div className="flex flex-wrap items-center gap-6 self-center">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id={`${id}-featured`}
+                checked={values.featured}
+                onCheckedChange={(checked) => set("featured", checked === true)}
+              />
+              <Label htmlFor={`${id}-featured`}>Featured</Label>
+            </div>
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id={`${id}-new-arrival`}
+                checked={Boolean(values.newArrival)}
+                onCheckedChange={(checked) => set("newArrival", checked === true)}
+              />
+              <Label htmlFor={`${id}-new-arrival`}>New arrival</Label>
+            </div>
           </div>
         </CardContent>
       </Card>

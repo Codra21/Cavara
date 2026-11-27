@@ -68,6 +68,7 @@ export const productInputSchema = z
       .transform((value) => value ?? null),
     status: z.enum(PRODUCT_STATUSES),
     featured: z.boolean(),
+    newArrival: z.boolean().optional().default(false),
     sort: z.number().int().min(-100_000).max(100_000),
     variants: z.array(variantInputSchema).max(MAX_VARIANTS),
   })
@@ -135,6 +136,7 @@ export interface AdminProduct {
   weightG?: number | null;
   status: ProductStatus;
   featured: boolean;
+  newArrival?: boolean;
   sort: number;
   revision: string;
   updatedAt: string;
@@ -218,6 +220,7 @@ export function emptyProductForm(categoryId = ""): ProductFormValues {
     weightG: null,
     status: "draft",
     featured: false,
+    newArrival: false,
     sort: 0,
     variants: [],
   };
@@ -237,6 +240,7 @@ export function productToForm(product: AdminProduct): ProductFormValues {
     weightG: product.weightG ?? null,
     status: product.status,
     featured: product.featured,
+    newArrival: product.newArrival ?? false,
     sort: product.sort,
     // The form holds neither the count (it changes without a save) nor an availability the count decided: a counted
     // colour shows as in stock unless it is on pre-order, so a stock change never makes the form look edited.

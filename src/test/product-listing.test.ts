@@ -228,3 +228,26 @@ describe("parseListSearch", () => {
     });
   });
 });
+
+describe("new arrivals checkbox rule (C2.5)", () => {
+  test("ticked new_arrival products come first (newest first) and remaining slots fill with newest", () => {
+    const base = {
+      slug: "p",
+      name: "Piece",
+      category: "drinkware",
+      price: 1000,
+      regularPrice: null,
+      featured: false,
+      sort: 1,
+      images: ["a.webp"],
+      variants: [{ name: "White", swatch: "#fff", availability: "in_stock" as const, image: "a.webp" }],
+    };
+    const items = [
+      { ...base, id: 1, createdAt: "2026-01-01", newArrival: true },
+      { ...base, id: 2, createdAt: "2026-05-01", newArrival: false },
+      { ...base, id: 3, createdAt: "2026-03-01", newArrival: true },
+      { ...base, id: 4, createdAt: "2026-04-01", newArrival: false },
+    ];
+    expect(selectNewest(items, 3).map((item) => item.id)).toEqual([3, 1, 2]);
+  });
+});

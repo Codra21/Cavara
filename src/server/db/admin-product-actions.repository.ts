@@ -24,6 +24,7 @@ interface StateRow {
   status: ProductStatus;
   category_id: string;
   featured: number;
+  new_arrival: number;
   has_colours: number;
   has_bare_colour: number;
 }
@@ -32,7 +33,7 @@ interface StateRow {
  * The selected products' current state. Primary-key lookups through json_each (one bound parameter however many ids).
  * A product is publishable when it has a colour and every colour has a picture, the rule productInputSchema applies.
  */
-export const BULK_STATES_SQL = `SELECT p.id, p.status, p.category_id, p.featured,
+export const BULK_STATES_SQL = `SELECT p.id, p.status, p.category_id, p.featured, p.new_arrival,
          EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id) AS has_colours,
          EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = p.id
                    AND NOT EXISTS (SELECT 1 FROM product_images i WHERE i.variant_id = v.id)) AS has_bare_colour
@@ -81,6 +82,16 @@ export function updateFor(action: BulkProductAction, revision: string, now: stri
         `UPDATE products SET featured = 0, revision = ?, updated_at = ? WHERE ${IN_SELECTION} AND featured = 1 RETURNING id, status`,
         [revision, now, ids],
       ];
+    case "new_arrival":
+      return [
+        `UPDATE products SET new_arrival = 1, revision = ?, updated_at = ? WHERE ${IN_SELECTION} AND new_arrival = 0 RETURNING id, status`,
+        [revision, now, ids],
+      ];
+    case "clear_new_arrival":
+      return [
+        `UPDATE products SET new_arrival = 0, revision = ?, updated_at = ? WHERE ${IN_SELECTION} AND new_arrival = 1 RETURNING id, status`,
+        [revision, now, ids],
+      ];
   }
 }
 
@@ -117,6 +128,7 @@ export async function bulkUpdateProducts(db: D1Database, options: BulkUpdateOpti
     status: row.status,
     categoryId: row.category_id,
     featured: row.featured === 1,
+    newArrival: row.new_arrival === 1,
     publishable: row.has_colours === 1 && row.has_bare_colour === 0,
   }));
 

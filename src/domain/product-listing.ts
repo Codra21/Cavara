@@ -203,9 +203,13 @@ export function listProducts(summary: CatalogSummary, query: ListQuery): ListPag
 export const selectFeatured = (products: ProductSummary[], limit = HOME_ROW_SIZE) =>
   products.filter((product) => product.featured).slice(0, limit);
 
-/** The most recently created products, for the home page row. */
-export const selectNewest = (products: ProductSummary[], limit = HOME_ROW_SIZE) =>
-  [...products].sort(newestFirst).slice(0, limit);
+/** New arrivals home row: ticked new_arrival products come first (newest first); newest remaining fill up to limit. */
+export const selectNewest = (products: ProductSummary[], limit = HOME_ROW_SIZE) => {
+  const ticked = products.filter((product) => product.newArrival).sort(newestFirst);
+  if (ticked.length >= limit) return ticked.slice(0, limit);
+  const rest = products.filter((product) => !product.newArrival).sort(newestFirst);
+  return [...ticked, ...rest].slice(0, limit);
+};
 
 /** Whether a filter group offers a real choice: at least two options that give different results. */
 export function offersChoice(counts: number[], total: number): boolean {

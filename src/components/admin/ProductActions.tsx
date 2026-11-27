@@ -182,6 +182,12 @@ export function BulkBar({
       <Button size="sm" variant="outline" onClick={() => send("unfeature")} disabled={run.isPending}>
         <StarOff /> Unfeature
       </Button>
+      <Button size="sm" variant="outline" onClick={() => send("new_arrival")} disabled={run.isPending}>
+        New arrival
+      </Button>
+      <Button size="sm" variant="outline" onClick={() => send("clear_new_arrival")} disabled={run.isPending}>
+        Unmark new
+      </Button>
       <div className="flex items-center gap-1">
         <Select value={category} onValueChange={setCategory}>
           <SelectTrigger size="sm" aria-label="Category to move the selected products to" className="w-40 bg-card">

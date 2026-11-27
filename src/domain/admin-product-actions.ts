@@ -13,7 +13,7 @@ const ids = z
   .max(MAX_BULK_SELECTION, `Select at most ${MAX_BULK_SELECTION} products`)
   .refine((list) => new Set(list).size === list.length, "Each product can be selected once");
 
-const plain = (action: "publish" | "unpublish" | "archive" | "feature" | "unfeature") =>
+const plain = (action: "publish" | "unpublish" | "archive" | "feature" | "unfeature" | "new_arrival" | "clear_new_arrival") =>
   z.object({ action: z.literal(action), ids });
 
 export const bulkProductActionSchema = z.discriminatedUnion("action", [
@@ -22,6 +22,8 @@ export const bulkProductActionSchema = z.discriminatedUnion("action", [
   plain("archive"),
   plain("feature"),
   plain("unfeature"),
+  plain("new_arrival"),
+  plain("clear_new_arrival"),
   z.object({ action: z.literal("set_category"), ids, categoryId: z.string().trim().min(1).max(40) }),
 ]);
 
@@ -53,6 +55,7 @@ export interface BulkProductState {
   status: ProductStatus;
   categoryId: string;
   featured: boolean;
+  newArrival?: boolean;
   /** Has a colour, and every colour has a picture: the same rule productInputSchema applies to published products. */
   publishable: boolean;
 }
@@ -104,6 +107,10 @@ function skipReason(action: BulkProductAction, state: BulkProductState): BulkSki
       return state.featured ? "unchanged" : null;
     case "unfeature":
       return state.featured ? null : "unchanged";
+    case "new_arrival":
+      return state.newArrival ? "unchanged" : null;
+    case "clear_new_arrival":
+      return state.newArrival ? null : "unchanged";
   }
 }
 
@@ -114,6 +121,8 @@ const PAST: Record<BulkActionName, string> = {
   set_category: "Moved to the new category:",
   feature: "Marked as featured:",
   unfeature: "Removed from featured:",
+  new_arrival: "Marked as new arrival:",
+  clear_new_arrival: "Removed from new arrivals:",
 };
 
 const SKIP_TEXT: Record<BulkSkipReason, string> = {
