@@ -170,3 +170,24 @@ test("switching colours on ProductPage syncs ?variant= in the URL and Share link
   const share = screen.getByRole("link", { name: /Share/i });
   expect(share.getAttribute("href")).toContain(encodeURIComponent("?variant=1"));
 });
+
+test("switching colours on ProductPage resets the mobile gallery scrollLeft to 0", async () => {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }),
+  });
+  const queryClient = new QueryClient();
+  const user = userEvent.setup();
+  render(
+    <QueryClientProvider client={queryClient}>
+      <StoreProvider>
+        <ProductPage product={product} category={{ id: "drinkware", name: "Drinkware", description: "", image: "" }} />
+      </StoreProvider>
+    </QueryClientProvider>,
+  );
+
+  const gallery = screen.getByLabelText("Polka Cup photos");
+  gallery.scrollLeft = 320;
+  await user.click(screen.getByRole("radio", { name: "Crimson" }));
+  expect(gallery.scrollLeft).toBe(0);
+});

@@ -56,6 +56,7 @@ function Gallery({ product, variantIndex }: { product: PublicProduct; variantInd
   useEffect(() => {
     const gallery = ref.current;
     if (!gallery) return;
+    gallery.scrollLeft = 0;
     gallery.classList.remove("is-changing");
     void gallery.offsetWidth;
     gallery.classList.add("is-changing");
