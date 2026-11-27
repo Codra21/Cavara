@@ -2,6 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui-sdk/react/popover";
 import { useEffect, useRef, useState } from "react";
 import { NAV_LINKS } from "@/lib/config";
+import { scrollBehavior } from "@/lib/dom";
 import { pluralize } from "@/domain/catalog";
 import { useStore } from "@/components/store/StoreProvider";
 import { BrandLogo, Icon, SrOnly } from "@/components/ui/primitives";
@@ -93,7 +94,14 @@ export function SiteHeader() {
                   {link.label}
                 </Link>
               ) : (
-                <Link key={link.label} to="/" hash={link.hash}>
+                <Link
+                  key={link.label}
+                  to="/"
+                  hash={link.hash}
+                  onClick={() => {
+                    document.getElementById(link.hash)?.scrollIntoView({ behavior: scrollBehavior() });
+                  }}
+                >
                   {link.label}
                 </Link>
               ),
@@ -124,7 +132,15 @@ export function SiteHeader() {
                     {link.label}
                   </Link>
                 ) : (
-                  <Link key={link.label} to="/" hash={link.hash} onClick={() => setMenuOpen(false)}>
+                  <Link
+                    key={link.label}
+                    to="/"
+                    hash={link.hash}
+                    onClick={() => {
+                      setMenuOpen(false);
+                      document.getElementById(link.hash)?.scrollIntoView({ behavior: scrollBehavior() });
+                    }}
+                  >
                     {link.label}
                   </Link>
                 ),

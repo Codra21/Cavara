@@ -32,11 +32,14 @@ export const HERO_SLIDES = [
   { id: 5, eyebrow: "Sculptural serveware", title: "Soft-edged dishes in four glazes.", word: "glazes" },
 ];
 
-/** The header menu. "Products" is its own page; the others scroll to a section of the home page. */
-export const NAV_LINKS: readonly ({ label: string; to: "/products" } | { label: string; hash: string })[] = [
+/** The header menu. "How to order" scrolls to the home section; the rest are their own pages. */
+export const NAV_LINKS: readonly (
+  | { label: string; to: "/products" | "/collections" | "/about" | "/contact" }
+  | { label: string; hash: string }
+)[] = [
   { label: "Products", to: "/products" },
-  { label: "Collections", hash: "collections" },
-  { label: "Our story", hash: "story" },
+  { label: "Collections", to: "/collections" },
+  { label: "About", to: "/about" },
   { label: "How to order", hash: "ordering" },
-  { label: "Contact", hash: "contact" },
+  { label: "Contact", to: "/contact" },
 ];

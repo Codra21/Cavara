@@ -10,13 +10,16 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as ContactRouteImport } from './routes/contact'
 import { Route as HealthzRouteImport } from './routes/healthz'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminBlockedRouteImport } from './routes/admin.blocked'
 import { Route as AdminDiscountsRouteImport } from './routes/admin.discounts'
 import { Route as AdminZonesRouteImport } from './routes/admin.zones'
+import { Route as CollectionsIndexRouteImport } from './routes/collections.index'
 import { Route as CollectionsCategoryRouteImport } from './routes/collections.$category'
 import { Route as MediaSplatRouteImport } from './routes/media.$'
 import { Route as ProductsIndexRouteImport } from './routes/products.index'
@@ -31,9 +34,19 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ContactRoute = ContactRouteImport.update({
+  id: '/contact',
+  path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
 const HealthzRoute = HealthzRouteImport.update({
@@ -65,6 +78,11 @@ const AdminZonesRoute = AdminZonesRouteImport.update({
   id: '/zones',
   path: '/zones',
   getParentRoute: () => AdminRoute,
+} as any)
+const CollectionsIndexRoute = CollectionsIndexRouteImport.update({
+  id: '/collections/',
+  path: '/collections/',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const CollectionsCategoryRoute = CollectionsCategoryRouteImport.update({
   id: '/collections/$category',
@@ -109,7 +127,9 @@ const AdminProductsProductIdRoute = AdminProductsProductIdRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
+  '/contact': typeof ContactRoute
   '/healthz': typeof HealthzRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/blocked': typeof AdminBlockedRoute
@@ -119,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/media/$': typeof MediaSplatRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/collections/': typeof CollectionsIndexRoute
   '/products/': typeof ProductsIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/admin/products/$productId': typeof AdminProductsProductIdRoute
@@ -127,6 +148,8 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/contact': typeof ContactRoute
   '/healthz': typeof HealthzRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/blocked': typeof AdminBlockedRoute
@@ -136,6 +159,7 @@ export interface FileRoutesByTo {
   '/media/$': typeof MediaSplatRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/admin': typeof AdminIndexRoute
+  '/collections': typeof CollectionsIndexRoute
   '/products': typeof ProductsIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/admin/products/$productId': typeof AdminProductsProductIdRoute
@@ -145,7 +169,9 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
+  '/contact': typeof ContactRoute
   '/healthz': typeof HealthzRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/admin/blocked': typeof AdminBlockedRoute
@@ -155,6 +181,7 @@ export interface FileRoutesById {
   '/media/$': typeof MediaSplatRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/admin/': typeof AdminIndexRoute
+  '/collections/': typeof CollectionsIndexRoute
   '/products/': typeof ProductsIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/admin/products/$productId': typeof AdminProductsProductIdRoute
@@ -165,7 +192,9 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/about'
     | '/admin'
+    | '/contact'
     | '/healthz'
     | '/sitemap.xml'
     | '/admin/blocked'
@@ -175,6 +204,7 @@ export interface FileRouteTypes {
     | '/media/$'
     | '/products/$slug'
     | '/admin/'
+    | '/collections/'
     | '/products/'
     | '/admin/orders/$orderId'
     | '/admin/products/$productId'
@@ -183,6 +213,8 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/about'
+    | '/contact'
     | '/healthz'
     | '/sitemap.xml'
     | '/admin/blocked'
@@ -192,6 +224,7 @@ export interface FileRouteTypes {
     | '/media/$'
     | '/products/$slug'
     | '/admin'
+    | '/collections'
     | '/products'
     | '/admin/orders/$orderId'
     | '/admin/products/$productId'
@@ -200,7 +233,9 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/about'
     | '/admin'
+    | '/contact'
     | '/healthz'
     | '/sitemap.xml'
     | '/admin/blocked'
@@ -210,6 +245,7 @@ export interface FileRouteTypes {
     | '/media/$'
     | '/products/$slug'
     | '/admin/'
+    | '/collections/'
     | '/products/'
     | '/admin/orders/$orderId'
     | '/admin/products/$productId'
@@ -219,12 +255,15 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRouteWithChildren
+  ContactRoute: typeof ContactRoute
   HealthzRoute: typeof HealthzRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   CollectionsCategoryRoute: typeof CollectionsCategoryRoute
   MediaSplatRoute: typeof MediaSplatRoute
   ProductsSlugRoute: typeof ProductsSlugRoute
+  CollectionsIndexRoute: typeof CollectionsIndexRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
 }
 
@@ -237,11 +276,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/contact': {
+      id: '/contact'
+      path: '/contact'
+      fullPath: '/contact'
+      preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/healthz': {
@@ -285,6 +338,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/zones'
       preLoaderRoute: typeof AdminZonesRouteImport
       parentRoute: typeof AdminRoute
+    }
+    '/collections/': {
+      id: '/collections/'
+      path: '/collections'
+      fullPath: '/collections/'
+      preLoaderRoute: typeof CollectionsIndexRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/collections/$category': {
       id: '/collections/$category'
@@ -371,12 +431,15 @@ const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
   AdminRoute: AdminRouteWithChildren,
+  ContactRoute: ContactRoute,
   HealthzRoute: HealthzRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   CollectionsCategoryRoute: CollectionsCategoryRoute,
   MediaSplatRoute: MediaSplatRoute,
   ProductsSlugRoute: ProductsSlugRoute,
+  CollectionsIndexRoute: CollectionsIndexRoute,
   ProductsIndexRoute: ProductsIndexRoute,
 }
 export const routeTree = rootRouteImport

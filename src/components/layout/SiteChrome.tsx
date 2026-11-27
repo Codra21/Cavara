@@ -1,7 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { pluralize } from "@/domain/catalog";
-import { useCategories } from "@/lib/query";
 import {
   CONTACT_EMAIL,
   FACEBOOK_URL,
@@ -11,11 +10,11 @@ import {
   WHATSAPP_URL,
 } from "@/lib/config";
 import { useStore } from "@/components/store/StoreProvider";
+import { scrollBehavior } from "@/lib/dom";
 import { BrandLogo, Icon } from "@/components/ui/primitives";
 import { useShopNavigation } from "./useShopNavigation";
 
 export function SiteFooter() {
-  const { categories } = useCategories();
   const [year, setYear] = useState(2026);
   useEffect(() => setYear(new Date().getFullYear()), []);
 
@@ -38,25 +37,33 @@ export function SiteFooter() {
               </div>
             </div>
             <div>
-              <h2 className="footer-title">Shop</h2>
+              <h2 className="footer-title">Explore</h2>
               <ul className="footer-links">
                 <li>
                   <Link to="/products">All products</Link>
                 </li>
-                {categories.map((category) => (
-                  <li key={category.id}>
-                    <Link to="/collections/$category" params={{ category: category.id }}>
-                      {category.name}
-                    </Link>
-                  </li>
-                ))}
+                <li>
+                  <Link to="/collections">Collections</Link>
+                </li>
+                <li>
+                  <Link to="/about">About us</Link>
+                </li>
+                <li>
+                  <Link to="/contact">Contact</Link>
+                </li>
               </ul>
             </div>
             <div>
               <h2 className="footer-title">Help</h2>
               <ul className="footer-links">
                 <li>
-                  <Link to="/" hash="ordering">
+                  <Link
+                    to="/"
+                    hash="ordering"
+                    onClick={() => {
+                      document.getElementById("ordering")?.scrollIntoView({ behavior: scrollBehavior() });
+                    }}
+                  >
                     How to order
                   </Link>
                 </li>
