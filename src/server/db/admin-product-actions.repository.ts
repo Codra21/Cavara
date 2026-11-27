@@ -50,35 +50,35 @@ export function updateFor(action: BulkProductAction, revision: string, now: stri
            AND EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = products.id)
            AND NOT EXISTS (SELECT 1 FROM product_variants v WHERE v.product_id = products.id
                              AND NOT EXISTS (SELECT 1 FROM product_images i WHERE i.variant_id = v.id))
-         RETURNING id`,
+         RETURNING id, status`,
         [revision, now, ids],
       ];
     case "unpublish":
       return [
         `UPDATE products SET status = 'draft', revision = ?, updated_at = ?
-         WHERE ${IN_SELECTION} AND status = 'published' RETURNING id`,
+         WHERE ${IN_SELECTION} AND status = 'published' RETURNING id, status`,
         [revision, now, ids],
       ];
     case "archive":
       return [
         `UPDATE products SET status = 'archived', archived_at = COALESCE(archived_at, ?), revision = ?, updated_at = ?
-         WHERE ${IN_SELECTION} AND status <> 'archived' RETURNING id`,
+         WHERE ${IN_SELECTION} AND status <> 'archived' RETURNING id, status`,
         [now, revision, now, ids],
       ];
     case "set_category":
       return [
         `UPDATE products SET category_id = ?, revision = ?, updated_at = ?
-         WHERE ${IN_SELECTION} AND category_id <> ? AND EXISTS (SELECT 1 FROM categories WHERE id = ?) RETURNING id`,
+         WHERE ${IN_SELECTION} AND category_id <> ? AND EXISTS (SELECT 1 FROM categories WHERE id = ?) RETURNING id, status`,
         [action.categoryId, revision, now, ids, action.categoryId, action.categoryId],
       ];
     case "feature":
       return [
-        `UPDATE products SET featured = 1, revision = ?, updated_at = ? WHERE ${IN_SELECTION} AND featured = 0 RETURNING id`,
+        `UPDATE products SET featured = 1, revision = ?, updated_at = ? WHERE ${IN_SELECTION} AND featured = 0 RETURNING id, status`,
         [revision, now, ids],
       ];
     case "unfeature":
       return [
-        `UPDATE products SET featured = 0, revision = ?, updated_at = ? WHERE ${IN_SELECTION} AND featured = 1 RETURNING id`,
+        `UPDATE products SET featured = 0, revision = ?, updated_at = ? WHERE ${IN_SELECTION} AND featured = 1 RETURNING id, status`,
         [revision, now, ids],
       ];
   }
@@ -135,20 +135,25 @@ export async function bulkUpdateProducts(db: D1Database, options: BulkUpdateOpti
   if (action.action === "unpublish") details.status = "draft";
   if (action.action === "archive") details.status = "archived";
 
-  const results = await db.batch<{ id: number }>([
+  const results = await db.batch<{ id: number; status: ProductStatus }>([
     db.prepare(sql).bind(...params),
     auditStatement(db, actor, `product.bulk_${action.action}`, plan.apply.join(","), details, new Date(now), {
       sql: `EXISTS (SELECT 1 FROM products WHERE ${IN_SELECTION} AND revision = ?)`,
       params: [eligible, revision],
     }),
   ]);
-  const applied = new Set((results[0]?.results ?? []).map((row) => row.id));
+  const appliedRows = results[0]?.results ?? [];
+  const applied = new Set(appliedRows.map((row) => row.id));
+  const shopSet = new Set(plan.shop);
+  for (const row of appliedRows) {
+    if (row.status === "published" || action.action === "archive") shopSet.add(row.id);
+  }
   const lost: BulkSkip[] = plan.apply.filter((id) => !applied.has(id)).map((id) => ({ id, reason: "changed" }));
   return {
     ok: true,
     applied: plan.apply.filter((id) => applied.has(id)),
     skipped: [...plan.skipped, ...lost],
-    shopIds: plan.shop.filter((id) => applied.has(id)),
+    shopIds: plan.apply.filter((id) => applied.has(id) && shopSet.has(id)),
   };
 }
 

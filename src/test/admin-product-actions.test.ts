@@ -221,6 +221,25 @@ describe("bulk actions", () => {
     expect(saved.ok).toBe(true);
   });
 
+  test("includes a product published between check and write in shopIds so R2 snapshots are refreshed", async () => {
+    const db = createTestD1();
+    const draft = await create(db, { slug: "race-draft", status: "draft" });
+
+    // Intercept the UPDATE batch to publish the draft right after BULK_STATES_SQL read it as draft.
+    const origBatch = db.batch.bind(db);
+    let calls = 0;
+    db.batch = (async (statements: unknown[]) => {
+      calls++;
+      if (calls === 2) {
+        db.sqlite.run("UPDATE products SET status = 'published' WHERE id = ?", [draft.id]);
+      }
+      return origBatch(statements as never);
+    }) as typeof db.batch;
+
+    const result = await bulk(db, { action: "feature", ids: [draft.id] });
+    expect(result).toMatchObject({ ok: true, applied: [draft.id], shopIds: [draft.id] });
+  });
+
   test("a product that changed between the check and the write is skipped, not overwritten, and not audited", async () => {
     const db = createTestD1();
     const a = await create(db, { slug: "a" });
