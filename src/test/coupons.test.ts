@@ -535,6 +535,12 @@ describe("the code check", () => {
     });
   });
 
+  test("ignores out-of-stock items when computing itemsTotal and minOrder", async () => {
+    addCoupon(db, { code: "MIN500", min_order: 500 });
+    db.sqlite.query("UPDATE product_variants SET availability = 'out_of_stock' WHERE product_id = ?").run(product.id);
+    expect(await check("MIN500", 2)).toMatchObject({ ok: false, reason: "min_order" });
+  });
+
   test("says why a code does not apply", async () => {
     addCoupon(db, { code: "BIG", min_order: 1_000_000 });
     addCoupon(db, { code: "GONE", usage_limit: 1, used_count: 1 });
