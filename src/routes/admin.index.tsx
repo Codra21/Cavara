@@ -17,9 +17,13 @@ function AdminOverview() {
           New orders wait in the inbox until someone calls to confirm them.
         </p>
       </div>
-      {/* Revenue and profit use cost prices, so the dashboard is Owner-only. */}
-      {isOwner ? <DashboardPanel /> : null}
-      <ActivityLog />
+      {/* Revenue, profit and the activity log are Owner-only endpoints. */}
+      {isOwner ? (
+        <>
+          <DashboardPanel />
+          <ActivityLog />
+        </>
+      ) : null}
     </>
   );
 }

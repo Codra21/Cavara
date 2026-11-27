@@ -91,12 +91,12 @@ export function AdminShell({
                 <ShoppingBag />
                 Orders
               </Link>
-              <Link to="/admin/products" className={navClass} activeProps={{ className: activeNavClass }}>
-                <Package />
-                Products
-              </Link>
               {admin.role === "owner" ? (
                 <>
+                  <Link to="/admin/products" className={navClass} activeProps={{ className: activeNavClass }}>
+                    <Package />
+                    Products
+                  </Link>
                   <Link to="/admin/discounts" className={navClass} activeProps={{ className: activeNavClass }}>
                     <Percent />
                     Sales
