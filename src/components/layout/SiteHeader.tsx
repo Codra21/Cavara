@@ -6,7 +6,7 @@ import { scrollBehavior } from "@/lib/dom";
 import { pluralize } from "@/domain/catalog";
 import { useStore } from "@/components/store/StoreProvider";
 import { BrandLogo, Icon, SrOnly } from "@/components/ui/primitives";
-import { useShopNavigation } from "./useShopNavigation";
+import { HeaderSearch } from "./HeaderSearch";
 
 function ThemeToggle() {
   const { theme, toggleTheme } = useStore();
@@ -20,13 +20,13 @@ function ThemeToggle() {
 
 export function SiteHeader() {
   const { bagCount, bagBump, openBag } = useStore();
-  const goToShop = useShopNavigation();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [tucked, setTucked] = useState(false);
   const countRef = useRef<HTMLSpanElement>(null);
   const menusOpen = useRef(false);
-  menusOpen.current = menuOpen;
+  menusOpen.current = menuOpen || searchOpen;
 
   // Shadow once scrolled; tuck away while scrolling down past the hero.
   useEffect(() => {
@@ -61,7 +61,7 @@ export function SiteHeader() {
   }, [bagBump]);
 
   const bagLabel = `Open cart, ${pluralize(bagCount, "item")}`;
-  const classes = ["site-header", scrolled && "is-scrolled", tucked && !menuOpen && "is-tucked"]
+  const classes = ["site-header", scrolled && "is-scrolled", tucked && !menuOpen && !searchOpen && "is-tucked"]
     .filter(Boolean)
     .join(" ");
 
@@ -77,7 +77,8 @@ export function SiteHeader() {
             <button
               className="icon-button header-search-mobile"
               type="button"
-              onClick={() => goToShop({ focusSearch: true })}
+              aria-expanded={searchOpen}
+              onClick={() => setSearchOpen((v) => !v)}
             >
               <Icon name="fa-solid fa-magnifying-glass" />
               <SrOnly>Search products</SrOnly>
@@ -109,7 +110,12 @@ export function SiteHeader() {
           </nav>
 
           <div className="header-actions">
-            <button className="icon-button header-search" type="button" onClick={() => goToShop({ focusSearch: true })}>
+            <button
+              className="icon-button header-search"
+              type="button"
+              aria-expanded={searchOpen}
+              onClick={() => setSearchOpen((v) => !v)}
+            >
               <Icon name="fa-solid fa-magnifying-glass" />
               <SrOnly>Search products</SrOnly>
             </button>
@@ -149,6 +155,7 @@ export function SiteHeader() {
           </div>
         </PopoverContent>
       </Popover>
+      <HeaderSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
     </header>
   );
 }

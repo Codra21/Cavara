@@ -21,7 +21,9 @@ vi.mock("@/components/store/StoreProvider", () => ({
 }));
 vi.mock("@/components/layout/useShopNavigation", () => ({ useShopNavigation: () => vi.fn() }));
 vi.mock("@/components/store/useOpenProduct", () => ({ useOpenProduct: () => openProduct }));
-vi.mock("@/lib/query", () => ({ useHome: () => ({ lookbook: null }), useCategories: () => ({ imageBase: "" }) }));
+const listProductsFn = vi.hoisted(() => vi.fn(async () => ({ products: [] as unknown[], total: 0 })));
+vi.mock("@/server/functions/catalog.functions", () => ({ listProductsFn }));
+vi.mock("@/lib/query", () => ({ useHome: () => ({}), useCategories: () => ({ imageBase: "" }) }));
 
 const { GlobalEffects } = await import("@/components/layout/GlobalEffects");
 const { QuickDock } = await import("@/components/layout/SiteChrome");
@@ -236,4 +238,32 @@ test("GlobalEffects keeps .media-failed while another image in the same wrapper 
 
   main!.dispatchEvent(new Event("load"));
   expect(wrapper.classList.contains("media-failed")).toBe(false);
+});
+
+test("header search icon expands the search bar and displays matching dropdown results", async () => {
+  listProductsFn.mockReset().mockResolvedValue({
+    products: [
+      {
+        id: 1,
+        slug: "polka-cup",
+        name: "Polka Cup",
+        category: "drinkware",
+        price: 950,
+        regularPrice: null,
+        sale: null,
+        featured: false,
+        createdAt: "2026-11-01T00:00:00Z",
+        images: ["/media/cup.webp"],
+        variants: [{ name: "White", swatch: "#fff", availability: "in_stock", image: "/media/cup.webp" }],
+      },
+    ],
+    total: 1,
+  });
+  const user = userEvent.setup();
+  render(<SiteHeader />);
+
+  await user.click(screen.getAllByRole("button", { name: "Search products" })[0]!);
+  const input = screen.getByRole("searchbox", { name: "Search products" });
+  await user.type(input, "Polka");
+  expect(await screen.findByText("Polka Cup")).toBeTruthy();
 });
