@@ -143,6 +143,13 @@ export interface AdminProduct {
   variants: AdminVariant[];
 }
 
+export interface AdminProductVariantStock {
+  id: number;
+  name: string;
+  stock: number | null;
+  availability: Availability;
+}
+
 export interface AdminProductSummary {
   id: number;
   slug: string;
@@ -158,6 +165,8 @@ export interface AdminProductSummary {
   outOfStockColours: number;
   /** Counted colours with a few left (or none). */
   lowStockColours: number;
+  /** Per-colour stock counts for the inline Stock column on /admin/products. */
+  variantStocks?: AdminProductVariantStock[];
   thumbnail: string | null;
   updatedAt: string;
 }

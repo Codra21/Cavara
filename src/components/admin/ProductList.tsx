@@ -1,3 +1,7 @@
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { LOW_STOCK_LIMIT } from "@/domain/stock";
+import { adjustStockFn } from "@/server/functions/admin-stock.functions";
+import { ADMIN_QUERY_KEY } from "./queries";
 import { useQuery } from "@tanstack/react-query";
 import { getRouteApi, Link, useNavigate } from "@tanstack/react-router";
 import {
@@ -177,6 +181,21 @@ export function ProductList() {
       return next;
     });
   }
+  const queryClient = useQueryClient();
+  const stockStep = useMutation({
+    mutationFn: (input: { productId: number; variantId: number; action: "in" | "out" }) =>
+      adjustStockFn({ data: { ...input, quantity: 1, note: "Quick adjust from product list" } }),
+    onSuccess: async (result) => {
+      if (!result.ok) {
+        setNotice({ kind: "error", text: result.error });
+        return;
+      }
+      if ("warning" in result && result.warning) setNotice({ kind: "warning", text: result.warning });
+      await queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "products"] });
+    },
+    onError: (error) => setNotice({ kind: "error", text: error.message || "Could not update stock." }),
+  });
+
   const allOnPage = rows.length > 0 && rows.every((row) => selected.has(row.id));
   const someOnPage = rows.some((row) => selected.has(row.id));
 
@@ -355,6 +374,7 @@ export function ProductList() {
                       </TableHead>
                       <TableHead>Product</TableHead>
                       <TableHead className="hidden sm:table-cell">Status</TableHead>
+                      <TableHead className="hidden lg:table-cell">Stock</TableHead>
                       <TableHead className="text-right">Price</TableHead>
                       <TableHead className="hidden text-right md:table-cell">Cost</TableHead>
                       <TableHead className="hidden text-right md:table-cell">Margin</TableHead>
@@ -365,7 +385,7 @@ export function ProductList() {
                   </TableHeader>
                   <TableBody>
                     {rows.map((product) => (
-                      <TableRow key={product.id} data-state={selected.has(product.id) ? "selected" : undefined}>
+                      <TableRow key={product.id} data-state={selected.has(product.id) ? "selected" : undefined} className={product.lowStockColours > 0 ? "bg-warning/10 hover:bg-warning/15" : undefined}>
                         <TableCell className="pl-4">
                           <Checkbox
                             checked={selected.has(product.id)}
@@ -426,6 +446,62 @@ export function ProductList() {
                         </TableCell>
                         <TableCell className="hidden sm:table-cell">
                           <StatusBadge status={product.status} />
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          <ul className="grid gap-1 text-xs">
+                            {(product.variantStocks ?? []).map((variant) => (
+                              <li key={variant.id} className="flex items-center justify-between gap-2">
+                                <span className="truncate max-w-[7rem] text-muted-foreground" title={variant.name}>
+                                  {variant.name}
+                                </span>
+                                {variant.stock === null ? (
+                                  <span className="text-muted-foreground">—</span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 tabular-nums">
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon-xs"
+                                      disabled={stockStep.isPending || variant.stock <= 0}
+                                      aria-label={`Decrease stock for ${product.name} (${variant.name})`}
+                                      onClick={() =>
+                                        stockStep.mutate({
+                                          productId: product.id,
+                                          variantId: variant.id,
+                                          action: "out",
+                                        })
+                                      }
+                                    >
+                                      −
+                                    </Button>
+                                    <span
+                                      className={`min-w-[1.5rem] text-center font-medium ${
+                                        variant.stock <= LOW_STOCK_LIMIT ? "text-warning-foreground font-semibold" : ""
+                                      }`}
+                                    >
+                                      {variant.stock}
+                                    </span>
+                                    <Button
+                                      type="button"
+                                      variant="outline"
+                                      size="icon-xs"
+                                      disabled={stockStep.isPending}
+                                      aria-label={`Increase stock for ${product.name} (${variant.name})`}
+                                      onClick={() =>
+                                        stockStep.mutate({
+                                          productId: product.id,
+                                          variantId: variant.id,
+                                          action: "in",
+                                        })
+                                      }
+                                    >
+                                      +
+                                    </Button>
+                                  </span>
+                                )}
+                              </li>
+                            ))}
+                          </ul>
                         </TableCell>
                         <TableCell className="text-right font-medium tabular-nums">
                           {formatPrice(product.price)}

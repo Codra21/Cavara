@@ -18,8 +18,8 @@ export const adjustStockFn = createServerFn({ method: "POST" })
   .middleware([ownerAuthMiddleware])
   .validator(adjustStockSchema)
   .handler(async ({ data, context }) => {
-    const { availabilityChanged, ...result } = await adjustStock(getDb(), context.admin, data);
-    if (!result.ok || !availabilityChanged) return result;
+    const { availabilityChanged: _changed, ...result } = await adjustStock(getDb(), context.admin, data);
+    if (!result.ok) return result;
     const refreshed = await refreshProduct(catalogSources(), data.productId);
     return refreshed
       ? result

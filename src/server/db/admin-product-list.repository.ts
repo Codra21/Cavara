@@ -41,6 +41,8 @@ interface ListRow {
 }
 
 interface ColourRow {
+  variant_id: number;
+  variant_name: string;
   product_id: number;
   position: number;
   availability: Availability;
@@ -122,7 +124,7 @@ export function buildListStatements(query: AdminProductQuery, pageSize = ADMIN_P
 }
 
 /** Colours of the page's products, with each colour's first picture. Starts at json_each, then two UNIQUE indexes. */
-export const PAGE_COLOURS_SQL = `SELECT v.product_id, v.position, v.availability, v.stock, i.path
+export const PAGE_COLOURS_SQL = `SELECT v.id AS variant_id, v.name AS variant_name, v.product_id, v.position, v.availability, v.stock, i.path
        FROM json_each(?) j
        JOIN product_variants v ON v.product_id = j.value
        LEFT JOIN product_images i ON i.variant_id = v.id AND i.position = 0`;
@@ -179,6 +181,12 @@ export async function listAdminProducts(
       variantCount: own.length,
       outOfStockColours: own.filter((colour) => colour.availability === "out_of_stock").length,
       lowStockColours: own.filter((colour) => colour.stock !== null && colour.stock <= LOW_STOCK_LIMIT).length,
+      variantStocks: own.map((colour) => ({
+        id: colour.variant_id,
+        name: colour.variant_name,
+        stock: colour.stock,
+        availability: colour.availability,
+      })),
       thumbnail: thumbnail ? mediaUrl(imageBase, thumbnail) : null,
       updatedAt: row.updated_at,
     };
