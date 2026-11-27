@@ -22,6 +22,7 @@ vi.mock("@/components/layout/useShopNavigation", () => ({ useShopNavigation: () 
 vi.mock("@/components/store/useOpenProduct", () => ({ useOpenProduct: () => openProduct }));
 vi.mock("@/lib/query", () => ({ useHome: () => ({ lookbook: null }), useCategories: () => ({ imageBase: "" }) }));
 
+const { QuickDock } = await import("@/components/layout/SiteChrome");
 const { SiteHeader } = await import("@/components/layout/SiteHeader");
 const { LookbookSpot } = await import("@/components/home/HomeSections");
 const { Swatch, SwatchGroup } = await import("@/components/ui/primitives");
@@ -243,4 +244,16 @@ test("an agent can find the header menu, a lookbook marker and the colour group"
   expect(result.ok, result.error?.message).toBe(true);
   expect(screen.getByRole("radio", { name: "Slate" }).getAttribute("aria-checked")).toBe("true");
   expect(screen.getByRole("dialog", { name: "Breakfast dish" })).toBeTruthy();
+});
+
+test("QuickDock Home link scrolls to the top instead of relying on the sticky #top header", async () => {
+  const user = userEvent.setup();
+  const scrollTo = vi.spyOn(window, "scrollTo").mockImplementation(() => {});
+  render(<QuickDock />);
+
+  const home = screen.getByRole("link", { name: "Home" });
+  expect(home.getAttribute("href")).toBe("/");
+  await user.click(home);
+  expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
+  scrollTo.mockRestore();
 });

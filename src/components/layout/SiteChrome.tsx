@@ -121,7 +121,12 @@ export function QuickDock() {
   const goToShop = useShopNavigation();
   return (
     <nav className="studio-dock" aria-label="Quick links">
-      <Link to="/" hash="top">
+      <Link
+        to="/"
+        onClick={() => {
+          if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      >
         <Icon name="fa-solid fa-house" />
         <span>Home</span>
       </Link>
