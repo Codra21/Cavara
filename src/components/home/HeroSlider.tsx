@@ -9,6 +9,84 @@ import { Icon } from "@/components/ui/primitives";
 
 export function HeroSlider() {
   const home = useHome();
+  const customBanners = useMemo(
+    () => (home.settings?.banners ?? []).filter((b) => b.active && b.desktopImage),
+    [home.settings?.banners],
+  );
+  const [bannerIndex, setBannerIndex] = useState(0);
+  const bannerCount = customBanners.length;
+
+  useEffect(() => {
+    if (bannerCount <= 1 || prefersReducedMotion()) return;
+    const timer = window.setTimeout(() => setBannerIndex((i) => (i + 1) % bannerCount), SLIDE_INTERVAL);
+    return () => window.clearTimeout(timer);
+  }, [bannerCount, bannerIndex]);
+
+  if (bannerCount > 0) {
+    const active = customBanners[bannerIndex % bannerCount]!;
+    return (
+      <section className="studio-hero" aria-label="Featured banners">
+        <div className="container-wide">
+          <div className="studio-hero-frame">
+            <article className="studio-slide is-active" style={{ position: "relative" }}>
+              <div className="studio-slide-media">
+                <picture>
+                  {active.mobileImage ? <source media="(max-width: 767px)" srcSet={active.mobileImage} /> : null}
+                  <img src={active.desktopImage} alt={active.heading || "Cavara banner"} fetchPriority="high" />
+                </picture>
+              </div>
+              {active.heading || active.buttonText ? (
+                <div className="studio-slide-copy">
+                  {active.heading ? <h2 className="studio-slide-title">{active.heading}</h2> : null}
+                  {active.buttonText ? (
+                    <div className="studio-slide-actions">
+                      <a className="button" href={active.linkHref || "/products"}>
+                        {active.buttonText}
+                      </a>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </article>
+            {bannerCount > 1 ? (
+              <div className="studio-hero-controls">
+                <button
+                  type="button"
+                  className="hero-nav"
+                  aria-label="Previous banner"
+                  onClick={() => setBannerIndex((i) => (i - 1 + bannerCount) % bannerCount)}
+                >
+                  <Icon name="fa-solid fa-chevron-left" />
+                </button>
+                <div className="hero-dots" role="tablist" aria-label="Choose banner">
+                  {customBanners.map((b, idx) => (
+                    <button
+                      key={b.id ?? idx}
+                      type="button"
+                      role="tab"
+                      aria-selected={idx === bannerIndex % bannerCount}
+                      aria-label={`Banner ${idx + 1}`}
+                      className={`hero-dot${idx === bannerIndex % bannerCount ? " is-active" : ""}`}
+                      onClick={() => setBannerIndex(idx)}
+                    />
+                  ))}
+                </div>
+                <button
+                  type="button"
+                  className="hero-nav"
+                  aria-label="Next banner"
+                  onClick={() => setBannerIndex((i) => (i + 1) % bannerCount)}
+                >
+                  <Icon name="fa-solid fa-chevron-right" />
+                </button>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </section>
+    );
+  }
+
   const slides = useMemo(
     () =>
       HERO_SLIDES.flatMap((slide) => {

@@ -44,13 +44,13 @@ function Row({
 }
 
 /** Up to eight featured products in display order. */
-export function FeaturedSection() {
+export function FeaturedSection({ heading }: { heading?: string } = {}) {
   const { featured, categoryNames } = useHome();
   return (
     <Row
       id="featured"
       kicker="Our picks"
-      title="Featured"
+      title={heading || "Featured"}
       products={featured}
       categoryNames={categoryNames}
       viewAll={
@@ -63,13 +63,13 @@ export function FeaturedSection() {
 }
 
 /** The eight most recently added products. */
-export function NewArrivalsSection() {
+export function NewArrivalsSection({ heading }: { heading?: string } = {}) {
   const { newest, categoryNames } = useHome();
   return (
     <Row
       id="new-arrivals"
       kicker="Just added"
-      title="New arrivals"
+      title={heading || "New arrivals"}
       products={newest}
       categoryNames={categoryNames}
       viewAll={

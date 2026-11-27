@@ -1,3 +1,4 @@
+import type { PhilosophyConfig } from "@/domain/home-settings";
 import { useEffect, useRef } from "react";
 import { Link } from "@tanstack/react-router";
 import { pluralize } from "@/domain/catalog";
@@ -6,14 +7,14 @@ import { useCategories } from "@/lib/query";
 
 const delay = (ms: number) => ({ "--reveal-delay": `${ms}ms` }) as React.CSSProperties;
 
-export function CollectionsSection() {
+export function CollectionsSection({ heading }: { heading?: string } = {}) {
   const { categories } = useCategories();
   return (
     <section className="section collections" id="collections" aria-labelledby="collections-title">
       <div className="container-wide">
         <div className="section-head" data-reveal="">
           <p className="sub-heading">Shop by categories</p>
-          <h2 id="collections-title">Our collections</h2>
+          <h2 id="collections-title">{heading || "Our collections"}</h2>
         </div>
         <ul className="studio-category-row" aria-label="Collections">
           {categories.map((category, index) => (
@@ -35,7 +36,7 @@ export function CollectionsSection() {
   );
 }
 
-export function StorySection() {
+export function StorySection({ heading, philosophy }: { heading?: string; philosophy?: PhilosophyConfig } = {}) {
   const { imageBase } = useCategories();
   return (
     <section className="section story" id="story" aria-labelledby="story-title">
@@ -57,7 +58,7 @@ export function StorySection() {
           />
         </div>
         <div className="story-copy" data-reveal="">
-          <p className="sub-heading">Our philosophy</p>
+          <p className="sub-heading">{philosophy?.eyebrow || heading || "Our philosophy"}</p>
           <h2 id="story-title">Your home is a personal gallery of your journey.</h2>
           <p className="story-lede">
             We explore the globe to bring you inspiring home decor, exquisite ceramics, and premium kitchenware — pieces
@@ -95,7 +96,7 @@ const STEPS = [
   },
 ];
 
-export function OrderingSection() {
+export function OrderingSection({ heading }: { heading?: string } = {}) {
   const fancyRef = useRef<HTMLParagraphElement>(null);
 
   // Giant outline text fills in as the panel scrolls through the viewport.
@@ -130,7 +131,7 @@ export function OrderingSection() {
       <div className="container-wide">
         <div className="ordering-panel">
           <div className="ordering-head" data-reveal="">
-            <h2 id="ordering-title">How ordering works</h2>
+            <h2 id="ordering-title">{heading || "How ordering works"}</h2>
             <p>Build your cart here, check out in a minute, and our team calls you to confirm.</p>
           </div>
           <ol className="steps">

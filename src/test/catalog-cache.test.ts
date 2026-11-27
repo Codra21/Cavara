@@ -9,6 +9,7 @@ import {
   rebuildCatalog,
   snapshotKeys,
 } from "@/server/catalog-cache.server";
+import { getCachedHomeSettings } from "@/server/home-cache.server";
 import {
   getCategories,
   getHome,
@@ -293,6 +294,7 @@ describe("getProductDetail and the public lookups", () => {
 
   test("getCategories and getHome come from the summary with no D1 read", async () => {
     await getCatalogSummary(sources());
+    await getCachedHomeSettings(sources());
     d1.clear();
     const chrome = await getCategories(sources({ imageBase: "https://images.cavarabd.com" }));
     expect(chrome.imageBase).toBe("https://images.cavarabd.com");

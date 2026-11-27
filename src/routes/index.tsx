@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { isCategorySlug, isProductSlug } from "@/domain/catalog";
-import { homeQueryOptions } from "@/lib/query";
+import { DEFAULT_HOME_SETTINGS } from "@/domain/home-settings";
+import { homeQueryOptions, useHome } from "@/lib/query";
 import { SITE_URL } from "@/lib/config";
 import { safeLoad } from "@/lib/safe-load";
 import { HeroSlider } from "@/components/home/HeroSlider";
@@ -17,8 +18,6 @@ export const Route = createFileRoute("/")({
     ...(isCategorySlug(search.category) ? { category: search.category } : {}),
     ...(isProductSlug(search.product) ? { product: search.product } : {}),
   }),
-  // Old links: `/?category=x` is now `/collections/x`, and the static site's `/?product=<slug>` is the product page.
-  // Neither needs a lookup: an id or slug that does not exist is a 404 on the page it lands on.
   beforeLoad: ({ search }) => {
     if (search.category)
       throw redirect({ to: "/collections/$category", params: { category: search.category }, statusCode: 301 });
@@ -33,14 +32,28 @@ export const Route = createFileRoute("/")({
 });
 
 function Home() {
+  const home = useHome();
+  const sections = home.settings?.sections ?? DEFAULT_HOME_SETTINGS.sections;
   return (
     <>
-      <HeroSlider />
-      <FeaturedSection />
-      <NewArrivalsSection />
-      <CollectionsSection />
-      <StorySection />
-      <OrderingSection />
+      {sections
+        .filter((section) => section.visible)
+        .map((section) => {
+          switch (section.key) {
+            case "banner":
+              return <HeroSlider key="banner" />;
+            case "featured":
+              return <FeaturedSection key="featured" heading={section.heading || undefined} />;
+            case "new_arrivals":
+              return <NewArrivalsSection key="new_arrivals" heading={section.heading || undefined} />;
+            case "collections":
+              return <CollectionsSection key="collections" heading={section.heading || undefined} />;
+            case "philosophy":
+              return <StorySection key="philosophy" heading={section.heading || undefined} philosophy={home.settings?.philosophy} />;
+            case "ordering":
+              return <OrderingSection key="ordering" heading={section.heading || undefined} />;
+          }
+        })}
     </>
   );
 }

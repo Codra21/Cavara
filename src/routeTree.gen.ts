@@ -23,6 +23,7 @@ import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminBlockedRouteImport } from './routes/admin.blocked'
 import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
 import { Route as AdminDiscountsRouteImport } from './routes/admin.discounts'
+import { Route as AdminHomeRouteImport } from './routes/admin.home'
 import { Route as AdminZonesRouteImport } from './routes/admin.zones'
 import { Route as CollectionsIndexRouteImport } from './routes/collections.index'
 import { Route as CollectionsCategoryRouteImport } from './routes/collections.$category'
@@ -105,6 +106,11 @@ const AdminDiscountsRoute = AdminDiscountsRouteImport.update({
   path: '/discounts',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminHomeRoute = AdminHomeRouteImport.update({
+  id: '/home',
+  path: '/home',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminZonesRoute = AdminZonesRouteImport.update({
   id: '/zones',
   path: '/zones',
@@ -176,6 +182,7 @@ export interface FileRoutesByFullPath {
   '/admin/blocked': typeof AdminBlockedRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/discounts': typeof AdminDiscountsRoute
+  '/admin/home': typeof AdminHomeRoute
   '/admin/zones': typeof AdminZonesRoute
   '/collections/$category': typeof CollectionsCategoryRouteWithChildren
   '/media/$': typeof MediaSplatRoute
@@ -202,6 +209,7 @@ export interface FileRoutesByTo {
   '/admin/blocked': typeof AdminBlockedRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/discounts': typeof AdminDiscountsRoute
+  '/admin/home': typeof AdminHomeRoute
   '/admin/zones': typeof AdminZonesRoute
   '/collections/$category': typeof CollectionsCategoryRouteWithChildren
   '/media/$': typeof MediaSplatRoute
@@ -230,6 +238,7 @@ export interface FileRoutesById {
   '/admin/blocked': typeof AdminBlockedRoute
   '/admin/categories': typeof AdminCategoriesRoute
   '/admin/discounts': typeof AdminDiscountsRoute
+  '/admin/home': typeof AdminHomeRoute
   '/admin/zones': typeof AdminZonesRoute
   '/collections/$category': typeof CollectionsCategoryRouteWithChildren
   '/media/$': typeof MediaSplatRoute
@@ -259,6 +268,7 @@ export interface FileRouteTypes {
     | '/admin/blocked'
     | '/admin/categories'
     | '/admin/discounts'
+    | '/admin/home'
     | '/admin/zones'
     | '/collections/$category'
     | '/media/$'
@@ -285,6 +295,7 @@ export interface FileRouteTypes {
     | '/admin/blocked'
     | '/admin/categories'
     | '/admin/discounts'
+    | '/admin/home'
     | '/admin/zones'
     | '/collections/$category'
     | '/media/$'
@@ -312,6 +323,7 @@ export interface FileRouteTypes {
     | '/admin/blocked'
     | '/admin/categories'
     | '/admin/discounts'
+    | '/admin/home'
     | '/admin/zones'
     | '/collections/$category'
     | '/media/$'
@@ -444,6 +456,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminDiscountsRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/home': {
+      id: '/admin/home'
+      path: '/home'
+      fullPath: '/admin/home'
+      preLoaderRoute: typeof AdminHomeRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/zones': {
       id: '/admin/zones'
       path: '/zones'
@@ -528,6 +547,7 @@ interface AdminRouteChildren {
   AdminBlockedRoute: typeof AdminBlockedRoute
   AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminDiscountsRoute: typeof AdminDiscountsRoute
+  AdminHomeRoute: typeof AdminHomeRoute
   AdminZonesRoute: typeof AdminZonesRoute
   AdminIndexRoute: typeof AdminIndexRoute
   AdminOrdersOrderIdRoute: typeof AdminOrdersOrderIdRoute
@@ -540,6 +560,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminBlockedRoute: AdminBlockedRoute,
   AdminCategoriesRoute: AdminCategoriesRoute,
   AdminDiscountsRoute: AdminDiscountsRoute,
+  AdminHomeRoute: AdminHomeRoute,
   AdminZonesRoute: AdminZonesRoute,
   AdminIndexRoute: AdminIndexRoute,
   AdminOrdersOrderIdRoute: AdminOrdersOrderIdRoute,

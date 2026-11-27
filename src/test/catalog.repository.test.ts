@@ -24,6 +24,7 @@ describe("migrations", () => {
       "0015_drop_redundant_product_category_index.sql",
       "0016_catalogue_v4.sql",
       "0017_partial_payment.sql",
+      "0018_home_settings.sql",
     ]);
     const db = createTestD1();
     const count = (table: string) => (db.sqlite.query(`SELECT count(*) AS n FROM ${table}`).get() as { n: number }).n;

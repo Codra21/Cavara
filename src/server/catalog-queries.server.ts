@@ -1,5 +1,6 @@
 // Public product lookups over the cached snapshots. Server-only. None of these touches D1 unless a snapshot is missing
 // (see catalog-cache.server.ts), and none returns cost_price: it is not in any snapshot.
+import { type HomeSettings, resolveHomeSettings } from "@/domain/home-settings";
 import type { DeliveryZone } from "@/domain/orders";
 import { listProducts, type ListPage, type ListQuery, selectFeatured, selectNewest } from "@/domain/product-listing";
 import { selectRelated } from "@/domain/related-products";
@@ -17,6 +18,7 @@ import {
 import { HERO_SLIDES } from "@/lib/config";
 import type { Category } from "@/lib/types";
 import { type CatalogSources, getCatalogSummary, getProductDetail } from "@/server/catalog-cache.server";
+import { getCachedHomeSettings } from "@/server/home-cache.server";
 
 /**
  * The summary with the sales that are active now applied (price, struck price, badge), so every public read below
@@ -185,6 +187,7 @@ export async function getCategories(sources: CatalogSources): Promise<Categories
 
 export interface HomeData {
   imageBase: string;
+  settings?: HomeSettings;
   categoryNames: Record<string, string>;
   featured: ProductCard[];
   newest: ProductCard[];
@@ -194,7 +197,10 @@ export interface HomeData {
 
 /** Everything the home page shows, straight from the cached summary. */
 export async function getHome(sources: CatalogSources): Promise<HomeData> {
-  const summary = await getPricedSummary(sources);
+  const [summary, rawSettings] = await Promise.all([
+    getPricedSummary(sources),
+    getCachedHomeSettings(sources),
+  ]);
   const index = summaryIndex(summary);
   const card = (product: ProductSummary) => resolveCard(product, sources.imageBase);
   const hero = HERO_SLIDES.flatMap((slide) => {
@@ -205,6 +211,7 @@ export async function getHome(sources: CatalogSources): Promise<HomeData> {
   const newest = selectNewest(summary.products).map(card);
   return {
     imageBase: sources.imageBase,
+    settings: resolveHomeSettings(rawSettings, sources.imageBase),
     categoryNames: namesFor(index, [...featured, ...newest, ...hero]),
     featured,
     newest,
