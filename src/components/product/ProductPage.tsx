@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@ui-sdk/react/tabs";
 import { useEffect, useRef, useState } from "react";
-import { availabilityTag, BAG_FULL_MESSAGE } from "@/domain/bag";
+import { availabilityTag, BAG_FULL_MESSAGE, lowStockLabel, maxQtyForStock } from "@/domain/bag";
 import { formatPrice, getVariant, pluralize } from "@/domain/catalog";
 import type { ProductCard, PublicProduct } from "@/domain/catalog-snapshot";
 import { lookupIds, productsByIdsQueryOptions, relatedQueryOptions } from "@/lib/query";
@@ -306,15 +306,23 @@ export function ProductPage({
     };
   }, [product.id]);
 
+  const maxQty = maxQtyForStock(variant.stock);
+  const pickerMax = Math.max(1, maxQty);
+  const lowStock = variant.availability === "in_stock" ? lowStockLabel(variant.stock) : null;
+
   const add = () => {
     if (stockTag) return;
-    const result = addToBag(product.id, variantIndex, quantity);
+    const result = addToBag(product.id, variantIndex, quantity, maxQty);
     if (!result.added) {
       showToast(BAG_FULL_MESSAGE, { actionLabel: "View cart", action: openBag });
       return;
     }
     if (result.addedQty === 0) {
-      showToast(`Maximum ${MAX_QTY} per colour in your cart · ${variant.name}`, {
+      const capMsg =
+        typeof variant.stock === "number" && variant.stock < MAX_QTY
+          ? `Only ${variant.stock} left in stock · ${variant.name}`
+          : `Maximum ${MAX_QTY} per colour in your cart · ${variant.name}`;
+      showToast(capMsg, {
         actionLabel: "View cart",
         action: openBag,
       });
@@ -322,7 +330,7 @@ export function ProductPage({
     }
     showToast(
       result.addedQty < quantity
-        ? `${pluralize(result.addedQty, "item")} added (max ${MAX_QTY} per colour) · ${variant.name}`
+        ? `${pluralize(result.addedQty, "item")} added (max ${maxQty} available) · ${variant.name}`
         : `${pluralize(result.addedQty, "item")} added · ${variant.name}`,
       { actionLabel: "View cart", action: openBag },
     );
@@ -366,7 +374,7 @@ export function ProductPage({
               <div className="pdp-option">
                 <p className="pdp-option-label">
                   Colour: <strong>{variant.name}</strong>
-                  {stockTag ? <span className="stock-tag">{stockTag}</span> : null}
+                  {stockTag ? <span className="stock-tag">{stockTag}</span> : lowStock ? <span className="stock-tag is-low">{lowStock}</span> : null}
                 </p>
                 <SwatchGroup
                   label="Choose a colour"
@@ -411,9 +419,9 @@ export function ProductPage({
                 <>
                   <div className="pdp-buy" ref={buyRef}>
                     <Quantity
-                      value={quantity}
-                      max={MAX_QTY}
-                      onChange={(next) => setQuantity(Math.min(MAX_QTY, Math.max(1, next)))}
+                      value={Math.min(quantity, pickerMax)}
+                      max={pickerMax}
+                      onChange={(next) => setQuantity(Math.min(pickerMax, Math.max(1, next)))}
                     />
                     <button className="button pdp-add" type="button" onClick={add} disabled={stockTag !== null}>
                       {addLabel}

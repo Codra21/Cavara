@@ -18,8 +18,8 @@ interface StoreValue {
   bagCount: number;
   bagBump: number;
   /** False when the bag already holds the most lines an order can have and this colour is not one of them. */
-  addToBag: (productId: number, variant: number, qty?: number) => { added: boolean; addedQty: number };
-  updateBagItem: (productId: number, variant: number, qty: number) => void;
+  addToBag: (productId: number, variant: number, qty?: number, maxQty?: number) => { added: boolean; addedQty: number };
+  updateBagItem: (productId: number, variant: number, qty: number, maxQty?: number) => void;
   clearBag: () => void;
 
   selectedVariant: (productId: number) => number;
@@ -118,10 +118,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   }, [bag, hydrated]);
 
   const addToBag = useCallback(
-    (productId: number, variant: number, qty = 1) => {
+    (productId: number, variant: number, qty = 1, maxQty?: number) => {
       // An order holds at most MAX_BAG_LINES lines, so a longer bag could never be placed (see addBagLine).
       const before = bagRef.current.find((item) => item.id === productId && item.variant === variant)?.qty ?? 0;
-      const result = addBagLine(bagRef.current, productId, variant, qty);
+      const result = addBagLine(bagRef.current, productId, variant, qty, maxQty);
       if (!result.added) return { added: false, addedQty: 0 };
       const after = result.bag.find((item) => item.id === productId && item.variant === variant)?.qty ?? 0;
       const addedQty = Math.max(0, after - before);
@@ -135,13 +135,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   );
 
   const updateBagItem = useCallback(
-    (productId: number, variant: number, qty: number) => {
+    (productId: number, variant: number, qty: number, maxQty?: number) => {
       const current = bagRef.current;
       setBag(
         qty <= 0
           ? current.filter((item) => !(item.id === productId && item.variant === variant))
           : current.map((item) =>
-              item.id === productId && item.variant === variant ? { ...item, qty: clampQty(qty) } : item,
+              item.id === productId && item.variant === variant ? { ...item, qty: clampQty(qty, maxQty) } : item,
             ),
       );
     },

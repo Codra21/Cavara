@@ -1,3 +1,4 @@
+import { lowStockLabel, maxQtyForStock } from "@/domain/bag";
 import { describe, expect, test } from "bun:test";
 import {
   addBagLine,
@@ -197,5 +198,24 @@ describe("bag text", () => {
     expect(availabilityTag("in_stock")).toBeNull();
     expect(availabilityTag("preorder")).toBe("Pre-order");
     expect(availabilityTag(undefined)).toBeNull();
+  });
+});
+
+describe("stock limits and low stock label (C2.4)", () => {
+  test("uncounted stock keeps MAX_QTY (20); counted stock caps quantity and shows Only N left at <= 3", () => {
+    expect(maxQtyForStock(null)).toBe(20);
+    expect(maxQtyForStock(undefined)).toBe(20);
+    expect(maxQtyForStock(50)).toBe(20);
+    expect(maxQtyForStock(3)).toBe(3);
+    expect(lowStockLabel(null)).toBeNull();
+    expect(lowStockLabel(4)).toBeNull();
+    expect(lowStockLabel(3)).toBe("Only 3 left");
+    expect(lowStockLabel(1)).toBe("Only 1 left");
+    expect(lowStockLabel(0)).toBeNull();
+
+    const first = addBagLine([], 1, 0, 5, 2);
+    expect(first.bag).toEqual([{ id: 1, variant: 0, qty: 2 }]);
+    const second = addBagLine(first.bag, 1, 0, 1, 2);
+    expect(second.bag).toEqual([{ id: 1, variant: 0, qty: 2 }]);
   });
 });

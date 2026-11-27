@@ -16,7 +16,15 @@ export const MAX_BAG_LINES = MAX_ORDER_LINES;
 const MAX_PRODUCT_ID = 2_147_483_647;
 const MAX_VARIANT_INDEX = 50;
 
-export const clampQty = (value: number) => Math.min(MAX_QTY, Math.max(1, value));
+export const LOW_STOCK_THRESHOLD = 3;
+
+export const maxQtyForStock = (stock: number | null | undefined): number =>
+  typeof stock === "number" ? Math.min(MAX_QTY, Math.max(0, Math.floor(stock))) : MAX_QTY;
+
+export const lowStockLabel = (stock: number | null | undefined): string | null =>
+  typeof stock === "number" && stock > 0 && stock <= LOW_STOCK_THRESHOLD ? `Only ${stock} left` : null;
+
+export const clampQty = (value: number, max = MAX_QTY) => Math.min(Math.max(1, max), Math.max(1, value));
 
 /** Shown when adding a colour would make the bag's line count exceed MAX_BAG_LINES. */
 export const BAG_FULL_MESSAGE = `Your cart is full (${MAX_BAG_LINES} different pieces). Remove one to add another.`;
@@ -30,16 +38,20 @@ export function addBagLine(
   productId: number,
   variant: number,
   qty = 1,
+  maxQty = MAX_QTY,
 ): { bag: BagItem[]; added: boolean } {
+  const cap = Math.min(MAX_QTY, Math.max(0, Math.floor(maxQty)));
+  if (cap <= 0) return { bag, added: true };
   const existing = bag.find((item) => item.id === productId && item.variant === variant);
   if (existing) {
+    const nextQty = Math.min(cap, existing.qty + qty);
     return {
-      bag: bag.map((item) => (item === existing ? { ...item, qty: clampQty(item.qty + qty) } : item)),
+      bag: bag.map((item) => (item === existing ? { ...item, qty: Math.max(existing.qty, nextQty) } : item)),
       added: true,
     };
   }
   if (bag.length >= MAX_BAG_LINES) return { bag, added: false };
-  return { bag: [...bag, { id: productId, variant, qty: clampQty(qty) }], added: true };
+  return { bag: [...bag, { id: productId, variant, qty: clampQty(qty, cap) }], added: true };
 }
 
 /**

@@ -1,8 +1,9 @@
+import { lowStockLabel, maxQtyForStock } from "@/domain/bag";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { bagOrderMessage, bagSubtotal, blockedLines, canCheckout, isBuyable, type BagLine } from "@/domain/bag";
 import { formatPrice, pluralize } from "@/domain/catalog";
-import { MAX_QTY, MESSENGER_URL } from "@/lib/config";
+import { MESSENGER_URL } from "@/lib/config";
 import { copyText, whatsappUrl } from "@/lib/order";
 import { Toast } from "@/components/layout/SiteChrome";
 import { useShopNavigation } from "@/components/layout/useShopNavigation";
@@ -174,6 +175,8 @@ export function BagDrawer() {
                   }
                   const { product, variant } = line;
                   const image = variant.image ?? product.images[0];
+                  const lineMax = Math.max(1, maxQtyForStock(variant.stock));
+                  const lowStock = line.status === "ok" ? lowStockLabel(variant.stock) : null;
                   return (
                     <li className={`bag-item${line.status === "out_of_stock" ? " is-unavailable" : ""}`} key={key}>
                       <button
@@ -197,20 +200,25 @@ export function BagDrawer() {
                           {variant.name} ·{" "}
                           <PriceTag price={product.price} regularPrice={product.regularPrice} sale={product.sale} />{" "}
                           each
+                          {lowStock ? <> · <span className="stock-tag is-low">{lowStock}</span></> : null}
                         </p>
                         <div className="bag-item-controls">
                           {line.status === "ok" ? (
                             <Quantity
-                              value={item.qty}
+                              value={Math.min(item.qty, lineMax)}
                               min={0}
-                              max={MAX_QTY}
+                              max={lineMax}
                               label={`Quantity for ${product.name}`}
                               onChange={(next) =>
-                                next <= 0 ? remove(line, product.name) : updateBagItem(item.id, item.variant, next)
+                                next <= 0
+                                  ? remove(line, product.name)
+                                  : updateBagItem(item.id, item.variant, next, lineMax)
                               }
                             />
                           ) : (
-                            <span className="stock-tag">Sold out</span>
+                            <span className="stock-tag">
+                              {variant.availability === "preorder" ? "Pre-order" : "Sold out"}
+                            </span>
                           )}
                           <button className="bag-remove" type="button" onClick={() => remove(line, product.name)}>
                             Remove
