@@ -382,7 +382,12 @@ export const saveZonesSchema = z.object({
         ctx.addIssue({ code: "custom", message: "Keep at least one delivery area active, or checkout cannot work" });
       }
       const names = new Set<string>();
+      const ids = new Set<string>();
       for (const zone of zones) {
+        if (zone.id !== null) {
+          if (ids.has(zone.id)) ctx.addIssue({ code: "custom", message: `Delivery area "${zone.id}" appears twice` });
+          ids.add(zone.id);
+        }
         const key = zone.name.toLowerCase();
         if (names.has(key)) ctx.addIssue({ code: "custom", message: `Two areas are named "${zone.name}"` });
         names.add(key);

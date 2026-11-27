@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import type { AdminIdentity } from "@/domain/admin";
-import { canChangeStatus, ORDER_PAGE_SIZE, parseOrderSearch, type UpdateOrderInput } from "@/domain/orders";
+import {
+  canChangeStatus,
+  ORDER_PAGE_SIZE,
+  parseOrderSearch,
+  type UpdateOrderInput,
+  saveZonesSchema,
+} from "@/domain/orders";
 import { listAudit } from "@/server/admin/auth.server";
 import { getPublishedCatalog } from "@/server/db/catalog.repository";
 import { getOrder, listOrders, listZones, saveZones, updateOrderStatus } from "@/server/db/admin-orders.repository";
@@ -203,6 +209,17 @@ describe("saveZones", () => {
     ]);
     expect((await listZones(db)).find((zone) => zone.id === "outside-dhaka")?.active).toBe(false);
     expect((await listAudit(db))[0]).toMatchObject({ action: "zones.updated" });
+  });
+
+  test("rejects duplicate zone ids so checkout cannot lose all active zones", () => {
+    const parsed = saveZonesSchema.safeParse({
+      zones: [
+        { id: "inside-dhaka", name: "Inside Dhaka", charge: 80, active: true },
+        { id: "inside-dhaka", name: "Inside Dhaka Copy", charge: 80, active: false },
+        { id: "outside-dhaka", name: "Outside Dhaka", charge: 150, active: false },
+      ],
+    });
+    expect(parsed.success).toBe(false);
   });
 
   test("never deletes an area and rejects unknown ids", async () => {
