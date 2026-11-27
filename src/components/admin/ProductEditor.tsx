@@ -350,7 +350,7 @@ function VariantCard({
         ) : (
           <ul className="flex flex-wrap gap-3">
             {images.map((path, imageIndex) => (
-              <li key={path} className="grid w-24 gap-1">
+              <li key={`${path}-${imageIndex}`} className="grid w-24 gap-1">
                 <img
                   src={mediaUrl(imageBase, path)}
                   alt=""
@@ -458,7 +458,7 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
       ...previous,
       variants: (previous.variants ?? []).map((variant) =>
         variant.clientKey === clientKey
-          ? { ...variant, images: [...(variant.images ?? []), ...keys].slice(0, MAX_IMAGES_PER_VARIANT) }
+          ? { ...variant, images: [...new Set([...(variant.images ?? []), ...keys])].slice(0, MAX_IMAGES_PER_VARIANT) }
           : variant,
       ),
     }));

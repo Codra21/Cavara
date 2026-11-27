@@ -93,3 +93,27 @@ test("unsupported picture types show an error instead of being silently dropped"
   expect(await screen.findByText(/anim\.gif is not a supported image type/i)).toBeTruthy();
   expect(uploadImageFn).not.toHaveBeenCalled();
 });
+
+test("duplicate uploaded image keys are deduplicated without React key errors", async () => {
+  const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+  try {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const { container } = render(
+      <ProductEditor product={null} categories={[{ id: "tableware", name: "Tableware" }]} />,
+      { wrapper: Providers },
+    );
+
+    await user.click(screen.getByRole("button", { name: "Add colour" }));
+    const input = container.querySelector<HTMLInputElement>('input[type="file"]')!;
+    const first = new File(["a"], "a.png", { type: "image/png" });
+    const second = new File(["b"], "b.png", { type: "image/png" });
+    await user.upload(input, [first, second]);
+    await waitFor(() => expect(uploadImageFn).toHaveBeenCalledTimes(2));
+
+    expect(container.querySelectorAll("li img")).toHaveLength(1);
+    const keyErrors = errSpy.mock.calls.filter((args) => String(args[0] ?? "").includes("same key"));
+    expect(keyErrors).toHaveLength(0);
+  } finally {
+    errSpy.mockRestore();
+  }
+});
