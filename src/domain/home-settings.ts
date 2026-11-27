@@ -1,6 +1,6 @@
 // Pure domain shapes and validation for the home page banners and section editor (C3.3 / #1, 1b). No React, no D1.
 import { z } from "zod";
-import { mediaUrl } from "./media";
+import { isImageKey, mediaUrl } from "./media";
 
 export const MAX_HOME_BANNERS = 5;
 
@@ -23,19 +23,33 @@ export const HOME_SECTION_LABELS: Record<HomeSectionKey, string> = {
   ordering: "How to order",
 };
 
+/**
+ * A banner link: a path on this site ("/products", but never "//host" or "/\host", which browsers read as another
+ * site) or an https:// address. Anything else, javascript: and data: included, is refused.
+ */
+export function isSafeLink(value: string): boolean {
+  if (value === "") return true;
+  if (value.startsWith("/")) return !/^\/[/\\]/.test(value) && !/[\s\\]/.test(value);
+  return /^https:\/\/[^\s/\\]+(?:[/?#][^\s\\]*)?$/i.test(value);
+}
+
 const safeLinkSchema = z
   .string()
   .trim()
   .max(300)
-  .refine(
-    (value) => value === "" || value.startsWith("/") || /^https?:\/\//i.test(value),
-    "Links must start with / or https://",
-  );
+  .refine(isSafeLink, "Links must be a path on this site (starting with one /) or an https:// address");
+
+/** Home images are R2 keys from the upload, resolved with mediaUrl; no outside image addresses. */
+const imageKeySchema = z
+  .string()
+  .trim()
+  .max(300)
+  .refine(isImageKey, "Upload the picture instead of pasting an address");
 
 export const homeBannerSchema = z.object({
   id: z.number().int().positive().nullable().optional(),
-  desktopImage: z.string().trim().min(1, "Add a desktop image").max(300),
-  mobileImage: z.string().trim().max(300).default(""),
+  desktopImage: z.string().trim().min(1, "Add a desktop image").pipe(imageKeySchema),
+  mobileImage: z.union([z.literal(""), imageKeySchema]).default(""),
   heading: z.string().trim().max(160).default(""),
   buttonText: z.string().trim().max(60).default(""),
   linkHref: safeLinkSchema.default("/products"),
@@ -53,24 +67,31 @@ export const homeSectionConfigSchema = z.object({
 
 export type HomeSectionConfig = z.output<typeof homeSectionConfigSchema>;
 
+/** The live home page's copy before the editor existed, so a fresh install shows the same section. */
+export const PHILOSOPHY_HEADING = "Your home is a personal gallery of your journey.";
+export const PHILOSOPHY_BODY =
+  "We explore the globe to bring you inspiring home decor, exquisite ceramics, and premium kitchenware — pieces that turn ordinary moments into small rituals.";
+
 export const philosophyConfigSchema = z.object({
   eyebrow: z.string().trim().max(80).default("Our philosophy"),
-  heading: z.string().trim().max(160).default("Quiet pieces for everyday rituals."),
-  body: z
-    .string()
-    .trim()
-    .max(1200)
-    .default(
-      "Every cup, plate and jar in Cavara is chosen for its glaze, weight and how it feels in the hand. We keep collections small and restock only the pieces people live with daily.",
-    ),
-  images: z.array(z.string().trim().max(300)).max(4).default([]),
+  heading: z.string().trim().max(160).default(PHILOSOPHY_HEADING),
+  body: z.string().trim().max(1200).default(PHILOSOPHY_BODY),
+  /** Up to two pictures (the section shows two); empty keeps the original pair. */
+  images: z.array(imageKeySchema).max(2).default([]),
 });
 
 export type PhilosophyConfig = z.output<typeof philosophyConfigSchema>;
 
 export const homeSettingsSchema = z.object({
   banners: z.array(homeBannerSchema).max(MAX_HOME_BANNERS, `At most ${MAX_HOME_BANNERS} banners`),
-  sections: z.array(homeSectionConfigSchema).min(1).max(HOME_SECTION_KEYS.length),
+  // Every section exactly once: order comes from the array, hiding from `visible`.
+  sections: z
+    .array(homeSectionConfigSchema)
+    .length(HOME_SECTION_KEYS.length)
+    .refine(
+      (sections) => new Set(sections.map((section) => section.key)).size === HOME_SECTION_KEYS.length,
+      "Each home section must appear once",
+    ),
   philosophy: philosophyConfigSchema,
 });
 
@@ -88,18 +109,15 @@ export const DEFAULT_HOME_SETTINGS: HomeSettings = {
   ],
   philosophy: {
     eyebrow: "Our philosophy",
-    heading: "Quiet pieces for everyday rituals.",
-    body: "Every cup, plate and jar in Cavara is chosen for its glaze, weight and how it feels in the hand. We keep collections small and restock only the pieces people live with daily.",
+    heading: PHILOSOPHY_HEADING,
+    body: PHILOSOPHY_BODY,
     images: [],
   },
 };
 
 export function resolveHomeSettings(settings: HomeSettings, imageBase: string): HomeSettings {
-  const resolveImg = (value: string) => {
-    if (!value) return "";
-    if (/^https?:\/\//i.test(value) || value.startsWith("/")) return value;
-    return mediaUrl(imageBase, value);
-  };
+  // Stored values were validated on save; a row edited by hand that is not an image key is dropped, not served.
+  const resolveImg = (value: string) => (value && isImageKey(value) ? mediaUrl(imageBase, value) : "");
   return {
     banners: settings.banners.map((banner) => ({
       ...banner,

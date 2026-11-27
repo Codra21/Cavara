@@ -613,7 +613,14 @@
     }
   }
 
+  /* Out of the sticky header's flow, so opening or closing the menu never moves the page under a scroll. */
   .mobile-nav {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    max-height: calc(100svh - var(--header-height));
+    overflow-y: auto;
     border-top: 1px solid var(--line);
     background: var(--surface);
     box-shadow: 0 24px 40px -30px rgb(var(--shadow-color) / 0.5);
@@ -3559,6 +3566,13 @@
     white-space: nowrap;
   }
 
+  /* The bar's text column is narrow; the struck price says enough there on phones. */
+  @media (max-width: 600px) {
+    .pdp-bar .price-save {
+      display: none;
+    }
+  }
+
   .pdp-bar.is-visible {
     visibility: visible;
     transform: none;
@@ -4582,25 +4596,6 @@
     font-size: 14px;
     font-weight: 600;
   }
-} /* @layer components */
-
-/* Unlayered so it beats Tailwind's focus-visible ring utilities on admin fields.
-   Forced colors keep the outline: author outline:none would otherwise remove the only indicator. */
-@media not (forced-colors: active) {
-  html[data-input="pointer"] :is(input, select, textarea):focus {
-    outline: none;
-    --tw-ring-shadow: 0 0 #0000;
-  }
-
-  html[data-input="pointer"] :is(input, textarea):where(.border-input):focus {
-    border-color: var(--input);
-  }
-}
-
-@media (forced-colors: active) {
-  :focus-visible {
-    outline: 2px solid CanvasText;
-  }
 
   /* C1.6: Single-stage gallery with thumbnail strip and fullscreen pinch-zoom lightbox */
   .pdp-stage-trigger {
@@ -4813,5 +4808,24 @@
     padding: 14px 16px;
     color: var(--body);
     font-size: 0.92rem;
+  }
+} /* @layer components */
+
+/* Unlayered so it beats Tailwind's focus-visible ring utilities on admin fields.
+   Forced colors keep the outline: author outline:none would otherwise remove the only indicator. */
+@media not (forced-colors: active) {
+  html[data-input="pointer"] :is(input, select, textarea):focus {
+    outline: none;
+    --tw-ring-shadow: 0 0 #0000;
+  }
+
+  html[data-input="pointer"] :is(input, textarea):where(.border-input):focus {
+    border-color: var(--input);
+  }
+}
+
+@media (forced-colors: active) {
+  :focus-visible {
+    outline: 2px solid CanvasText;
   }
 }

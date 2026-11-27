@@ -32,7 +32,9 @@ export function HeaderSearch({ open, onClose }: { open: boolean; onClose: () => 
       if (event.key === "Escape") onClose();
     };
     const onPointerDown = (event: PointerEvent) => {
-      const target = event.target as Node | null;
+      const target = event.target as Element | null;
+      // The header's search buttons toggle the bar themselves; closing here would make their click reopen it.
+      if (target?.closest?.(".header-search, .header-search-mobile")) return;
       if (target && wrapRef.current && !wrapRef.current.contains(target)) onClose();
     };
     document.addEventListener("keydown", onKey);
@@ -85,6 +87,8 @@ export function HeaderSearch({ open, onClose }: { open: boolean; onClose: () => 
           <Icon name="fa-solid fa-magnifying-glass" />
           <input
             ref={inputRef}
+            // The bar mounts when it opens, so focus lands in the field on the same frame.
+            autoFocus
             type="search"
             value={text}
             onChange={(event) => setText(event.target.value)}

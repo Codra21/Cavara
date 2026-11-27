@@ -21,6 +21,44 @@ function flag(name: string): string | undefined {
 const dryRun = args.includes("--dry-run");
 const dbPath = flag("db");
 
+/**
+ * After a write: an audit row (action `category.created` / `category.updated`, actor "cli"), then the catalogue
+ * snapshots are deleted so the next read rebuilds them with the new names, slugs and parents. Without that the shop
+ * keeps serving the old slugs until something else rebuilds the summary. `--bucket` names the R2 bucket (default
+ * cavara-images-dev), `--remote` targets the real bucket instead of the local one, `--no-invalidate` skips it.
+ */
+function afterWrite(
+  action: "category.created" | "category.updated",
+  targetId: string,
+  details: Record<string, unknown>,
+) {
+  sqlite.run(
+    "INSERT INTO admin_audit (id, actor_id, actor_username, actor_role, action, target_id, details, created_at) VALUES (?, 'cli', 'cli', 'owner', ?, ?, ?, ?)",
+    [
+      crypto.randomUUID(),
+      action,
+      targetId,
+      JSON.stringify({ ...details, via: "scripts/categories/manage.ts" }),
+      new Date().toISOString(),
+    ],
+  );
+  if (args.includes("--no-invalidate")) {
+    console.log(
+      "Snapshots not invalidated (--no-invalidate). Delete snapshots/catalog-v4.json and catalog-v1.json before relying on the shop.",
+    );
+    return;
+  }
+  const bucket = flag("bucket") ?? "cavara-images-dev";
+  const where = args.includes("--remote") ? "--remote" : "--local";
+  for (const object of ["snapshots/catalog-v4.json", "snapshots/catalog-v1.json"]) {
+    const run = Bun.spawnSync(["bunx", "wrangler", "r2", "object", "delete", `${bucket}/${object}`, where], {
+      stdout: "inherit",
+      stderr: "inherit",
+    });
+    if (run.exitCode !== 0) console.error(`Could not delete ${bucket}/${object} (${where}). Delete it by hand.`);
+  }
+}
+
 function usage(): never {
   console.error(
     "Usage: bun scripts/categories/manage.ts <list|create|rename|move> --db <sqlite-file> [options] [--dry-run]",
@@ -100,7 +138,12 @@ if (command === "create") {
         1,
       ],
     );
-    console.log(`Created category "${id}". Remember to rebuild the catalog snapshot.`);
+    afterWrite("category.created", id, {
+      name: parsed.data.name,
+      slug: parsed.data.slug,
+      parentId: parsed.data.parentId,
+    });
+    console.log(`Created category "${id}".`);
   }
   process.exit(0);
 }
@@ -163,7 +206,8 @@ if (command === "rename") {
       );
     }
     sqlite.run("DELETE FROM category_slugs WHERE old_slug = ?", [nextSlug]);
-    console.log(`Renamed category "${current.id}" to slug "${nextSlug}". Remember to rebuild the catalog snapshot.`);
+    afterWrite("category.updated", current.id, { name: nextName, slug: nextSlug, oldSlug: current.slug });
+    console.log(`Renamed category "${current.id}" to slug "${nextSlug}".`);
   }
   process.exit(0);
 }
@@ -189,9 +233,8 @@ if (command === "move") {
   );
   if (!dryRun) {
     sqlite.run("UPDATE categories SET parent_id = ? WHERE id = ?", [nextParent, current.id]);
-    console.log(
-      `Moved category "${current.id}" under ${nextParent ?? "top-level"}. Remember to rebuild the catalog snapshot.`,
-    );
+    afterWrite("category.updated", current.id, { fromParent: current.parentId, parentId: nextParent });
+    console.log(`Moved category "${current.id}" under ${nextParent ?? "top-level"}.`);
   }
   process.exit(0);
 }

@@ -30,7 +30,8 @@ export const uploadImageFn = createServerFn({ method: "POST" })
     const file = data.get("file");
     const product = String(data.get("productId") ?? "new");
     if (!(file instanceof File)) throw new Error("Choose an image to upload");
-    if (!/^(?:new|[1-9]\d{0,9})$/.test(product)) throw new Error("Unknown product");
+    // "home" holds home page banners and philosophy pictures (the home editor).
+    if (!/^(?:new|home|[1-9]\d{0,9})$/.test(product)) throw new Error("Unknown product");
     return { file, product };
   })
   .handler(async ({ data, context }): Promise<UploadImageResult> => {

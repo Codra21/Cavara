@@ -158,12 +158,18 @@ export function BagDrawer() {
                         <div>
                           <h3>{line.product ? line.product.name : "No longer available"}</h3>
                           <p className="bag-item-variant">
-                            {line.product
-                              ? "This colour is no longer available."
-                              : "It was removed from the shop since you added it."}
+                            {!line.product
+                              ? "It was removed from the shop since you added it."
+                              : line.product.variants[item.variant]?.availability === "preorder"
+                                ? "This colour is pre-order only. Request it on WhatsApp from the product page."
+                                : "This colour is no longer available."}
                           </p>
                           <div className="bag-item-controls">
-                            <span className="stock-tag">Unavailable</span>
+                            <span className="stock-tag">
+                              {line.product?.variants[item.variant]?.availability === "preorder"
+                                ? "Pre-order"
+                                : "Unavailable"}
+                            </span>
                             <button className="bag-remove" type="button" onClick={() => remove(line, name)}>
                               Remove
                             </button>
@@ -272,7 +278,7 @@ export function BagDrawer() {
           </div>
           {blocked.length > 0 ? (
             <p className="bag-notice" role="status">
-              Remove the items marked unavailable or out of stock to check out.
+              Remove the items marked sold out, pre-order or unavailable to check out.
             </p>
           ) : null}
           <p>

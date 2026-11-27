@@ -69,8 +69,11 @@ export async function getCachedHomeSettings(sources: CatalogSources): Promise<Ho
   let value: HomeSettings = DEFAULT_HOME_SETTINGS;
   try {
     value = await readHomeSettings(sources.db());
-  } catch {
-    // If D1 is unavailable or table not migrated yet, serve default settings safely.
+  } catch (error) {
+    // D1 unavailable, or the table not migrated yet: serve the defaults and keep them for the memory TTL, so a failing
+    // D1 is asked at most once per isolate per TTL instead of on every home view (the read budget).
+    console.error("home settings read failed:", error);
+    homeMemory = { expires: Date.now() + MEMORY_TTL_MS, value: DEFAULT_HOME_SETTINGS };
     return DEFAULT_HOME_SETTINGS;
   }
   const json = JSON.stringify(value);

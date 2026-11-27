@@ -1,6 +1,12 @@
 import { describe, expect, test } from "bun:test";
 import type { AdminIdentity } from "@/domain/admin";
-import { DEFAULT_HOME_SETTINGS, homeSettingsSchema } from "@/domain/home-settings";
+import {
+  DEFAULT_HOME_SETTINGS,
+  homeBannerSchema,
+  homeSettingsSchema,
+  isSafeLink,
+  resolveHomeSettings,
+} from "@/domain/home-settings";
 import { readHomeSettings, saveHomeSettings } from "@/server/db/admin-home.repository";
 import { clearHomeMemoryCache, getCachedHomeSettings, refreshHomeSettings } from "@/server/home-cache.server";
 import { FakeStore } from "./helpers/catalog-doubles";
@@ -79,5 +85,51 @@ describe("home banners and editor settings (C3.3)", () => {
       },
     });
     expect(cached.banners[0]?.heading).toBe("Autumn Glazes");
+  });
+});
+
+describe("home settings validation (review fixes)", () => {
+  test("banner links stay on this site or use https", () => {
+    for (const good of ["", "/products", "/collections/drinkware?sort=newest", "https://facebook.com/cavarabd"])
+      expect(isSafeLink(good), good).toBe(true);
+    for (const bad of [
+      "//evil.example/sale",
+      "/\\evil.example",
+      "javascript:alert(1)",
+      "data:text/html,hi",
+      "http://example.com",
+      "https:/evil",
+      "/products foo",
+    ])
+      expect(isSafeLink(bad), bad).toBe(false);
+  });
+
+  test("banner and philosophy pictures must be uploaded image keys", () => {
+    const banner = { desktopImage: "products/home/0b9f8c1e-1234-4cde-9abc-0123456789ab.webp" };
+    expect(homeBannerSchema.safeParse(banner).success).toBe(true);
+    expect(homeBannerSchema.safeParse({ desktopImage: "https://evil.example/pixel.webp" }).success).toBe(false);
+    expect(homeBannerSchema.safeParse({ ...banner, mobileImage: "//evil.example/x.webp" }).success).toBe(false);
+    expect(
+      homeSettingsSchema.safeParse({ ...DEFAULT_HOME_SETTINGS, philosophy: { images: ["/x.webp"] } }).success,
+    ).toBe(false);
+  });
+
+  test("the section list holds every section exactly once", () => {
+    const sections = DEFAULT_HOME_SETTINGS.sections;
+    expect(homeSettingsSchema.safeParse(DEFAULT_HOME_SETTINGS).success).toBe(true);
+    expect(homeSettingsSchema.safeParse({ ...DEFAULT_HOME_SETTINGS, sections: [sections[0]] }).success).toBe(false);
+    const doubled = [...sections.slice(0, 5), sections[0]!];
+    expect(homeSettingsSchema.safeParse({ ...DEFAULT_HOME_SETTINGS, sections: doubled }).success).toBe(false);
+  });
+
+  test("resolving drops anything that is not an image key", () => {
+    const resolved = resolveHomeSettings(
+      {
+        ...DEFAULT_HOME_SETTINGS,
+        philosophy: { ...DEFAULT_HOME_SETTINGS.philosophy, images: ["https://evil.example/a.webp"] },
+      },
+      "",
+    );
+    expect(resolved.philosophy.images).toEqual([]);
   });
 });

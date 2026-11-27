@@ -246,6 +246,35 @@ export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
   cash: "Cash",
 };
 
+/**
+ * The amount received that goes with a payment status, the rule migration 0017 CHECKs: unpaid 0, paid the total,
+ * partially paid strictly between 0 and the total (the amount typed), refunded keeps what was received. Returns an
+ * error message when the typed amount does not fit.
+ */
+export function settledAmount(
+  status: PaymentStatus,
+  total: number,
+  requested: number | undefined,
+  current: number,
+): { ok: true; amount: number } | { ok: false; error: string } {
+  if (status === "unpaid") return { ok: true, amount: 0 };
+  if (status === "paid") return { ok: true, amount: total };
+  if (status === "refunded") return { ok: true, amount: Math.min(Math.max(current, 0), total) };
+  const amount = requested ?? current;
+  if (Number.isInteger(amount) && amount > 0 && amount < total) return { ok: true, amount };
+  return {
+    ok: false,
+    error:
+      total > 1
+        ? `A partial payment must be between ৳1 and ৳${total - 1}. Mark the order Paid when the full ৳${total} is in.`
+        : "This order is too small for a partial payment. Mark it Paid instead.",
+  };
+}
+
+/** What is still owed. Nothing for a refunded order. */
+export const balanceDue = (status: PaymentStatus, total: number, amountPaid: number) =>
+  status === "refunded" ? 0 : Math.max(0, total - amountPaid);
+
 export const PAYMENT_LABELS: Record<PaymentStatus, string> = {
   unpaid: "Unpaid",
   partially_paid: "Partially paid",

@@ -68,7 +68,9 @@ export function CheckoutForm({
   const pendingRef = useRef(false);
   /** Prices the server reported after a price change, used until the bag lookup catches up. */
   const [serverPrices, setServerPrices] = useState<Map<string, number>>(new Map());
-  const [serverCharge, setServerCharge] = useState<{ zoneId: string; charge: number } | null>(null);
+  // The charge the server reported after a price change, for that zone and the cart weight the form had then. A later
+  // quantity or colour change moves the weight, so the form works the charge out again instead of sending a stale one.
+  const [serverCharge, setServerCharge] = useState<{ zoneId: string; charge: number; weightG: number } | null>(null);
   /** The applied coupon and the discount the server last confirmed; the server checks both again on send. */
   const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
   const [couponOpen, setCouponOpen] = useState(false);
@@ -91,7 +93,7 @@ export function CheckoutForm({
     lines.map((line) => ({ weightG: line.product.weightG, qty: line.item.qty })),
   );
   const chargeForZone = (candidate: DeliveryZone) =>
-    serverCharge && serverCharge.zoneId === candidate.id
+    serverCharge && serverCharge.zoneId === candidate.id && serverCharge.weightG === totalWeightG
       ? serverCharge.charge
       : calculateDeliveryCharge(candidate, totalWeightG);
   const zone = zones.find((candidate) => candidate.id === draft.zoneId) ?? zones[0];
@@ -234,7 +236,7 @@ export function CheckoutForm({
       setServerPrices(
         new Map(result.prices.map((price) => [priceKey(price.productId, price.variant), price.unitPrice])),
       );
-      setServerCharge({ zoneId, charge: result.deliveryCharge });
+      setServerCharge({ zoneId, charge: result.deliveryCharge, weightG: totalWeightG });
       // A coupon that changed or stopped applying: show its new discount, or drop it and say why next to the field.
       if (result.coupon) {
         applyAnswer(result.coupon);

@@ -1,6 +1,7 @@
 // Search and sharing metadata built from the catalogue. Pure: no React, no D1.
 // Schema.org types: https://schema.org/Product, /Offer, /BreadcrumbList. Google reads them from JSON-LD in the
 // server-rendered HTML, so these run in route head() and appear in the raw SSR response.
+import { collectionPath } from "@/domain/catalog";
 import type { Availability, Category, Product } from "@/lib/types";
 
 /** What the product metadata reads. Both the legacy `Product` and the product page's detail object fit. */
@@ -52,7 +53,7 @@ export function listingSeo(siteUrl: string, category: Category | null, fallbackD
   return {
     title: `${category.name} — Cavara`,
     description,
-    url: collectionUrl(siteUrl, category.id),
+    url: category.path ? `${trimSlash(siteUrl)}${category.path}` : collectionUrl(siteUrl, category.id),
     ...(category.image ? { image: absoluteUrl(siteUrl, category.image) } : {}),
   };
 }
@@ -107,7 +108,14 @@ export function productJsonLd(product: SeoProduct, category: Category | undefine
 export function breadcrumbJsonLd(product: SeoProduct, category: Category | undefined, siteUrl: string) {
   const items = [
     { name: "Home", item: `${trimSlash(siteUrl)}/` },
-    ...(category ? [{ name: category.name, item: collectionUrl(siteUrl, category.id) }] : []),
+    ...(category
+      ? [
+          {
+            name: category.name,
+            item: category.path ? `${trimSlash(siteUrl)}${category.path}` : collectionUrl(siteUrl, category.id),
+          },
+        ]
+      : []),
     { name: product.name, item: productUrl(siteUrl, product) },
   ];
   return {
@@ -127,15 +135,19 @@ const escapeXml = (value: string) =>
  * sitemap.xml for the home page, the all-products page, each category's page and every published product
  * (https://www.sitemaps.org/protocol.html).
  */
+/** Content pages listed in the sitemap. The draft policy pages join once the Owner approves their text. */
+export const SITEMAP_PAGES = ["/collections", "/about", "/contact"] as const;
+
 export function sitemapXml(
   siteUrl: string,
   products: Pick<Product, "slug">[],
-  categories: Pick<Category, "id">[] = [],
+  categories: Pick<Category, "id" | "slug" | "parentId">[] = [],
 ): string {
   const urls = [
     `${trimSlash(siteUrl)}/`,
     productsUrl(siteUrl),
-    ...categories.map((category) => collectionUrl(siteUrl, category.id)),
+    ...SITEMAP_PAGES.map((path) => `${trimSlash(siteUrl)}${path}`),
+    ...categories.map((category) => `${trimSlash(siteUrl)}${collectionPath(category, categories)}`),
     ...products.map((product) => productUrl(siteUrl, product)),
   ];
   return [

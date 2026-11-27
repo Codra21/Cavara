@@ -27,6 +27,23 @@ export function scrollBehavior(): ScrollBehavior {
 }
 
 /**
+ * Click handler for a link to a home page section. On the home page it scrolls to the section itself and stops the
+ * router: a second click on the same `/#id` is a navigation to the current location, which does not scroll again.
+ * Elsewhere it does nothing, so the router opens the home page at the section.
+ */
+export function scrollToHomeSection(event: { preventDefault(): void }, id: string) {
+  if (window.location.pathname !== "/") return;
+  const section = document.getElementById(id);
+  if (!section) return;
+  event.preventDefault();
+  // Wait two frames: the mobile menu sits in the sticky header's flow, so measuring before it closes overshoots by
+  // the menu's height.
+  window.requestAnimationFrame(() =>
+    window.requestAnimationFrame(() => section.scrollIntoView({ behavior: scrollBehavior() })),
+  );
+}
+
+/**
  * Inline head script. Chrome matches :focus-visible on input, textarea and select after a click, so a
  * :focus-visible ring stays up for a mouse or touch choice. pointerdown marks pointer use; Tab, Escape,
  * arrow keys, and any key pressed outside a field mark the keyboard. Typing into a field that was

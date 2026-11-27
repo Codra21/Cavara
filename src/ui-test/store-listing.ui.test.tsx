@@ -33,6 +33,8 @@ vi.mock("@tanstack/react-router", () => ({
 }));
 vi.mock("@/lib/query", () => ({
   listingQueryOptions: (query: object) => ({ queryKey: ["listing", query], queryFn: async () => page }),
+  // CategoryLink looks categories up to link by current slug; none here, so links use the key as given.
+  useCategories: () => ({ categories: [], categoryById: new Map(), imageBase: "" }),
 }));
 vi.mock("@/components/home/ProductCard", () => ({
   ProductCard: ({ product }: { product: { id: number } }) => <li>Product {product.id}</li>,

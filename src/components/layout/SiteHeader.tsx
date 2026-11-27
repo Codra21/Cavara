@@ -2,7 +2,7 @@ import { Link } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui-sdk/react/popover";
 import { useEffect, useRef, useState } from "react";
 import { NAV_LINKS } from "@/lib/config";
-import { scrollBehavior } from "@/lib/dom";
+import { scrollToHomeSection } from "@/lib/dom";
 import { pluralize } from "@/domain/catalog";
 import { useStore } from "@/components/store/StoreProvider";
 import { BrandLogo, Icon, SrOnly } from "@/components/ui/primitives";
@@ -99,9 +99,7 @@ export function SiteHeader() {
                   key={link.label}
                   to="/"
                   hash={link.hash}
-                  onClick={() => {
-                    document.getElementById(link.hash)?.scrollIntoView({ behavior: scrollBehavior() });
-                  }}
+                  onClick={(event) => scrollToHomeSection(event, link.hash)}
                 >
                   {link.label}
                 </Link>
@@ -142,9 +140,9 @@ export function SiteHeader() {
                     key={link.label}
                     to="/"
                     hash={link.hash}
-                    onClick={() => {
+                    onClick={(event) => {
                       setMenuOpen(false);
-                      document.getElementById(link.hash)?.scrollIntoView({ behavior: scrollBehavior() });
+                      scrollToHomeSection(event, link.hash);
                     }}
                   >
                     {link.label}

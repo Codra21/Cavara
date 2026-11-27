@@ -10,6 +10,7 @@ import { MAX_QTY, MESSENGER_URL, SITE_URL, WHATSAPP_URL } from "@/lib/config";
 import { finePointer } from "@/lib/dom";
 import { copyText, singleOrderMessage, whatsappUrl } from "@/lib/order";
 import type { Category } from "@/lib/types";
+import { CategoryLink } from "@/components/shop/CategoryLink";
 import { useStore } from "@/components/store/StoreProvider";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
 import { ModalDialog } from "@/components/ui/ModalDialog";
@@ -346,9 +347,7 @@ export function ProductPage({
               <Link to="/">Home</Link>
             </li>
             <li>
-              <Link to="/collections/$category" params={{ category: category.id }}>
-                {category.name}
-              </Link>
+              <CategoryLink category={category.id}>{category.name}</CategoryLink>
             </li>
             <li aria-current="page">{product.name}</li>
           </ol>

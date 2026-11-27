@@ -374,7 +374,7 @@ export function ProductList() {
                       </TableHead>
                       <TableHead>Product</TableHead>
                       <TableHead className="hidden sm:table-cell">Status</TableHead>
-                      <TableHead className="hidden lg:table-cell">Stock</TableHead>
+                      <TableHead className="hidden md:table-cell">Stock</TableHead>
                       <TableHead className="text-right">Price</TableHead>
                       <TableHead className="hidden text-right md:table-cell">Cost</TableHead>
                       <TableHead className="hidden text-right md:table-cell">Margin</TableHead>
@@ -451,7 +451,7 @@ export function ProductList() {
                         <TableCell className="hidden sm:table-cell">
                           <StatusBadge status={product.status} />
                         </TableCell>
-                        <TableCell className="hidden lg:table-cell">
+                        <TableCell className="hidden md:table-cell">
                           <ul className="grid gap-1 text-xs">
                             {(product.variantStocks ?? []).map((variant) => (
                               <li key={variant.id} className="flex items-center justify-between gap-2">
@@ -480,7 +480,7 @@ export function ProductList() {
                                     </Button>
                                     <span
                                       className={`min-w-[1.5rem] text-center font-medium ${
-                                        variant.stock <= LOW_STOCK_LIMIT ? "text-warning-foreground font-semibold" : ""
+                                        variant.stock <= LOW_STOCK_LIMIT ? "text-warning font-semibold" : ""
                                       }`}
                                     >
                                       {variant.stock}

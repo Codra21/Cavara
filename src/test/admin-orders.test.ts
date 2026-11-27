@@ -268,4 +268,36 @@ describe("partial payment (C3.2)", () => {
     expect(order?.history.at(-1)?.toPaymentStatus).toBe("partially_paid");
     expect(order?.history.at(-1)?.note).toContain("Paid ৳500 via bKash");
   });
+
+  test("refuses a partial amount of 0 or the full total, and fixes the amount for the other statuses", async () => {
+    const db = createTestD1();
+    const { id } = await placeOrder(db);
+    const total = (await getOrder(db, id))!.total;
+    const save = (
+      version: number,
+      paymentStatus: "unpaid" | "partially_paid" | "paid" | "refunded",
+      amountPaid?: number,
+    ) =>
+      updateOrderStatus(db, owner, {
+        id,
+        version,
+        status: "new",
+        paymentStatus,
+        note: "",
+        ...(amountPaid === undefined ? {} : { amountPaid }),
+      });
+
+    for (const amount of [0, total, total + 50_000]) {
+      const refused = await save(1, "partially_paid", amount);
+      expect(refused).toMatchObject({ ok: false });
+    }
+    // A client sending an amount with Paid or Unpaid cannot store it.
+    expect(await save(1, "paid", 1)).toMatchObject({ ok: true });
+    expect((await getOrder(db, id))!.amountPaid).toBe(total);
+    expect(await save(2, "unpaid", 999)).toMatchObject({ ok: true });
+    expect((await getOrder(db, id))!.amountPaid).toBe(0);
+    expect(await save(3, "partially_paid", 300)).toMatchObject({ ok: true });
+    expect(await save(4, "refunded")).toMatchObject({ ok: true });
+    expect((await getOrder(db, id))!).toMatchObject({ paymentStatus: "refunded", amountPaid: 300 });
+  });
 });

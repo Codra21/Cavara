@@ -15,6 +15,8 @@ import {
 import { useId, useState } from "react";
 import { formatPrice } from "@/domain/catalog";
 import {
+  balanceDue,
+  settledAmount,
   type AdminOrderDetail,
   formatPhone,
   type OrderStatus,
@@ -139,13 +141,16 @@ export function OrderDetail({
 
   const parsedAmountPaid = Math.max(0, Math.trunc(Number(amountPaid) || 0));
   const resolvedMethod: PaymentMethod | null = paymentMethod === "__none__" ? null : (paymentMethod as PaymentMethod);
-  const balanceDue = Math.max(0, order.total - (order.amountPaid ?? 0));
+  const settled = settledAmount(payment, order.total, parsedAmountPaid, order.amountPaid ?? 0);
+  // Only a partial payment takes a typed amount; the other statuses fix it (unpaid 0, paid the total).
+  const shownAmount = payment === "partially_paid" ? amountPaid : String(settled.ok ? settled.amount : 0);
+  const due = balanceDue(order.paymentStatus, order.total, order.amountPaid ?? 0);
 
   const next = STATUS_TRANSITIONS[order.status];
   const dirty =
     status !== order.status ||
     payment !== order.paymentStatus ||
-    parsedAmountPaid !== (order.amountPaid ?? 0) ||
+    (settled.ok && settled.amount !== (order.amountPaid ?? 0)) ||
     resolvedMethod !== (order.paymentMethod ?? null) ||
     note.trim() !== "";
   const knownCost = order.lines.every((line) => line.costPrice !== null);
@@ -164,7 +169,7 @@ export function OrderDetail({
           version: order.version,
           status,
           paymentStatus: payment,
-          amountPaid: parsedAmountPaid,
+          ...(payment === "partially_paid" ? { amountPaid: parsedAmountPaid } : {}),
           paymentMethod: resolvedMethod,
           note,
         },
@@ -212,7 +217,7 @@ export function OrderDetail({
             Placed <time dateTime={order.createdAt}>{adminTimeFormat.format(new Date(order.createdAt))}</time> ·{" "}
             <span className="font-medium text-foreground">{formatPrice(order.total)}</span> · Paid{" "}
             {formatPrice(order.amountPaid ?? 0)} · Balance due{" "}
-            <span className="font-medium text-foreground">{formatPrice(balanceDue)}</span>
+            <span className="font-medium text-foreground">{formatPrice(due)}</span>
             {order.paymentMethod ? ` (${PAYMENT_METHOD_LABELS[order.paymentMethod]})` : ""}
           </p>
         </div>
@@ -343,9 +348,19 @@ export function OrderDetail({
                     inputMode="numeric"
                     min={0}
                     step={1}
-                    value={amountPaid}
+                    max={Math.max(order.total - 1, 0)}
+                    value={shownAmount}
+                    disabled={payment !== "partially_paid"}
+                    aria-describedby={`${id}-amount-help`}
                     onChange={(event) => setAmountPaid(event.target.value)}
                   />
+                  <p id={`${id}-amount-help`} className="text-xs text-muted-foreground">
+                    {payment === "partially_paid"
+                      ? settled.ok
+                        ? `Balance after this: ${formatPrice(order.total - settled.amount)}`
+                        : settled.error
+                      : "Set by the payment status. Choose Partially paid to enter an amount."}
+                  </p>
                 </div>
                 <div className="grid gap-1.5">
                   <Label htmlFor={`${id}-payment-method`}>Payment method</Label>

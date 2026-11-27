@@ -14,6 +14,8 @@ export interface Category {
   parentId?: CategoryId | null;
   /** Public URL slug (changeable, defaults to id). */
   slug?: string;
+  /** The page's canonical path (`collectionPath`), set by the server on resolved categories. */
+  path?: string;
 }
 
 export interface Variant {

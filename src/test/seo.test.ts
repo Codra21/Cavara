@@ -100,9 +100,11 @@ describe("product structured data", () => {
   });
 });
 
-test("sitemap lists home, the products page, each collection and every product, escaped", () => {
+test("sitemap lists home, the products page, the content pages, each collection and every product, escaped", () => {
   const xml = sitemapXml(SITE, [{ slug: "a" }, { slug: "b&c" }], [{ id: "drinkware" }, { id: "jars" }]);
   expect(xml).toContain("<loc>https://cavarabd.com/products</loc>");
+  for (const page of ["collections", "about", "contact"])
+    expect(xml).toContain(`<loc>https://cavarabd.com/${page}</loc>`);
   expect(xml).toContain("<loc>https://cavarabd.com/collections/drinkware</loc>");
   expect(xml).toContain("<loc>https://cavarabd.com/collections/jars</loc>");
   expect(xml).toContain('<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">');

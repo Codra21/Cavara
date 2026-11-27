@@ -13,7 +13,13 @@ import type { Category } from "@/lib/types";
  * Loads the requested page of a listing. An unknown category is a 404. Returns the page count so the route can send
  * a visitor on `?page=99` to the last page.
  */
-export async function loadListing(queryClient: QueryClient, category: string | undefined, search: ListSearch) {
+export async function loadListing(
+  queryClient: QueryClient,
+  category: string | undefined,
+  search: ListSearch,
+  /** The path this request came in on, e.g. `/collections/drinkware/mugs`. */
+  requestedPath?: string,
+) {
   if (category !== undefined && !isCategorySlug(category)) throw notFound();
   const query = { ...search, ...(category ? { category } : {}) };
   const page = search.page ?? 1;
@@ -28,9 +34,20 @@ export async function loadListing(queryClient: QueryClient, category: string | u
       throw error;
     },
   );
-  if (listing.redirectTo) throw redirect({ href: listing.redirectTo, statusCode: 301 });
   if (category !== undefined && !listing.category) throw notFound();
+  // Old slugs, moved subcategories and renamed parents all resolve to the category; anything but its one path 301s.
+  if (requestedPath && listing.canonicalPath && listing.canonicalPath !== requestedPath)
+    throw redirect({ href: `${listing.canonicalPath}${searchString(search)}`, statusCode: 301 });
   return { category: listing.category, pageCount: listing.pageCount };
+}
+
+/** The filters as a query string, kept across a canonical redirect. */
+function searchString(search: ListSearch): string {
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(search))
+    if (value !== undefined && value !== "") params.set(key, String(value));
+  const text = params.toString();
+  return text ? `?${text}` : "";
 }
 
 /** Title, description, canonical (the clean path, without filters or page) and sharing tags for a listing page. */

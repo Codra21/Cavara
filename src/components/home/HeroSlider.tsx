@@ -7,12 +7,22 @@ import { prefersReducedMotion } from "@/lib/dom";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
 import { Icon } from "@/components/ui/primitives";
 
+type HomeBannerView = NonNullable<ReturnType<typeof useHome>["settings"]>["banners"][number];
+
+/**
+ * The home banner. Active banners from the home editor replace the product slides. Each kind is its own component,
+ * so adding the first banner, or removing the last, swaps components instead of changing one component's hooks.
+ */
 export function HeroSlider() {
   const home = useHome();
   const customBanners = useMemo(
     () => (home.settings?.banners ?? []).filter((b) => b.active && b.desktopImage),
     [home.settings?.banners],
   );
+  return customBanners.length > 0 ? <BannerSlider banners={customBanners} /> : <ProductSlider />;
+}
+
+function BannerSlider({ banners: customBanners }: { banners: HomeBannerView[] }) {
   const [bannerIndex, setBannerIndex] = useState(0);
   const bannerCount = customBanners.length;
 
@@ -22,71 +32,76 @@ export function HeroSlider() {
     return () => window.clearTimeout(timer);
   }, [bannerCount, bannerIndex]);
 
-  if (bannerCount > 0) {
-    const active = customBanners[bannerIndex % bannerCount]!;
-    return (
-      <section className="studio-hero" aria-label="Featured banners">
-        <div className="container-wide">
-          <div className="studio-hero-frame">
-            <article className="studio-slide is-active" style={{ position: "relative" }}>
-              <div className="studio-slide-media">
-                <picture>
-                  {active.mobileImage ? <source media="(max-width: 767px)" srcSet={active.mobileImage} /> : null}
-                  <img src={active.desktopImage} alt={active.heading || "Cavara banner"} fetchPriority="high" />
-                </picture>
+  const active = customBanners[bannerIndex % bannerCount]!;
+  return (
+    <section className="studio-hero" aria-label="Featured banners">
+      <div className="container-wide">
+        <div className="studio-hero-frame">
+          <article className="studio-slide is-active" style={{ position: "relative" }}>
+            <div className="studio-slide-media">
+              <picture>
+                {active.mobileImage ? <source media="(max-width: 767px)" srcSet={active.mobileImage} /> : null}
+                <img src={active.desktopImage} alt={active.heading || "Cavara banner"} fetchPriority="high" />
+              </picture>
+            </div>
+            {active.heading || active.buttonText ? (
+              <div className="studio-slide-copy">
+                {active.heading ? <h2 className="studio-slide-title">{active.heading}</h2> : null}
+                {active.buttonText ? (
+                  <div className="studio-slide-actions">
+                    <a className="button" href={active.linkHref || "/products"}>
+                      {active.buttonText}
+                    </a>
+                  </div>
+                ) : null}
               </div>
-              {active.heading || active.buttonText ? (
-                <div className="studio-slide-copy">
-                  {active.heading ? <h2 className="studio-slide-title">{active.heading}</h2> : null}
-                  {active.buttonText ? (
-                    <div className="studio-slide-actions">
-                      <a className="button" href={active.linkHref || "/products"}>
-                        {active.buttonText}
-                      </a>
-                    </div>
-                  ) : null}
-                </div>
-              ) : null}
-            </article>
-            {bannerCount > 1 ? (
-              <div className="studio-hero-controls">
+            ) : null}
+          </article>
+          {bannerCount > 1 ? (
+            // The product slider's controls and classes, so the dots and arrows share its styles.
+            <div className="studio-hero-controls">
+              <div className="studio-dots">
+                {customBanners.map((b, idx) => (
+                  <button
+                    key={b.id ?? idx}
+                    className="studio-dot"
+                    type="button"
+                    aria-label={`Show banner ${idx + 1}`}
+                    aria-current={idx === bannerIndex % bannerCount ? "true" : undefined}
+                    onClick={() => setBannerIndex(idx)}
+                  >
+                    <span />
+                  </button>
+                ))}
+              </div>
+              <div className="studio-hero-buttons">
                 <button
+                  className="studio-arrow"
                   type="button"
-                  className="hero-nav"
                   aria-label="Previous banner"
                   onClick={() => setBannerIndex((i) => (i - 1 + bannerCount) % bannerCount)}
                 >
-                  <Icon name="fa-solid fa-chevron-left" />
+                  <Icon name="fa-solid fa-arrow-left-long" />
                 </button>
-                <div className="hero-dots" role="tablist" aria-label="Choose banner">
-                  {customBanners.map((b, idx) => (
-                    <button
-                      key={b.id ?? idx}
-                      type="button"
-                      role="tab"
-                      aria-selected={idx === bannerIndex % bannerCount}
-                      aria-label={`Banner ${idx + 1}`}
-                      className={`hero-dot${idx === bannerIndex % bannerCount ? " is-active" : ""}`}
-                      onClick={() => setBannerIndex(idx)}
-                    />
-                  ))}
-                </div>
                 <button
+                  className="studio-arrow"
                   type="button"
-                  className="hero-nav"
                   aria-label="Next banner"
                   onClick={() => setBannerIndex((i) => (i + 1) % bannerCount)}
                 >
-                  <Icon name="fa-solid fa-chevron-right" />
+                  <Icon name="fa-solid fa-arrow-right-long" />
                 </button>
               </div>
-            ) : null}
-          </div>
+            </div>
+          ) : null}
         </div>
-      </section>
-    );
-  }
+      </div>
+    </section>
+  );
+}
 
+function ProductSlider() {
+  const home = useHome();
   const slides = useMemo(
     () =>
       HERO_SLIDES.flatMap((slide) => {

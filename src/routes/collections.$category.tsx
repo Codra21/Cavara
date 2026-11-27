@@ -7,7 +7,12 @@ export const Route = createFileRoute("/collections/$category")({
   validateSearch: (search: Record<string, unknown>): ListSearch => parseListSearch(search),
   loaderDeps: ({ search }) => search,
   loader: async ({ context, deps, params }) => {
-    const { category, pageCount } = await loadListing(context.queryClient, params.category, deps);
+    const { category, pageCount } = await loadListing(
+      context.queryClient,
+      params.category,
+      deps,
+      `/collections/${encodeURIComponent(params.category)}`,
+    );
     if (deps.page && deps.page > pageCount)
       throw redirect({
         to: "/collections/$category",

@@ -22,6 +22,8 @@ vi.mock("@/lib/query", () => ({
   lookupIds: (ids: number[]) => ids,
   productsByIdsQueryOptions: () => ({ queryKey: ["ids"], queryFn: async () => ({ products: [], categoryNames: {} }) }),
   relatedQueryOptions: () => ({ queryKey: ["related"], queryFn: async () => ({ products: [], categoryNames: {} }) }),
+  // CategoryLink looks categories up to link by current slug; none here, so links use the key as given.
+  useCategories: () => ({ categories: [], categoryById: new Map(), imageBase: "" }),
 }));
 
 const { ProductPage } = await import("@/components/product/ProductPage");

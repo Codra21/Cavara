@@ -63,7 +63,7 @@ test("typing in a charge saves the new value", async () => {
     "Inside Dhaka",
     "Outside Dhaka",
   ]);
-  const [charge] = screen.getAllByLabelText<HTMLInputElement>("Charge (৳)");
+  const [charge] = screen.getAllByLabelText<HTMLInputElement>("Base, first kg (৳)");
   expect(charge!.value).toBe("80");
   await user.clear(charge!);
   await user.type(charge!, "95");
@@ -83,12 +83,12 @@ test("an agent can find and change every delivery area control", async () => {
     expect(entry.label, `${entry.component} ${entry.ref} has no name`).toBeTruthy();
   }
   const labels = components.map((entry) => entry.label);
-  for (const label of ["Name", "Charge (৳)", "Active", "Move Inside Dhaka down", "Save areas", "Add area"]) {
+  for (const label of ["Name", "Base, first kg (৳)", "Active", "Move Inside Dhaka down", "Save areas", "Add area"]) {
     expect(labels, `${label} is missing from the snapshot`).toContain(label);
   }
 
   const names = components.filter((entry) => entry.label === "Name");
-  const charges = components.filter((entry) => entry.label === "Charge (৳)");
+  const charges = components.filter((entry) => entry.label === "Base, first kg (৳)");
   const actives = components.filter((entry) => entry.label === "Active");
   const result = await agent.act({
     steps: [
@@ -100,7 +100,7 @@ test("an agent can find and change every delivery area control", async () => {
   expect(result.ok, result.error?.message).toBe(true);
 
   expect(screen.getAllByLabelText<HTMLInputElement>("Name")[0]!.value).toBe("Dhaka city");
-  expect(screen.getAllByLabelText<HTMLInputElement>("Charge (৳)")[0]!.value).toBe("70");
+  expect(screen.getAllByLabelText<HTMLInputElement>("Base, first kg (৳)")[0]!.value).toBe("70");
   expect(screen.getAllByRole("checkbox", { name: "Active" })[1]!.getAttribute("aria-checked")).toBe("false");
   expect((screen.getByRole("button", { name: "Save areas" }) as HTMLButtonElement).disabled).toBe(false);
 });
@@ -114,7 +114,7 @@ test("a background refetch updates clean rows without marking the form dirty", (
   );
 
   expect((screen.getByRole("button", { name: "Save areas" }) as HTMLButtonElement).disabled).toBe(true);
-  expect(screen.getAllByLabelText<HTMLInputElement>("Charge (৳)")[0]!.value).toBe("80");
+  expect(screen.getAllByLabelText<HTMLInputElement>("Base, first kg (৳)")[0]!.value).toBe("80");
 
   const refetched: AdminZone[] = [{ ...zones[0]!, charge: 110 }, zones[1]!];
   rerender(
@@ -123,7 +123,7 @@ test("a background refetch updates clean rows without marking the form dirty", (
     </QueryClientProvider>,
   );
 
-  expect(screen.getAllByLabelText<HTMLInputElement>("Charge (৳)")[0]!.value).toBe("110");
+  expect(screen.getAllByLabelText<HTMLInputElement>("Base, first kg (৳)")[0]!.value).toBe("110");
   expect((screen.getByRole("button", { name: "Save areas" }) as HTMLButtonElement).disabled).toBe(true);
 });
 

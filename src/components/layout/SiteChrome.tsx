@@ -10,7 +10,7 @@ import {
   WHATSAPP_URL,
 } from "@/lib/config";
 import { useStore } from "@/components/store/StoreProvider";
-import { scrollBehavior } from "@/lib/dom";
+import { scrollToHomeSection } from "@/lib/dom";
 import { BrandLogo, Icon } from "@/components/ui/primitives";
 import { useShopNavigation } from "./useShopNavigation";
 
@@ -66,13 +66,7 @@ export function SiteFooter() {
               <h2 className="footer-title">Help</h2>
               <ul className="footer-links">
                 <li>
-                  <Link
-                    to="/"
-                    hash="ordering"
-                    onClick={() => {
-                      document.getElementById("ordering")?.scrollIntoView({ behavior: scrollBehavior() });
-                    }}
-                  >
+                  <Link to="/" hash="ordering" onClick={(event) => scrollToHomeSection(event, "ordering")}>
                     How to order
                   </Link>
                 </li>

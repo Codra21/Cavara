@@ -9,6 +9,7 @@
 // Snapshots hold R2 image keys, never URLs (code-standards: Images). Public function output turns keys into URLs with
 // resolve*() below, so a changed IMAGE_BASE_URL never leaves wrong URLs in a stored object.
 import { bestSale, type SaleRule, saleBadge, strikePrice } from "@/domain/discounts";
+import { collectionPath } from "@/domain/catalog";
 import { mediaUrl } from "@/domain/media";
 import type { DeliveryZone } from "@/domain/orders";
 import { MAX_QTY } from "@/lib/config";
@@ -553,7 +554,13 @@ export function resolveProduct(
   return { ...rest, variants: [first as DetailVariant, ...others] };
 }
 
-export const resolveCategory = (category: Category, imageBase: string): Category => ({
+/** A category with its image as a URL and its canonical page path (current slugs, the parent's included). */
+export const resolveCategory = (
+  category: Category,
+  imageBase: string,
+  categories: Category[] = [category],
+): Category => ({
   ...category,
   image: mediaUrl(imageBase, category.image),
+  path: collectionPath(category, categories),
 });

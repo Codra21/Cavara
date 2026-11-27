@@ -1,8 +1,8 @@
-import type { PhilosophyConfig } from "@/domain/home-settings";
+import { PHILOSOPHY_BODY, PHILOSOPHY_HEADING, type PhilosophyConfig } from "@/domain/home-settings";
 import { useEffect, useRef } from "react";
-import { Link } from "@tanstack/react-router";
 import { pluralize } from "@/domain/catalog";
 import { mediaUrl } from "@/domain/media";
+import { CategoryLink } from "@/components/shop/CategoryLink";
 import { useCategories } from "@/lib/query";
 
 const delay = (ms: number) => ({ "--reveal-delay": `${ms}ms` }) as React.CSSProperties;
@@ -17,19 +17,21 @@ export function CollectionsSection({ heading }: { heading?: string } = {}) {
           <h2 id="collections-title">{heading || "Our collections"}</h2>
         </div>
         <ul className="studio-category-row" aria-label="Collections">
-          {categories.map((category, index) => (
-            <li key={category.id} data-reveal="" style={delay(index * 90)}>
-              <Link className="studio-category" to="/collections/$category" params={{ category: category.id }}>
-                <span className="studio-category-media">
-                  <img src={category.image} alt="" loading="lazy" width={800} height={1000} />
-                </span>
-                <span className="studio-category-label">
-                  <span className="studio-category-name">{category.name}</span>
-                  <span className="studio-category-count">{pluralize(category.count, "piece")}</span>
-                </span>
-              </Link>
-            </li>
-          ))}
+          {categories
+            .filter((category) => !category.parentId)
+            .map((category, index) => (
+              <li key={category.id} data-reveal="" style={delay(index * 90)}>
+                <CategoryLink className="studio-category" category={category.id}>
+                  <span className="studio-category-media">
+                    <img src={category.image} alt="" loading="lazy" width={800} height={1000} />
+                  </span>
+                  <span className="studio-category-label">
+                    <span className="studio-category-name">{category.name}</span>
+                    <span className="studio-category-count">{pluralize(category.count, "piece")}</span>
+                  </span>
+                </CategoryLink>
+              </li>
+            ))}
         </ul>
       </div>
     </section>
@@ -38,32 +40,40 @@ export function CollectionsSection({ heading }: { heading?: string } = {}) {
 
 export function StorySection({ heading, philosophy }: { heading?: string; philosophy?: PhilosophyConfig } = {}) {
   const { imageBase } = useCategories();
+  // Pictures from the home editor replace the original pair one for one; the copy falls back to the original text.
+  const images = philosophy?.images ?? [];
+  const pictures = [
+    {
+      src:
+        images[0] || mediaUrl(imageBase, "product-images/Ceramic-Seasoning-Bottle-21/Ceramic-Seasoning-Bottle1.webp"),
+      alt: images[0] ? "" : "Hand-decorated ceramic seasoning bottles on a kitchen counter",
+      height: 1000,
+    },
+    {
+      src: images[1] || mediaUrl(imageBase, "product-images/vintage-Ceramic-Oil-Pot-22/vintage-Ceramic-Oil-Pot1.webp"),
+      alt: images[1] ? "" : "Two vintage ceramic oil pots on a wooden tray",
+      height: 800,
+    },
+  ];
   return (
     <section className="section story" id="story" aria-labelledby="story-title">
       <div className="container story-grid">
         <div className="story-media" data-reveal="">
-          <img
-            src={mediaUrl(imageBase, "product-images/Ceramic-Seasoning-Bottle-21/Ceramic-Seasoning-Bottle1.webp")}
-            alt="Hand-decorated ceramic seasoning bottles on a kitchen counter"
-            loading="lazy"
-            width={800}
-            height={1000}
-          />
-          <img
-            src={mediaUrl(imageBase, "product-images/vintage-Ceramic-Oil-Pot-22/vintage-Ceramic-Oil-Pot1.webp")}
-            alt="Two vintage ceramic oil pots on a wooden tray"
-            loading="lazy"
-            width={800}
-            height={800}
-          />
+          {pictures.map((picture) => (
+            <img
+              key={picture.src}
+              src={picture.src}
+              alt={picture.alt}
+              loading="lazy"
+              width={800}
+              height={picture.height}
+            />
+          ))}
         </div>
         <div className="story-copy" data-reveal="">
           <p className="sub-heading">{philosophy?.eyebrow || heading || "Our philosophy"}</p>
-          <h2 id="story-title">Your home is a personal gallery of your journey.</h2>
-          <p className="story-lede">
-            We explore the globe to bring you inspiring home decor, exquisite ceramics, and premium kitchenware — pieces
-            that turn ordinary moments into small rituals.
-          </p>
+          <h2 id="story-title">{philosophy?.heading || PHILOSOPHY_HEADING}</h2>
+          <p className="story-lede">{philosophy?.body || PHILOSOPHY_BODY}</p>
           <ul className="principles">
             <li>
               <h3>Global selection</h3>

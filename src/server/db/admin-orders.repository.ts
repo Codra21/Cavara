@@ -8,6 +8,7 @@ import type { AdminIdentity, AuditValue } from "@/domain/admin";
 import {
   type AdminOrderDetail,
   PAYMENT_METHOD_LABELS,
+  settledAmount,
   type PaymentMethod,
   type AdminOrderEvent,
   type AdminOrderLine,
@@ -261,14 +262,9 @@ export async function updateOrderStatus(
   }
   const currentPaid = current.amountPaid ?? 0;
   const currentMethod = current.paymentMethod ?? null;
-  const nextAmountPaid =
-    input.amountPaid !== undefined
-      ? input.amountPaid
-      : input.paymentStatus === "paid"
-        ? current.total
-        : input.paymentStatus === "unpaid"
-          ? 0
-          : currentPaid;
+  const settled = settledAmount(input.paymentStatus, current.total, input.amountPaid, currentPaid);
+  if (!settled.ok) return { ok: false, error: settled.error };
+  const nextAmountPaid = settled.amount;
   const nextPaymentMethod = input.paymentMethod !== undefined ? input.paymentMethod : currentMethod;
   const paymentChanged =
     current.paymentStatus !== input.paymentStatus ||

@@ -267,3 +267,17 @@ test("header search icon expands the search bar and displays matching dropdown r
   await user.type(input, "Polka");
   expect(await screen.findByText("Polka Cup")).toBeTruthy();
 });
+
+test("pressing the header search icon again closes the search bar instead of reopening it", async () => {
+  const user = userEvent.setup();
+  render(<SiteHeader />);
+  const icon = () => screen.getAllByRole("button", { name: "Search products" })[1]!;
+
+  await user.click(icon());
+  expect(document.activeElement).toBe(screen.getByRole("searchbox", { name: "Search products" }));
+  expect(icon().getAttribute("aria-expanded")).toBe("true");
+
+  await user.click(icon());
+  expect(screen.queryByRole("searchbox", { name: "Search products" })).toBeNull();
+  expect(icon().getAttribute("aria-expanded")).toBe("false");
+});

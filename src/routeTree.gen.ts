@@ -34,7 +34,7 @@ import { Route as AdminOrdersIndexRouteImport } from './routes/admin.orders.inde
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin.orders.$orderId'
 import { Route as AdminProductsIndexRouteImport } from './routes/admin.products.index'
 import { Route as AdminProductsProductIdRouteImport } from './routes/admin.products.$productId'
-import { Route as CollectionsCategorySubcategoryRouteImport } from './routes/collections.$category.$subcategory'
+import { Route as CollectionsCategorySubcategoryRouteImport } from './routes/collections.$category_.$subcategory'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -163,9 +163,9 @@ const AdminProductsProductIdRoute = AdminProductsProductIdRouteImport.update({
 } as any)
 const CollectionsCategorySubcategoryRoute =
   CollectionsCategorySubcategoryRouteImport.update({
-    id: '/$subcategory',
-    path: '/$subcategory',
-    getParentRoute: () => CollectionsCategoryRoute,
+    id: '/collections/$category_/$subcategory',
+    path: '/collections/$category/$subcategory',
+    getParentRoute: () => rootRouteImport,
   } as any)
 
 export interface FileRoutesByFullPath {
@@ -184,7 +184,7 @@ export interface FileRoutesByFullPath {
   '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/home': typeof AdminHomeRoute
   '/admin/zones': typeof AdminZonesRoute
-  '/collections/$category': typeof CollectionsCategoryRouteWithChildren
+  '/collections/$category': typeof CollectionsCategoryRoute
   '/media/$': typeof MediaSplatRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/admin/': typeof AdminIndexRoute
@@ -211,7 +211,7 @@ export interface FileRoutesByTo {
   '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/home': typeof AdminHomeRoute
   '/admin/zones': typeof AdminZonesRoute
-  '/collections/$category': typeof CollectionsCategoryRouteWithChildren
+  '/collections/$category': typeof CollectionsCategoryRoute
   '/media/$': typeof MediaSplatRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/admin': typeof AdminIndexRoute
@@ -240,7 +240,7 @@ export interface FileRoutesById {
   '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/home': typeof AdminHomeRoute
   '/admin/zones': typeof AdminZonesRoute
-  '/collections/$category': typeof CollectionsCategoryRouteWithChildren
+  '/collections/$category': typeof CollectionsCategoryRoute
   '/media/$': typeof MediaSplatRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/admin/': typeof AdminIndexRoute
@@ -248,7 +248,7 @@ export interface FileRoutesById {
   '/products/': typeof ProductsIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/admin/products/$productId': typeof AdminProductsProductIdRoute
-  '/collections/$category/$subcategory': typeof CollectionsCategorySubcategoryRoute
+  '/collections/$category_/$subcategory': typeof CollectionsCategorySubcategoryRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
   '/admin/products/': typeof AdminProductsIndexRoute
 }
@@ -333,7 +333,7 @@ export interface FileRouteTypes {
     | '/products/'
     | '/admin/orders/$orderId'
     | '/admin/products/$productId'
-    | '/collections/$category/$subcategory'
+    | '/collections/$category_/$subcategory'
     | '/admin/orders/'
     | '/admin/products/'
   fileRoutesById: FileRoutesById
@@ -349,11 +349,12 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
-  CollectionsCategoryRoute: typeof CollectionsCategoryRouteWithChildren
+  CollectionsCategoryRoute: typeof CollectionsCategoryRoute
   MediaSplatRoute: typeof MediaSplatRoute
   ProductsSlugRoute: typeof ProductsSlugRoute
   CollectionsIndexRoute: typeof CollectionsIndexRoute
   ProductsIndexRoute: typeof ProductsIndexRoute
+  CollectionsCategorySubcategoryRoute: typeof CollectionsCategorySubcategoryRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -533,12 +534,12 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProductsProductIdRouteImport
       parentRoute: typeof AdminRoute
     }
-    '/collections/$category/$subcategory': {
-      id: '/collections/$category/$subcategory'
-      path: '/$subcategory'
+    '/collections/$category_/$subcategory': {
+      id: '/collections/$category_/$subcategory'
+      path: '/collections/$category/$subcategory'
       fullPath: '/collections/$category/$subcategory'
       preLoaderRoute: typeof CollectionsCategorySubcategoryRouteImport
-      parentRoute: typeof CollectionsCategoryRoute
+      parentRoute: typeof rootRouteImport
     }
   }
 }
@@ -571,17 +572,6 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
-interface CollectionsCategoryRouteChildren {
-  CollectionsCategorySubcategoryRoute: typeof CollectionsCategorySubcategoryRoute
-}
-
-const CollectionsCategoryRouteChildren: CollectionsCategoryRouteChildren = {
-  CollectionsCategorySubcategoryRoute: CollectionsCategorySubcategoryRoute,
-}
-
-const CollectionsCategoryRouteWithChildren =
-  CollectionsCategoryRoute._addFileChildren(CollectionsCategoryRouteChildren)
-
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -593,11 +583,12 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
-  CollectionsCategoryRoute: CollectionsCategoryRouteWithChildren,
+  CollectionsCategoryRoute: CollectionsCategoryRoute,
   MediaSplatRoute: MediaSplatRoute,
   ProductsSlugRoute: ProductsSlugRoute,
   CollectionsIndexRoute: CollectionsIndexRoute,
   ProductsIndexRoute: ProductsIndexRoute,
+  CollectionsCategorySubcategoryRoute: CollectionsCategorySubcategoryRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

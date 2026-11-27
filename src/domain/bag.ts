@@ -46,7 +46,8 @@ export function addBagLine(
   if (existing) {
     const nextQty = Math.min(cap, existing.qty + qty);
     return {
-      bag: bag.map((item) => (item === existing ? { ...item, qty: Math.max(existing.qty, nextQty) } : item)),
+      // A line already above the cap (stock fell since it was added) comes down to it.
+      bag: bag.map((item) => (item === existing ? { ...item, qty: nextQty } : item)),
       added: true,
     };
   }
@@ -112,7 +113,10 @@ export function resolveBagLines(items: BagItem[], lookup: BagLookup | undefined)
     if (!variant) return { status: "unavailable", item, product };
     if (variant.availability === "out_of_stock") return { status: "out_of_stock", item, product, variant };
     if (variant.availability === "preorder") return { status: "unavailable", item, product };
-    return { status: "ok", item, product, variant };
+    // A saved quantity above the colour's stock is read as the stock, so the subtotal, the delivery weight and the
+    // order all use what can actually be sold (the server still checks the real count).
+    const cap = Math.max(1, maxQtyForStock(variant.stock));
+    return { status: "ok", item: item.qty > cap ? { ...item, qty: cap } : item, product, variant };
   });
 }
 

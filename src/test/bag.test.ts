@@ -219,3 +219,18 @@ describe("stock limits and low stock label (C2.4)", () => {
     expect(second.bag).toEqual([{ id: 1, variant: 0, qty: 2 }]);
   });
 });
+
+describe("stock caps on saved lines (review fix)", () => {
+  test("a saved quantity above the stock resolves to the stock, and the subtotal uses it", () => {
+    const base = card(1, 100);
+    const product = { ...base, variants: [{ ...base.variants[0]!, stock: 2 }] } as ProductCard;
+    const lines = resolveBagLines([{ id: 1, variant: 0, qty: 8 }], { products: [product], missing: [] });
+    expect(lines[0]).toMatchObject({ status: "ok", item: { qty: 2 } });
+    expect(bagSubtotal(lines)).toBe(200);
+  });
+
+  test("adding to a line above the cap brings it down to the cap", () => {
+    const { bag } = addBagLine([{ id: 1, variant: 0, qty: 8 }], 1, 0, 1, 2);
+    expect(bag).toEqual([{ id: 1, variant: 0, qty: 2 }]);
+  });
+});

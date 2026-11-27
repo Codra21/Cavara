@@ -23,6 +23,7 @@ import { listingQueryOptions } from "@/lib/query";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { Icon } from "@/components/ui/primitives";
 import { ProductCard } from "@/components/home/ProductCard";
+import { CategoryLink, useCollectionTarget } from "./CategoryLink";
 
 /** A link to a listing page: `/collections/<category>` with a category, `/products` without one. */
 function ListingLink({
@@ -40,9 +41,9 @@ function ListingLink({
   onClick?: () => void;
 }) {
   return category ? (
-    <Link to="/collections/$category" params={{ category }} search={search} activeOptions={{ exact: true }} {...rest}>
+    <CategoryLink category={category} search={search} activeOptions={{ exact: true }} {...rest}>
       {children}
-    </Link>
+    </CategoryLink>
   ) : (
     <Link to="/products" search={search} activeOptions={{ exact: true }} {...rest}>
       {children}
@@ -97,16 +98,26 @@ export function ProductListing({ category, search }: { category?: string; search
   });
   const head = results.find((result) => result.data)?.data;
 
-  const go = (next: ListSearch, targetCategory = latestCategory.current) =>
-    targetCategory
+  const collectionTarget = useCollectionTarget();
+  const go = (next: ListSearch, targetCategory = latestCategory.current) => {
+    if (!targetCategory) return navigate({ to: "/products", search: next, replace: true, resetScroll: false });
+    const target = collectionTarget(targetCategory);
+    return target.subcategory
       ? navigate({
-          to: "/collections/$category",
-          params: { category: targetCategory },
+          to: "/collections/$category/$subcategory",
+          params: { category: target.category, subcategory: target.subcategory },
           search: next,
           replace: true,
           resetScroll: false,
         })
-      : navigate({ to: "/products", search: next, replace: true, resetScroll: false });
+      : navigate({
+          to: "/collections/$category",
+          params: { category: target.category },
+          search: next,
+          replace: true,
+          resetScroll: false,
+        });
+  };
   /** Applies a change to the filters or sort and returns to the first page. */
   const update = (patch: Partial<Record<keyof ListSearch, unknown>>) =>
     void go(parseListSearch({ ...latestSearch.current, ...patch, page: undefined }));

@@ -6,7 +6,7 @@
 
 /** Keys the app writes or migrated: no "..", no leading slash, a known prefix and an image extension. */
 export const IMAGE_KEY_PATTERN =
-  /^(?:product-images\/(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+|products\/(?:\d+|new)\/[0-9a-f-]{36})\.(?:webp|jpe?g|png|avif)$/i;
+  /^(?:product-images\/(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+|products\/(?:\d+|new|home)\/[0-9a-f-]{36})\.(?:webp|jpe?g|png|avif)$/i;
 
 export const MEDIA_ROUTE = "/media/";
 

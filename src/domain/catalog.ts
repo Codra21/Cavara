@@ -19,3 +19,40 @@ export const isProductSlug = (value: unknown): value is string =>
 /** Shape check for a category id in a URL; whether it exists is the listing's answer (a 404 when it does not). */
 export const isCategorySlug = (value: unknown): value is string =>
   typeof value === "string" && value.length >= 1 && value.length <= 64 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
+
+type CategoryRef = { id: string; slug?: string | undefined; parentId?: string | null | undefined };
+
+/** A category's public URL name: its slug, or its id when it has none. */
+export const categorySlug = (category: Pick<CategoryRef, "id" | "slug">) => category.slug || category.id;
+
+/** Finds a category by id or current slug. */
+export function findCategory<T extends CategoryRef>(categories: Iterable<T>, key: string): T | undefined {
+  let bySlug: T | undefined;
+  for (const category of categories) {
+    if (category.id === key) return category;
+    if (!bySlug && category.slug === key) bySlug = category;
+  }
+  return bySlug;
+}
+
+/**
+ * The path segments of a category's page: `{ category }` for a top-level one, `{ category, subcategory }` (the
+ * parent's slug, then its own) for a subcategory. A subcategory whose parent is missing is served at the top level.
+ */
+export function collectionSegments<T extends CategoryRef>(
+  category: T,
+  categories: Iterable<T>,
+): { category: string; subcategory?: string } {
+  const parent = category.parentId ? findCategory(categories, category.parentId) : undefined;
+  return parent
+    ? { category: categorySlug(parent), subcategory: categorySlug(category) }
+    : { category: categorySlug(category) };
+}
+
+/** `/collections/<slug>` or `/collections/<parent>/<slug>`, the one canonical path for a category. */
+export function collectionPath<T extends CategoryRef>(category: T, categories: Iterable<T>): string {
+  const segments = collectionSegments(category, categories);
+  return `/collections/${encodeURIComponent(segments.category)}${
+    segments.subcategory ? `/${encodeURIComponent(segments.subcategory)}` : ""
+  }`;
+}

@@ -1,5 +1,6 @@
 // Public product lookups over the cached snapshots. Server-only. None of these touches D1 unless a snapshot is missing
 // (see catalog-cache.server.ts), and none returns cost_price: it is not in any snapshot.
+import { collectionPath, findCategory } from "@/domain/catalog";
 import { type HomeSettings, resolveHomeSettings } from "@/domain/home-settings";
 import type { DeliveryZone } from "@/domain/orders";
 import { listProducts, type ListPage, type ListQuery, selectFeatured, selectNewest } from "@/domain/product-listing";
@@ -108,7 +109,7 @@ export async function getProductBySlug(sources: CatalogSources, slug: string): P
   return {
     imageBase: sources.imageBase,
     product: resolveProduct(priceDetail(detail, found as ProductSummary), sources.imageBase),
-    category: category ? resolveCategory(category, sources.imageBase) : null,
+    category: category ? resolveCategory(category, sources.imageBase, summary.categories) : null,
   };
 }
 
@@ -119,38 +120,22 @@ export interface ProductListing extends Omit<ListPage, "items"> {
   categoryNames: Record<string, string>;
   /** The category the query asked for; null when none was asked for or no such category exists. */
   category: Category | null;
-  /** Canonical path when the requested category slug was renamed and should 301-redirect. */
-  redirectTo?: string | null;
+  /**
+   * The category page's one canonical path (`collectionPath`): current slugs, the parent's included. The route 301s any
+   * other path that reached this category (an old slug, a moved subcategory, a renamed parent) to it.
+   */
+  canonicalPath?: string;
 }
 
 /** One page of the product listing: filtered, sorted and paged in memory over the summary. No D1. */
-function canonicalCategoryPath(category: Category, byId: ReadonlyMap<string, Category>): string {
-  const slug = category.slug || category.id;
-  if (category.parentId) {
-    const parent = byId.get(category.parentId);
-    if (parent) return `/collections/${parent.slug || parent.id}/${slug}`;
-  }
-  return `/collections/${slug}`;
-}
-
 export async function listProductsPage(sources: CatalogSources, query: ListQuery): Promise<ProductListing> {
   const summary = await getPricedSummary(sources);
   const index = summaryIndex(summary);
-  let redirectTo: string | null = null;
   let resolvedCategory: Category | undefined;
   if (query.category) {
-    resolvedCategory =
-      summary.categories.find((cat) => (cat.slug || cat.id) === query.category) ??
-      index.categoryById.get(query.category);
-    if (resolvedCategory && (resolvedCategory.slug || resolvedCategory.id) !== query.category) {
-      redirectTo = canonicalCategoryPath(resolvedCategory, index.categoryById);
-    } else if (!resolvedCategory && summary.categorySlugs?.[query.category]) {
-      const target = index.categoryById.get(summary.categorySlugs[query.category]!);
-      if (target) {
-        resolvedCategory = target;
-        redirectTo = canonicalCategoryPath(target, index.categoryById);
-      }
-    }
+    resolvedCategory = findCategory(summary.categories, query.category);
+    const renamedTo = resolvedCategory ? undefined : summary.categorySlugs?.[query.category];
+    if (renamedTo) resolvedCategory = index.categoryById.get(renamedTo);
   }
   const effectiveQuery = resolvedCategory ? { ...query, category: resolvedCategory.id } : query;
   const { items, ...page } = listProducts(summary, effectiveQuery);
@@ -160,8 +145,8 @@ export async function listProductsPage(sources: CatalogSources, query: ListQuery
     imageBase: sources.imageBase,
     products,
     categoryNames: namesFor(index, products),
-    category: resolvedCategory ? resolveCategory(resolvedCategory, sources.imageBase) : null,
-    ...(redirectTo ? { redirectTo } : {}),
+    category: resolvedCategory ? resolveCategory(resolvedCategory, sources.imageBase, summary.categories) : null,
+    ...(resolvedCategory ? { canonicalPath: collectionPath(resolvedCategory, summary.categories) } : {}),
   };
 }
 
@@ -175,11 +160,17 @@ export interface CategoriesData {
 export async function getCategories(sources: CatalogSources): Promise<CategoriesData> {
   const summary = await getPricedSummary(sources);
   const counts = new Map<string, number>();
-  for (const product of summary.products) counts.set(product.category, (counts.get(product.category) ?? 0) + 1);
+  const byId = new Map(summary.categories.map((category) => [category.id, category]));
+  // A parent's count includes its subcategories' products, the same set its page lists.
+  for (const product of summary.products) {
+    counts.set(product.category, (counts.get(product.category) ?? 0) + 1);
+    const parent = byId.get(product.category)?.parentId;
+    if (parent && parent !== product.category) counts.set(parent, (counts.get(parent) ?? 0) + 1);
+  }
   return {
     imageBase: sources.imageBase,
     categories: summary.categories.map((category) => ({
-      ...resolveCategory(category, sources.imageBase),
+      ...resolveCategory(category, sources.imageBase, summary.categories),
       count: counts.get(category.id) ?? 0,
     })),
   };

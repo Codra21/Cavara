@@ -84,7 +84,7 @@ describe("category manager, two-level hierarchy, and 301 slug redirects (C2.6)",
 
     await invalidateCatalogCache("");
     const listing = await listProductsPage({ imageBase: "", db: () => db }, { category: "ceramic-mugs" });
-    expect(listing.redirectTo).toBe("/collections/drinkware/handcrafted-mugs");
+    expect(listing.canonicalPath).toBe("/collections/drinkware/handcrafted-mugs");
 
     const all = await listManagedCategories(db);
     expect(all.some((cat) => cat.id === "ceramic-mugs" && cat.slug === "handcrafted-mugs")).toBe(true);

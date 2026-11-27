@@ -169,7 +169,7 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
                   />
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor={`${id}-${row.key}-charge`}>Charge (৳)</Label>
+                  <Label htmlFor={`${id}-${row.key}-charge`}>Base, first kg (৳)</Label>
                   <Input
                     id={`${id}-${row.key}-charge`}
                     type="number"
