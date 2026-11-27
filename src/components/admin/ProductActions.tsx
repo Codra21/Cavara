@@ -31,6 +31,10 @@ export function DuplicateDialog({
   const queryClient = useQueryClient();
   const [includeImages, setIncludeImages] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const reset = () => {
+    setError(null);
+    setIncludeImages(true);
+  };
 
   const duplicate = useMutation({
     mutationFn: (source: { id: number; name: string }) =>
@@ -44,6 +48,7 @@ export function DuplicateDialog({
         { id: result.id, name: copyName(source.name), slug: result.slug, status: "draft" },
       ]);
       await invalidateProductData(queryClient);
+      reset();
       onClose();
       await navigate({ to: "/admin/products/$productId", params: { productId: String(result.id) } });
     },
@@ -55,7 +60,7 @@ export function DuplicateDialog({
       open={product !== null}
       onOpenChange={(open) => {
         if (!open) {
-          setError(null);
+          reset();
           onClose();
         }
       }}
@@ -68,7 +73,11 @@ export function DuplicateDialog({
       confirmLabel="Duplicate"
       pendingLabel="Copying…"
       pending={duplicate.isPending}
-      onConfirm={() => product && duplicate.mutate(product)}
+      onConfirm={() => {
+        if (!product) return;
+        setError(null);
+        duplicate.mutate(product);
+      }}
     >
       <div className="grid gap-2">
         <div className="flex items-start gap-2">

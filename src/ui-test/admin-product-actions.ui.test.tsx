@@ -203,3 +203,37 @@ test("Copy pictures toggles with Space and the Duplicate button sends the choice
   await user.click(screen.getByRole("button", { name: "Cancel" }));
   expect(onClose).toHaveBeenCalledTimes(1);
 });
+
+test("DuplicateDialog resets Copy pictures and error when closed and reopened for another product", async () => {
+  const user = userEvent.setup();
+  duplicateProductFn.mockResolvedValueOnce({ ok: false, error: "Temporary failure" });
+  const client = new QueryClient();
+  const { rerender } = render(
+    <QueryClientProvider client={client}>
+      <DuplicateDialog product={{ id: 7, name: "Orange Bowl" }} onClose={() => {}} />
+    </QueryClientProvider>,
+  );
+
+  const copy = await screen.findByRole("checkbox", { name: "Copy pictures" });
+  await user.click(copy);
+  expect(copy.getAttribute("aria-checked")).toBe("false");
+
+  await user.click(screen.getByRole("button", { name: "Duplicate" }));
+  expect((await screen.findByRole("alert")).textContent).toContain("Temporary failure");
+
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+  rerender(
+    <QueryClientProvider client={client}>
+      <DuplicateDialog product={null} onClose={() => {}} />
+    </QueryClientProvider>,
+  );
+  rerender(
+    <QueryClientProvider client={client}>
+      <DuplicateDialog product={{ id: 8, name: "Green Plate" }} onClose={() => {}} />
+    </QueryClientProvider>,
+  );
+
+  const reopenedCopy = await screen.findByRole("checkbox", { name: "Copy pictures" });
+  expect(reopenedCopy.getAttribute("aria-checked")).toBe("true");
+  expect(screen.queryByRole("alert")).toBeNull();
+});
