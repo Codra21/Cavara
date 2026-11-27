@@ -14,6 +14,7 @@ vi.mock("@tanstack/react-router", () => ({
     </a>
   ),
   useNavigate: () => vi.fn(),
+  useLocation: () => ({ pathname: "/" }),
 }));
 vi.mock("@/components/store/StoreProvider", () => ({
   useStore: () => ({ theme: "light", toggleTheme: vi.fn(), bagCount: 0, bagBump: 0, openBag }),
@@ -22,6 +23,7 @@ vi.mock("@/components/layout/useShopNavigation", () => ({ useShopNavigation: () 
 vi.mock("@/components/store/useOpenProduct", () => ({ useOpenProduct: () => openProduct }));
 vi.mock("@/lib/query", () => ({ useHome: () => ({ lookbook: null }), useCategories: () => ({ imageBase: "" }) }));
 
+const { GlobalEffects } = await import("@/components/layout/GlobalEffects");
 const { QuickDock } = await import("@/components/layout/SiteChrome");
 const { SiteHeader } = await import("@/components/layout/SiteHeader");
 const { LookbookSpot } = await import("@/components/home/HomeSections");
@@ -256,4 +258,27 @@ test("QuickDock Home link scrolls to the top instead of relying on the sticky #t
   await user.click(home);
   expect(scrollTo).toHaveBeenCalledWith({ top: 0, behavior: "smooth" });
   scrollTo.mockRestore();
+});
+
+test("GlobalEffects removes .media-failed when a replacement image loads", () => {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }),
+  });
+  const { container } = render(
+    <>
+      <GlobalEffects />
+      <div className="product-media">
+        <img alt="Mug" src="/media/broken.webp" />
+      </div>
+    </>,
+  );
+  const wrapper = container.querySelector(".product-media")!;
+  const img = container.querySelector("img")!;
+
+  img.dispatchEvent(new Event("error"));
+  expect(wrapper.classList.contains("media-failed")).toBe(true);
+
+  img.dispatchEvent(new Event("load"));
+  expect(wrapper.classList.contains("media-failed")).toBe(false);
 });

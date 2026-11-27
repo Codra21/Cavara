@@ -137,13 +137,21 @@ export function GlobalEffects() {
     return () => document.removeEventListener("keydown", onKey);
   }, [goToShop]);
 
-  // Broken images fall back to the tinted placeholder styling.
+  // Broken images fall back to the tinted placeholder styling; clear it once a replacement image loads.
   useEffect(() => {
     const onError = (event: Event) => {
       if (event.target instanceof HTMLImageElement) event.target.closest(MEDIA_WRAPPERS)?.classList.add("media-failed");
     };
+    const onLoad = (event: Event) => {
+      if (event.target instanceof HTMLImageElement)
+        event.target.closest(MEDIA_WRAPPERS)?.classList.remove("media-failed");
+    };
     document.addEventListener("error", onError, true);
-    return () => document.removeEventListener("error", onError, true);
+    document.addEventListener("load", onLoad, true);
+    return () => {
+      document.removeEventListener("error", onError, true);
+      document.removeEventListener("load", onLoad, true);
+    };
   }, []);
 
   return <StudioCursor />;
