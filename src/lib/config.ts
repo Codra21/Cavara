@@ -32,15 +32,14 @@ export const HERO_SLIDES = [
   { id: 5, eyebrow: "Sculptural serveware", title: "Soft-edged dishes in four glazes.", word: "glazes" },
 ];
 
-/** The header menu. "How to order" scrolls to the home section; the rest are their own pages. */
-export const NAV_LINKS: readonly (
-  | { label: string; to: "/products" | "/collections" | "/pre-order" | "/about" | "/contact" }
-  | { label: string; hash: string }
-)[] = [
+/** The header menu. How to order is reached from the home page and the footer, not from here. */
+export const NAV_LINKS: readonly {
+  label: string;
+  to: "/products" | "/collections" | "/pre-order" | "/about" | "/contact";
+}[] = [
   { label: "Products", to: "/products" },
   { label: "Collections", to: "/collections" },
   { label: "Pre-order", to: "/pre-order" },
   { label: "About", to: "/about" },
-  { label: "How to order", hash: "ordering" },
   { label: "Contact", to: "/contact" },
 ];

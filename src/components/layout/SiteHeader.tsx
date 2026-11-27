@@ -2,7 +2,6 @@ import { Link } from "@tanstack/react-router";
 import { Popover, PopoverContent, PopoverTrigger } from "@ui-sdk/react/popover";
 import { useEffect, useRef, useState } from "react";
 import { NAV_LINKS } from "@/lib/config";
-import { scrollToHomeSection } from "@/lib/dom";
 import { pluralize } from "@/domain/catalog";
 import { useStore } from "@/components/store/StoreProvider";
 import { BrandLogo, Icon, SrOnly } from "@/components/ui/primitives";
@@ -89,22 +88,11 @@ export function SiteHeader() {
           </div>
 
           <nav className="primary-nav" aria-label="Primary">
-            {NAV_LINKS.map((link) =>
-              "to" in link ? (
-                <Link key={link.label} to={link.to}>
-                  {link.label}
-                </Link>
-              ) : (
-                <Link
-                  key={link.label}
-                  to="/"
-                  hash={link.hash}
-                  onClick={(event) => scrollToHomeSection(event, link.hash)}
-                >
-                  {link.label}
-                </Link>
-              ),
-            )}
+            {NAV_LINKS.map((link) => (
+              <Link key={link.label} to={link.to}>
+                {link.label}
+              </Link>
+            ))}
           </nav>
 
           <div className="header-actions">
@@ -130,25 +118,11 @@ export function SiteHeader() {
         <PopoverContent inline initialFocus="none" className="mobile-nav">
           <div className="container">
             <nav aria-label="Mobile">
-              {NAV_LINKS.map((link) =>
-                "to" in link ? (
-                  <Link key={link.label} to={link.to} onClick={() => setMenuOpen(false)}>
-                    {link.label}
-                  </Link>
-                ) : (
-                  <Link
-                    key={link.label}
-                    to="/"
-                    hash={link.hash}
-                    onClick={(event) => {
-                      setMenuOpen(false);
-                      scrollToHomeSection(event, link.hash);
-                    }}
-                  >
-                    {link.label}
-                  </Link>
-                ),
-              )}
+              {NAV_LINKS.map((link) => (
+                <Link key={link.label} to={link.to} onClick={() => setMenuOpen(false)}>
+                  {link.label}
+                </Link>
+              ))}
             </nav>
           </div>
         </PopoverContent>
