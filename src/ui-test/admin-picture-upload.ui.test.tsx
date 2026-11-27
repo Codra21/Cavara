@@ -117,3 +117,16 @@ test("duplicate uploaded image keys are deduplicated without React key errors", 
     errSpy.mockRestore();
   }
 });
+
+test("Sort order input can be cleared and accepts negative numbers", async () => {
+  const user = userEvent.setup({ pointerEventsCheck: 0 });
+  render(<ProductEditor product={null} categories={[{ id: "tableware", name: "Tableware" }]} />, {
+    wrapper: Providers,
+  });
+
+  const sortInput = screen.getByLabelText("Sort order") as HTMLInputElement;
+  await user.clear(sortInput);
+  expect(sortInput.value).toBe("");
+  await user.type(sortInput, "-5");
+  expect(sortInput.value).toBe("-5");
+});

@@ -426,6 +426,7 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
   }, [product, categories]);
   const [values, setValues] = useState<EditorFormValues>(initial);
   const [detailsText, setDetailsText] = useState((initial.details ?? []).join("\n"));
+  const [sortText, setSortText] = useState(String(initial.sort ?? 0));
   const [slugTouched, setSlugTouched] = useState(Boolean(product));
   const [problems, setProblems] = useState<string[]>([]);
   const [conflict, setConflict] = useState(false);
@@ -781,11 +782,16 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
           <Field label="Sort order" htmlFor={`${id}-sort`} hint="Lower numbers come first on the shop.">
             <Input
               id={`${id}-sort`}
-              type="number"
+              type="text"
               inputMode="numeric"
-              step={1}
-              value={String(values.sort ?? 0)}
-              onChange={(e) => set("sort", toTaka(e.target.value) ?? 0)}
+              value={sortText}
+              onChange={(e) => {
+                const raw = e.target.value;
+                setSortText(raw);
+                const parsed = toTaka(raw);
+                if (parsed !== null) set("sort", parsed);
+                else if (raw.trim() === "") set("sort", 0);
+              }}
             />
           </Field>
           <div className="flex items-center gap-2 self-center">
