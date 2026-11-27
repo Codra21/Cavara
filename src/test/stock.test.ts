@@ -433,6 +433,22 @@ describe("placing an order", () => {
     };
   }
 
+  test("reports soldOutProducts when concurrent stock decrement makes this order take the last unit", async () => {
+    const db = createTestD1();
+    const product = await makeProduct(db, ["Sage"]);
+    const sage = product.variants[0]!;
+    await count(db, product.id, sage.id, 2);
+
+    // Another order or stock-out takes 1 unit after readSelections saw stock=2, before insertOrder runs.
+    changeOnOrderInsert(db, () => {
+      db.sqlite.run("UPDATE product_variants SET stock = 1 WHERE id = ?", [sage.id]);
+    });
+
+    const result = await order(db, [{ productId: product.id, variant: 0, qty: 1 }]);
+    expect(result).toMatchObject({ ok: true, soldOutProducts: [product.id] });
+    expect(stockOf(db, sage.id)).toEqual({ stock: 0, availability: "out_of_stock" });
+  });
+
   test("a colour deleted after the lines were read saves nothing and names the bag", async () => {
     const db = createTestD1();
     const product = await makeProduct(db, ["Sage"]);

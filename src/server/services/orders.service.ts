@@ -36,9 +36,10 @@ import {
 import { type CouponAnswer, type CouponRule, couponMessage, evaluateCoupon } from "@/domain/coupons";
 import { bestSale } from "@/domain/discounts";
 import { rateLimitSubject } from "@/domain/rate-limit-subject";
-import { crossesZero, isShort, shortageMessage } from "@/domain/stock";
+import { isShort, shortageMessage } from "@/domain/stock";
 import type { D1Database } from "@/server/db/d1";
 import { readLiveSales } from "@/server/db/catalog.repository";
+import { readCrossedProducts } from "@/server/db/stock.repository";
 import {
   consumeOrderLimits,
   findOrderByIdempotencyKey,
@@ -259,16 +260,15 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
     try {
       const placed = await insertOrder(db, { ...base, reference });
       if (!placed) return refusedAfterRead(db, input, { zone, itemsTotal, lines, now });
-      // Counted colours this order took to 0 or below stop being in stock; the shop's copy follows after the reply.
-      const soldOutProducts = [
-        ...new Set(
-          lines.flatMap((line) =>
-            line.stock !== null && line.availability !== "preorder" && crossesZero(line.stock, line.stock - line.qty)
-              ? [line.productId]
-              : [],
-          ),
-        ),
-      ];
+      // Counted colours this order took to 0 or below stop being in stock; read from the written movements so
+      // concurrent stock changes between readSelections and insertOrder cannot leave R2 snapshots stale.
+      const nonPreorder = new Set(
+        lines.filter((line) => line.availability !== "preorder").map((line) => line.productId),
+      );
+      const soldOutProducts =
+        nonPreorder.size > 0
+          ? (await readCrossedProducts(db, base.id, base.createdAt)).filter((id) => nonPreorder.has(id))
+          : [];
       return { ok: true, reference, total, replayed: false, orderId: base.id, soldOutProducts };
     } catch (error) {
       if (isUnique(error, "idempotency_key")) {
