@@ -47,3 +47,31 @@ test("staff navigation hides owner-only Products link while owner sees it", () =
   renderShell("owner");
   expect(screen.getByRole("link", { name: /Products/i })).toBeTruthy();
 });
+
+test("a failed sign-out keeps cached admin queries intact and shows an alert instead of rejecting", async () => {
+  const { signOutFn } = await import("@/server/functions/admin-auth.functions");
+  const mockSignOut = vi.mocked(signOutFn);
+  mockSignOut.mockRejectedValueOnce(new Error("Network offline"));
+
+  const client = new QueryClient();
+  client.setQueryData(["admin", "orders"], [{ id: 1 }]);
+  const onSignedOut = vi.fn(async () => {});
+  const { default: userEvent } = await import("@testing-library/user-event");
+  const user = userEvent.setup();
+
+  render(
+    <QueryClientProvider client={client}>
+      <AdminShell admin={{ id: "1", username: "owner", role: "owner" }} onSignedOut={onSignedOut}>
+        <p>Body</p>
+      </AdminShell>
+    </QueryClientProvider>,
+  );
+
+  await user.click(screen.getByRole("button", { name: /Sign out/i }));
+
+  const alert = await screen.findByRole("alert");
+  expect(alert.textContent).toContain("Network offline");
+  expect(onSignedOut).not.toHaveBeenCalled();
+  expect(client.getQueryData(["admin", "orders"])).toEqual([{ id: 1 }]);
+  expect((screen.getByRole("button", { name: /Sign out/i }) as HTMLButtonElement).disabled).toBe(false);
+});

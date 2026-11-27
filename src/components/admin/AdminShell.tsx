@@ -3,6 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { LayoutDashboard, LogOut, Moon, Package, Percent, ShieldBan, ShoppingBag, Sun, Truck } from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import type { AdminIdentity } from "@/domain/admin";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/ui/primitives";
@@ -44,18 +45,22 @@ export function AdminShell({
 }) {
   const queryClient = useQueryClient();
   const [pending, setPending] = useState(false);
+  const [signOutError, setSignOutError] = useState<string | null>(null);
   const { dark, toggle } = useAdminTheme();
 
   async function signOut() {
     setPending(true);
+    setSignOutError(null);
     try {
       await signOutFn();
-    } finally {
       // Order matters: removing a query while its component is still mounted makes it refetch (and fail with 401).
       // Cancel in-flight requests, let the route switch to the sign-in form, then drop the private data.
       await queryClient.cancelQueries({ queryKey: ADMIN_QUERY_KEY });
       await onSignedOut();
       queryClient.removeQueries({ queryKey: ADMIN_QUERY_KEY });
+    } catch (error) {
+      setSignOutError(error instanceof Error && error.message ? error.message : "Could not sign out. Try again.");
+    } finally {
       // Still mounted only if the session survived (the sign-out request failed); re-enable the button.
       setPending(false);
     }
@@ -137,7 +142,14 @@ export function AdminShell({
           </div>
         </div>
       </header>
-      <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:py-8">{children}</main>
+      <main className="mx-auto grid max-w-6xl gap-6 px-4 py-6 sm:py-8">
+        {signOutError ? (
+          <Alert variant="destructive" role="alert">
+            <AlertDescription>{signOutError}</AlertDescription>
+          </Alert>
+        ) : null}
+        {children}
+      </main>
     </div>
   );
 }
