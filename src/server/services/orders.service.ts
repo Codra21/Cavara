@@ -217,7 +217,8 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
   const itemsTotal = lines.reduce((sum, line) => sum + line.unitPrice * line.qty, 0);
   const couponRule = input.couponCode ? await readCouponByCode(db, input.couponCode) : null;
   const coupon = input.couponCode ? couponAnswer(couponRule, input.couponCode, itemsTotal, now.getTime()) : null;
-  const couponChanged = coupon !== null && (!coupon.ok || coupon.discount !== input.couponDiscount);
+  const couponChanged =
+    coupon !== null ? !coupon.ok || coupon.discount !== input.couponDiscount : input.couponDiscount !== 0;
 
   const priceChanged = input.items.some((item, index) => lines[index]!.unitPrice !== item.unitPrice);
   if (priceChanged || zone.charge !== input.deliveryCharge || couponChanged) {
@@ -225,7 +226,7 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
       ok: false,
       code: "price_changed",
       message:
-        couponChanged && !priceChanged && zone.charge === input.deliveryCharge
+        coupon !== null && couponChanged && !priceChanged && zone.charge === input.deliveryCharge
           ? couponChangedMessage(coupon)
           : "Some prices changed since you opened the shop. Check the new total, then send the order again.",
       prices: lines.map((line) => ({ productId: line.productId, variant: line.variant, unitPrice: line.unitPrice })),

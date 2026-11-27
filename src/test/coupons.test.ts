@@ -275,6 +275,18 @@ describe("checkout with a coupon", () => {
     expect(count(db, "orders")).toBe(0);
   });
 
+  test("a non-zero couponDiscount with an empty couponCode returns price_changed instead of charging full price", async () => {
+    const result = await submit(
+      db,
+      request([{ productId: product.id, variant: 0, qty: 1, unitPrice: product.price }], {
+        couponCode: "",
+        couponDiscount: 200,
+      }),
+    );
+    expect(result).toMatchObject({ ok: false, code: "price_changed", coupon: null });
+    expect(count(db, "orders")).toBe(0);
+  });
+
   test("a discount different from the one the shopper saw is reported, then accepted", async () => {
     addCoupon(db, { value: 10 });
     const items = [{ productId: product.id, variant: 0, qty: 1, unitPrice: product.price }];
