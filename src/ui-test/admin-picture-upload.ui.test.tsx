@@ -151,3 +151,45 @@ test("a successful save with a cache warning renders a warning alert instead of 
   expect(await screen.findByText(/shop cache could not be refreshed/i)).toBeTruthy();
   expect(screen.queryByText("Not saved")).toBeNull();
 });
+
+test("stopping stock counting on a 0-stock colour syncs ProductEditor availability instead of turning falsely dirty", () => {
+  const baseProduct = {
+    id: 1,
+    slug: "mug",
+    name: "Mug",
+    categoryId: "tableware",
+    summary: "Nice mug",
+    details: [],
+    note: null,
+    price: 500,
+    regularPrice: null,
+    costPrice: 200,
+    status: "published" as const,
+    featured: false,
+    sort: 0,
+    revision: "rev-1",
+    createdAt: "2026-11-01T00:00:00.000Z",
+    updatedAt: "2026-11-01T00:00:00.000Z",
+    archivedAt: null,
+    variants: [
+      { id: 10, name: "Sage", swatch: "#9caf88", availability: "out_of_stock" as const, stock: 0, images: ["k1"] },
+    ],
+  };
+  const { rerender } = render(
+    <ProductEditor product={baseProduct} categories={[{ id: "tableware", name: "Tableware" }]} />,
+    { wrapper: Providers },
+  );
+  expect(screen.queryByText("You have unsaved changes.")).toBeNull();
+
+  // Stock counting is stopped: stock becomes null, availability stays out_of_stock, revision is unchanged.
+  rerender(
+    <ProductEditor
+      product={{
+        ...baseProduct,
+        variants: [{ ...baseProduct.variants[0]!, stock: null }],
+      }}
+      categories={[{ id: "tableware", name: "Tableware" }]}
+    />,
+  );
+  expect(screen.queryByText("You have unsaved changes.")).toBeNull();
+});

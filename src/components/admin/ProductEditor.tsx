@@ -12,7 +12,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useId, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { formatPrice } from "@/domain/catalog";
 import { IMAGE_OPTIMIZATION, MAX_SOURCE_BYTES, mediaUrl, UPLOAD_ACCEPT } from "@/domain/media";
 import { optimizeImage } from "@/lib/optimize-image";
@@ -440,6 +440,25 @@ export function ProductEditor({
     };
   }, [product, categories]);
   const [values, setValues] = useState<EditorFormValues>(initial);
+  const prevCounted = useRef(new Map((product?.variants ?? []).map((v) => [v.id, v.stock !== null])));
+  // Toggling stock counting updates product.variants without bumping revision; sync availability when counted state flips.
+  useEffect(() => {
+    const nextMap = new Map((product?.variants ?? []).map((v) => [v.id, v.stock !== null]));
+    const flipped = new Map<number, EditorVariant["availability"]>();
+    for (const v of initial.variants ?? []) {
+      if (v.id !== null && prevCounted.current.get(v.id) !== nextMap.get(v.id)) {
+        flipped.set(v.id, v.availability);
+      }
+    }
+    prevCounted.current = nextMap;
+    if (flipped.size === 0) return;
+    setValues((previous) => ({
+      ...previous,
+      variants: (previous.variants ?? []).map((v) =>
+        v.id !== null && flipped.has(v.id) ? { ...v, availability: flipped.get(v.id)! } : v,
+      ),
+    }));
+  }, [product, initial]);
   const [detailsText, setDetailsText] = useState((initial.details ?? []).join("\n"));
   const [sortText, setSortText] = useState(String(initial.sort ?? 0));
   const [slugTouched, setSlugTouched] = useState(Boolean(product));
