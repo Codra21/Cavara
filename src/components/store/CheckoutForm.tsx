@@ -63,6 +63,7 @@ export function CheckoutForm({
   const [errors, setErrors] = useState<Partial<Record<CheckoutField, string>>>({});
   const [message, setMessage] = useState<{ tone: "error" | "notice"; text: string } | null>(null);
   const [pending, setPending] = useState(false);
+  const pendingRef = useRef(false);
   /** Prices the server reported after a price change, used until the bag lookup catches up. */
   const [serverPrices, setServerPrices] = useState<Map<string, number>>(new Map());
   const [serverCharge, setServerCharge] = useState<{ zoneId: string; charge: number } | null>(null);
@@ -72,6 +73,7 @@ export function CheckoutForm({
   const [couponText, setCouponText] = useState("");
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponPending, setCouponPending] = useState(false);
+  const couponPendingRef = useRef(false);
   /** The key is reused only for an identical retry, so a lost response cannot create a second order. */
   const attempt = useRef<{ key: string; payload: string } | null>(null);
   const errorSummary = useRef<HTMLDivElement>(null);
@@ -102,12 +104,13 @@ export function CheckoutForm({
   };
 
   async function applyCoupon() {
-    if (couponPending) return;
+    if (couponPendingRef.current) return;
     const code = normalizeCouponCode(couponText);
     if (!code) {
       setCouponError(couponText.trim() ? "Codes are 3 to 20 letters, digits or hyphens." : "Enter your code.");
       return;
     }
+    couponPendingRef.current = true;
     setCouponPending(true);
     setCouponError(null);
     try {
@@ -117,6 +120,7 @@ export function CheckoutForm({
         turnstileToken = await getTurnstileToken("coupon", couponCheck.current);
       } catch {
         setCouponError("We couldn't run the security check. Reload the page and try again.");
+        couponPendingRef.current = false;
         setCouponPending(false);
         return;
       }
@@ -132,6 +136,7 @@ export function CheckoutForm({
     } catch {
       setCouponError("We couldn't reach the shop. Check your connection and try again.");
     }
+    couponPendingRef.current = false;
     setCouponPending(false);
   }
 
@@ -143,7 +148,7 @@ export function CheckoutForm({
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    if (pending) return;
+    if (pendingRef.current) return;
     setMessage(null);
     const body: Omit<CheckoutRequest, "idempotencyKey"> = {
       ...draft,
@@ -162,6 +167,7 @@ export function CheckoutForm({
     const payload = JSON.stringify(body);
     if (attempt.current?.payload !== payload) attempt.current = { key: crypto.randomUUID(), payload };
 
+    pendingRef.current = true;
     setPending(true);
     let result: SubmitOrderResult;
     try {
@@ -171,6 +177,7 @@ export function CheckoutForm({
       try {
         turnstileToken = await getTurnstileToken("order", orderCheck.current);
       } catch {
+        pendingRef.current = false;
         setPending(false);
         setMessage({
           tone: "error",
@@ -187,6 +194,7 @@ export function CheckoutForm({
         message: "We couldn't reach the shop. Check your connection and send the order again.",
       };
     }
+    pendingRef.current = false;
     setPending(false);
 
     if (result.ok) {
