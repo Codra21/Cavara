@@ -154,11 +154,23 @@ export function listProducts(summary: CatalogSummary, query: ListQuery): ListPag
   let priceHigh = -Infinity;
   const availability = { all: 0, inStock: 0, preorder: 0 };
 
+  const matchedCat = query.category
+    ? summary.categories.find((cat) => cat.slug === query.category || cat.id === query.category)
+    : undefined;
+  const allowedCategoryIds = matchedCat
+    ? new Set([
+        matchedCat.id,
+        ...summary.categories.filter((cat) => cat.parentId === matchedCat.id).map((cat) => cat.id),
+      ])
+    : query.category
+      ? new Set([query.category])
+      : null;
+
   for (const product of summary.products) {
     present.add(product.category);
     const text = `${product.name} ${categoryNames.get(product.category) ?? ""}`.toLowerCase();
     if (!terms.every((term) => text.includes(term))) continue;
-    const inCategory = !query.category || product.category === query.category;
+    const inCategory = !allowedCategoryIds || allowedCategoryIds.has(product.category);
     const inPrice = (min === undefined || product.price >= min) && (max === undefined || product.price <= max);
     const stocked = hasColour(product, "in_stock");
     const preorder = hasColour(product, "preorder");

@@ -83,7 +83,7 @@ export async function getRelatedProducts(sources: CatalogSources, slug: string):
   const summary = await getPricedSummary(sources);
   const index = summaryIndex(summary);
   const current = index.bySlug.get(slug);
-  const products = (current ? selectRelated(summary.products, current) : []).map((product) =>
+  const products = (current ? selectRelated(summary.products, current, undefined, summary.categories) : []).map((product) =>
     resolveCard(product, sources.imageBase),
   );
   return { imageBase: sources.imageBase, products, categoryNames: namesFor(index, products) };
@@ -117,21 +117,49 @@ export interface ProductListing extends Omit<ListPage, "items"> {
   categoryNames: Record<string, string>;
   /** The category the query asked for; null when none was asked for or no such category exists. */
   category: Category | null;
+  /** Canonical path when the requested category slug was renamed and should 301-redirect. */
+  redirectTo?: string | null;
 }
 
 /** One page of the product listing: filtered, sorted and paged in memory over the summary. No D1. */
+function canonicalCategoryPath(category: Category, byId: ReadonlyMap<string, Category>): string {
+  const slug = category.slug || category.id;
+  if (category.parentId) {
+    const parent = byId.get(category.parentId);
+    if (parent) return `/collections/${parent.slug || parent.id}/${slug}`;
+  }
+  return `/collections/${slug}`;
+}
+
 export async function listProductsPage(sources: CatalogSources, query: ListQuery): Promise<ProductListing> {
   const summary = await getPricedSummary(sources);
   const index = summaryIndex(summary);
-  const { items, ...page } = listProducts(summary, query);
+  let redirectTo: string | null = null;
+  let resolvedCategory: Category | undefined;
+  if (query.category) {
+    resolvedCategory =
+      summary.categories.find((cat) => (cat.slug || cat.id) === query.category) ??
+      index.categoryById.get(query.category);
+    if (resolvedCategory && (resolvedCategory.slug || resolvedCategory.id) !== query.category) {
+      redirectTo = canonicalCategoryPath(resolvedCategory, index.categoryById);
+    } else if (!resolvedCategory && summary.categorySlugs?.[query.category]) {
+      const target = index.categoryById.get(summary.categorySlugs[query.category]!);
+      if (target) {
+        resolvedCategory = target;
+        redirectTo = canonicalCategoryPath(target, index.categoryById);
+      }
+    }
+  }
+  const effectiveQuery = resolvedCategory ? { ...query, category: resolvedCategory.id } : query;
+  const { items, ...page } = listProducts(summary, effectiveQuery);
   const products = items.map((product) => resolveCard(product, sources.imageBase));
-  const category = query.category ? index.categoryById.get(query.category) : undefined;
   return {
     ...page,
     imageBase: sources.imageBase,
     products,
     categoryNames: namesFor(index, products),
-    category: category ? resolveCategory(category, sources.imageBase) : null,
+    category: resolvedCategory ? resolveCategory(resolvedCategory, sources.imageBase) : null,
+    ...(redirectTo ? { redirectTo } : {}),
   };
 }
 

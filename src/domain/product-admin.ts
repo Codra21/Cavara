@@ -182,6 +182,7 @@ export interface AdminProductName {
 export interface AdminCategory {
   id: string;
   name: string;
+  parentId?: string | null;
 }
 
 export type SaveProductResult =

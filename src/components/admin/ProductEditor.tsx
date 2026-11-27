@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { formatPrice } from "@/domain/catalog";
+import { formatCategoryLabel } from "@/domain/categories-admin";
 import { IMAGE_OPTIMIZATION, MAX_SOURCE_BYTES, mediaUrl, UPLOAD_ACCEPT } from "@/domain/media";
 import { optimizeImage } from "@/lib/optimize-image";
 import {
@@ -656,7 +657,7 @@ export function ProductEditor({
               <SelectContent>
                 {categories.map((category) => (
                   <SelectItem key={category.id} value={category.id}>
-                    {category.name}
+                    {formatCategoryLabel(category, new Map(categories.map((c) => [c.id, c])))}
                   </SelectItem>
                 ))}
               </SelectContent>

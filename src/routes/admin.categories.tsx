@@ -1,0 +1,22 @@
+import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { CategoryManager } from "@/components/admin/CategoryManager";
+import { ADMIN_QUERY_KEY } from "@/components/admin/queries";
+import { listManagedCategoriesFn } from "@/server/functions/admin-categories.functions";
+
+const categoriesQueryOptions = () =>
+  queryOptions({
+    queryKey: [...ADMIN_QUERY_KEY, "categories"],
+    queryFn: () => listManagedCategoriesFn(),
+  });
+
+export const Route = createFileRoute("/admin/categories")({
+  loader: ({ context }) => context.queryClient.ensureQueryData(categoriesQueryOptions()),
+  head: () => ({ meta: [{ title: "Categories · Cavara Admin" }] }),
+  component: AdminCategoriesPage,
+});
+
+function AdminCategoriesPage() {
+  const { data } = useSuspenseQuery(categoriesQueryOptions());
+  return <CategoryManager categories={data} />;
+}

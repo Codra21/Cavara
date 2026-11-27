@@ -20,6 +20,7 @@ import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminBlockedRouteImport } from './routes/admin.blocked'
+import { Route as AdminCategoriesRouteImport } from './routes/admin.categories'
 import { Route as AdminDiscountsRouteImport } from './routes/admin.discounts'
 import { Route as AdminZonesRouteImport } from './routes/admin.zones'
 import { Route as CollectionsIndexRouteImport } from './routes/collections.index'
@@ -31,6 +32,7 @@ import { Route as AdminOrdersIndexRouteImport } from './routes/admin.orders.inde
 import { Route as AdminOrdersOrderIdRouteImport } from './routes/admin.orders.$orderId'
 import { Route as AdminProductsIndexRouteImport } from './routes/admin.products.index'
 import { Route as AdminProductsProductIdRouteImport } from './routes/admin.products.$productId'
+import { Route as CollectionsCategorySubcategoryRouteImport } from './routes/collections.$category.$subcategory'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -85,6 +87,11 @@ const AdminIndexRoute = AdminIndexRouteImport.update({
 const AdminBlockedRoute = AdminBlockedRouteImport.update({
   id: '/blocked',
   path: '/blocked',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminCategoriesRoute = AdminCategoriesRouteImport.update({
+  id: '/categories',
+  path: '/categories',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminDiscountsRoute = AdminDiscountsRouteImport.update({
@@ -142,6 +149,12 @@ const AdminProductsProductIdRoute = AdminProductsProductIdRouteImport.update({
   path: '/products/$productId',
   getParentRoute: () => AdminRoute,
 } as any)
+const CollectionsCategorySubcategoryRoute =
+  CollectionsCategorySubcategoryRouteImport.update({
+    id: '/$subcategory',
+    path: '/$subcategory',
+    getParentRoute: () => CollectionsCategoryRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -154,9 +167,10 @@ export interface FileRoutesByFullPath {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/admin/blocked': typeof AdminBlockedRoute
+  '/admin/categories': typeof AdminCategoriesRoute
   '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/zones': typeof AdminZonesRoute
-  '/collections/$category': typeof CollectionsCategoryRoute
+  '/collections/$category': typeof CollectionsCategoryRouteWithChildren
   '/media/$': typeof MediaSplatRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/admin/': typeof AdminIndexRoute
@@ -164,6 +178,7 @@ export interface FileRoutesByFullPath {
   '/products/': typeof ProductsIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/admin/products/$productId': typeof AdminProductsProductIdRoute
+  '/collections/$category/$subcategory': typeof CollectionsCategorySubcategoryRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
   '/admin/products/': typeof AdminProductsIndexRoute
 }
@@ -177,9 +192,10 @@ export interface FileRoutesByTo {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/admin/blocked': typeof AdminBlockedRoute
+  '/admin/categories': typeof AdminCategoriesRoute
   '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/zones': typeof AdminZonesRoute
-  '/collections/$category': typeof CollectionsCategoryRoute
+  '/collections/$category': typeof CollectionsCategoryRouteWithChildren
   '/media/$': typeof MediaSplatRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/admin': typeof AdminIndexRoute
@@ -187,6 +203,7 @@ export interface FileRoutesByTo {
   '/products': typeof ProductsIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/admin/products/$productId': typeof AdminProductsProductIdRoute
+  '/collections/$category/$subcategory': typeof CollectionsCategorySubcategoryRoute
   '/admin/orders': typeof AdminOrdersIndexRoute
   '/admin/products': typeof AdminProductsIndexRoute
 }
@@ -202,9 +219,10 @@ export interface FileRoutesById {
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
   '/admin/blocked': typeof AdminBlockedRoute
+  '/admin/categories': typeof AdminCategoriesRoute
   '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/zones': typeof AdminZonesRoute
-  '/collections/$category': typeof CollectionsCategoryRoute
+  '/collections/$category': typeof CollectionsCategoryRouteWithChildren
   '/media/$': typeof MediaSplatRoute
   '/products/$slug': typeof ProductsSlugRoute
   '/admin/': typeof AdminIndexRoute
@@ -212,6 +230,7 @@ export interface FileRoutesById {
   '/products/': typeof ProductsIndexRoute
   '/admin/orders/$orderId': typeof AdminOrdersOrderIdRoute
   '/admin/products/$productId': typeof AdminProductsProductIdRoute
+  '/collections/$category/$subcategory': typeof CollectionsCategorySubcategoryRoute
   '/admin/orders/': typeof AdminOrdersIndexRoute
   '/admin/products/': typeof AdminProductsIndexRoute
 }
@@ -228,6 +247,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/admin/blocked'
+    | '/admin/categories'
     | '/admin/discounts'
     | '/admin/zones'
     | '/collections/$category'
@@ -238,6 +258,7 @@ export interface FileRouteTypes {
     | '/products/'
     | '/admin/orders/$orderId'
     | '/admin/products/$productId'
+    | '/collections/$category/$subcategory'
     | '/admin/orders/'
     | '/admin/products/'
   fileRoutesByTo: FileRoutesByTo
@@ -251,6 +272,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/admin/blocked'
+    | '/admin/categories'
     | '/admin/discounts'
     | '/admin/zones'
     | '/collections/$category'
@@ -261,6 +283,7 @@ export interface FileRouteTypes {
     | '/products'
     | '/admin/orders/$orderId'
     | '/admin/products/$productId'
+    | '/collections/$category/$subcategory'
     | '/admin/orders'
     | '/admin/products'
   id:
@@ -275,6 +298,7 @@ export interface FileRouteTypes {
     | '/sitemap.xml'
     | '/terms'
     | '/admin/blocked'
+    | '/admin/categories'
     | '/admin/discounts'
     | '/admin/zones'
     | '/collections/$category'
@@ -285,6 +309,7 @@ export interface FileRouteTypes {
     | '/products/'
     | '/admin/orders/$orderId'
     | '/admin/products/$productId'
+    | '/collections/$category/$subcategory'
     | '/admin/orders/'
     | '/admin/products/'
   fileRoutesById: FileRoutesById
@@ -299,7 +324,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
-  CollectionsCategoryRoute: typeof CollectionsCategoryRoute
+  CollectionsCategoryRoute: typeof CollectionsCategoryRouteWithChildren
   MediaSplatRoute: typeof MediaSplatRoute
   ProductsSlugRoute: typeof ProductsSlugRoute
   CollectionsIndexRoute: typeof CollectionsIndexRoute
@@ -385,6 +410,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBlockedRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/categories': {
+      id: '/admin/categories'
+      path: '/categories'
+      fullPath: '/admin/categories'
+      preLoaderRoute: typeof AdminCategoriesRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/discounts': {
       id: '/admin/discounts'
       path: '/discounts'
@@ -462,11 +494,19 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminProductsProductIdRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/collections/$category/$subcategory': {
+      id: '/collections/$category/$subcategory'
+      path: '/$subcategory'
+      fullPath: '/collections/$category/$subcategory'
+      preLoaderRoute: typeof CollectionsCategorySubcategoryRouteImport
+      parentRoute: typeof CollectionsCategoryRoute
+    }
   }
 }
 
 interface AdminRouteChildren {
   AdminBlockedRoute: typeof AdminBlockedRoute
+  AdminCategoriesRoute: typeof AdminCategoriesRoute
   AdminDiscountsRoute: typeof AdminDiscountsRoute
   AdminZonesRoute: typeof AdminZonesRoute
   AdminIndexRoute: typeof AdminIndexRoute
@@ -478,6 +518,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBlockedRoute: AdminBlockedRoute,
+  AdminCategoriesRoute: AdminCategoriesRoute,
   AdminDiscountsRoute: AdminDiscountsRoute,
   AdminZonesRoute: AdminZonesRoute,
   AdminIndexRoute: AdminIndexRoute,
@@ -489,6 +530,17 @@ const AdminRouteChildren: AdminRouteChildren = {
 
 const AdminRouteWithChildren = AdminRoute._addFileChildren(AdminRouteChildren)
 
+interface CollectionsCategoryRouteChildren {
+  CollectionsCategorySubcategoryRoute: typeof CollectionsCategorySubcategoryRoute
+}
+
+const CollectionsCategoryRouteChildren: CollectionsCategoryRouteChildren = {
+  CollectionsCategorySubcategoryRoute: CollectionsCategorySubcategoryRoute,
+}
+
+const CollectionsCategoryRouteWithChildren =
+  CollectionsCategoryRoute._addFileChildren(CollectionsCategoryRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
@@ -499,7 +551,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,
-  CollectionsCategoryRoute: CollectionsCategoryRoute,
+  CollectionsCategoryRoute: CollectionsCategoryRouteWithChildren,
   MediaSplatRoute: MediaSplatRoute,
   ProductsSlugRoute: ProductsSlugRoute,
   CollectionsIndexRoute: CollectionsIndexRoute,

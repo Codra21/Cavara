@@ -61,7 +61,7 @@ function parseDetails(raw: string): string[] {
 }
 
 export async function listAdminCategories(db: D1Database): Promise<AdminCategory[]> {
-  const { results } = await db.prepare("SELECT id, name FROM categories ORDER BY sort, id").all<AdminCategory>();
+  const { results } = await db.prepare("SELECT id, name, parent_id AS parentId FROM categories ORDER BY sort, id").all<AdminCategory>();
   return results;
 }
 

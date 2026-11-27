@@ -1,6 +1,6 @@
 // Pieces the two listing routes (`/products` and `/collections/$category`) share: the loader and the page head.
 import type { QueryClient } from "@tanstack/react-query";
-import { notFound } from "@tanstack/react-router";
+import { notFound, redirect } from "@tanstack/react-router";
 import { isCategorySlug } from "@/domain/catalog";
 import type { ListSearch } from "@/domain/product-listing";
 import { listingSeo } from "@/domain/seo";
@@ -28,6 +28,7 @@ export async function loadListing(queryClient: QueryClient, category: string | u
       throw error;
     },
   );
+  if (listing.redirectTo) throw redirect({ href: listing.redirectTo, statusCode: 301 });
   if (category !== undefined && !listing.category) throw notFound();
   return { category: listing.category, pageCount: listing.pageCount };
 }
