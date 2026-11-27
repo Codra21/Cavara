@@ -494,7 +494,8 @@ export function ProductPage({
           <div className="pdp-bar-text">
             <p>{product.name}</p>
             <p>
-              <span>{variant.name}</span> · {formatPrice(product.price)}
+              <span>{variant.name}</span> ·{" "}
+              <PriceTag price={product.price} regularPrice={product.regularPrice} sale={product.sale} />
             </p>
           </div>
           <button className="button" type="button" onClick={add} disabled={stockTag !== null}>

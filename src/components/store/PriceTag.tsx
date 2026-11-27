@@ -1,9 +1,8 @@
 import { formatPrice } from "@/domain/catalog";
 
 /**
- * A price, with the struck-through price beside it while a sale applies (P9.2). `price` is already the charged price
- * (the server applies the sale), and `regularPrice` the higher of the pre-sale and the manual regular price. Without a
- * sale only the price shows: a manual regular price alone is not struck through, as before.
+ * A price, with the struck-through regular price and a "Save ৳N" badge whenever `regularPrice` is above `price`
+ * (whether from a timed sale or a manual regular price).
  */
 export function PriceTag({
   price,
@@ -12,18 +11,21 @@ export function PriceTag({
 }: {
   price: number;
   regularPrice: number | null;
-  sale: { badge: string } | null | undefined;
+  sale?: { badge: string } | null | undefined;
 }) {
-  if (!sale || regularPrice === null || regularPrice <= price)
+  if (regularPrice === null || regularPrice <= price) {
     return <span className="price-value">{formatPrice(price)}</span>;
+  }
+  const saved = regularPrice - price;
   return (
     <span className="price-sale">
-      <span className="sr-only">Sale price </span>
+      <span className="sr-only">{sale ? "Sale price " : "Price "}</span>
       <span className="price-now">{formatPrice(price)}</span>
       <s className="price-was">
         <span className="sr-only">, was </span>
         {formatPrice(regularPrice)}
       </s>
+      <span className="price-save">Save {formatPrice(saved)}</span>
     </span>
   );
 }
