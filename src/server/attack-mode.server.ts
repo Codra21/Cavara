@@ -120,8 +120,17 @@ export async function runAttackMode(
     console.warn(`attack mode skipped: ${missing.join(", ")} not set`);
     return null;
   }
-  const ready = env as Required<AttackEnv>;
-  const canAlert = Boolean(env.TELEGRAM_BOT_TOKEN?.trim() && env.TELEGRAM_USAGE_CHAT_ID?.trim());
+  const ready: Required<AttackEnv> = {
+    USAGE_ACCOUNT_ID: env.USAGE_ACCOUNT_ID!.trim(),
+    CF_ANALYTICS_TOKEN: env.CF_ANALYTICS_TOKEN!.trim(),
+    CF_WAF_TOKEN: env.CF_WAF_TOKEN!.trim(),
+    WAF_ZONE_ID: env.WAF_ZONE_ID!.trim(),
+    WAF_RULESET_ID: env.WAF_RULESET_ID!.trim(),
+    ATTACK_RULE_ID: env.ATTACK_RULE_ID!.trim(),
+    TELEGRAM_BOT_TOKEN: env.TELEGRAM_BOT_TOKEN?.trim() ?? "",
+    TELEGRAM_USAGE_CHAT_ID: env.TELEGRAM_USAGE_CHAT_ID?.trim() ?? "",
+  };
+  const canAlert = Boolean(ready.TELEGRAM_BOT_TOKEN && ready.TELEGRAM_USAGE_CHAT_ID);
 
   const account = await queryAnalytics(
     ready,

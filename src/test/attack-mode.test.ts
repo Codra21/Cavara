@@ -203,6 +203,57 @@ describe("runAttackMode", () => {
     expect(telegrams()).toHaveLength(0);
   });
 
+  test("trims whitespace around environment secrets and ids before calling Cloudflare or Telegram", async () => {
+    const urls: string[] = [];
+    const headers: string[] = [];
+    const fetcher = (async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      urls.push(url);
+      const auth = (init?.headers as Record<string, string> | undefined)?.Authorization;
+      if (auth) headers.push(auth);
+      if (url.includes("/graphql")) {
+        return new Response(
+          JSON.stringify({
+            data: {
+              viewer: {
+                accounts: [{ today: [{ sum: { requests: 80_000 } }], lastHour: [{ sum: { requests: 20_000 } }] }],
+              },
+            },
+          }),
+          { status: 200 },
+        );
+      }
+      if (url.includes("/rulesets/") && init?.method === "GET") {
+        return new Response(
+          JSON.stringify({
+            success: true,
+            result: { rules: [{ id: "rule-1", enabled: false, action: "managed_challenge", expression: "true" }] },
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(JSON.stringify({ success: true, ok: true }), { status: 200 });
+    }) as typeof fetch;
+
+    const report = await runAttackMode(
+      {
+        USAGE_ACCOUNT_ID: " acc-1 \n",
+        CF_ANALYTICS_TOKEN: " tok-a \n",
+        CF_WAF_TOKEN: " tok-w \n",
+        WAF_ZONE_ID: " zone-1 ",
+        WAF_RULESET_ID: " rs-1 ",
+        ATTACK_RULE_ID: " rule-1 ",
+        TELEGRAM_BOT_TOKEN: " bot-1 \n",
+        TELEGRAM_USAGE_CHAT_ID: " chat-1 ",
+      },
+      new Date("2026-11-15T12:00:00Z"),
+      fetcher,
+    );
+    expect(report?.decision).toBe("enable");
+    expect(urls.every((u) => !/\s/.test(u))).toBe(true);
+    expect(headers.every((h) => !/\r|\n/.test(h) && !h.endsWith(" "))).toBe(true);
+  });
+
   test("skips with one warning when a setting is missing, without calling anything", async () => {
     const required = (Object.keys(env) as (keyof typeof env)[]).filter((name) => !name.startsWith("TELEGRAM_"));
     for (const name of required) {
