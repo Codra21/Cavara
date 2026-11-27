@@ -1,14 +1,7 @@
 // Public product lookups over the cached snapshots. Server-only. None of these touches D1 unless a snapshot is missing
 // (see catalog-cache.server.ts), and none returns cost_price: it is not in any snapshot.
 import type { DeliveryZone } from "@/domain/orders";
-import {
-  listProducts,
-  type ListPage,
-  type ListQuery,
-  LISTING_PAGE_SIZE,
-  selectFeatured,
-  selectNewest,
-} from "@/domain/product-listing";
+import { listProducts, type ListPage, type ListQuery, selectFeatured, selectNewest } from "@/domain/product-listing";
 import { selectRelated } from "@/domain/related-products";
 import {
   priceDetail,
@@ -21,7 +14,7 @@ import {
   resolveProduct,
   summaryIndex,
 } from "@/domain/catalog-snapshot";
-import { CAROUSEL_CATEGORY, HERO_SLIDES, LOOKBOOK, PROMO_PRODUCT_ID } from "@/lib/config";
+import { HERO_SLIDES } from "@/lib/config";
 import type { Category } from "@/lib/types";
 import { type CatalogSources, getCatalogSummary, getProductDetail } from "@/server/catalog-cache.server";
 
@@ -169,14 +162,9 @@ export interface HomeData {
   newest: ProductCard[];
   /** The hero slides' products, in slide order (a product that is no longer published is left out). */
   hero: ProductCard[];
-  lookbook: ProductCard | null;
-  /** The promo band's product with its summary text and every picture. */
-  promo: PublicProduct | null;
-  /** Products of the carousel's category, in display order. */
-  carousel: ProductCard[];
 }
 
-/** Everything the home page shows, from the summary plus one detail snapshot for the promo band. */
+/** Everything the home page shows, straight from the cached summary. */
 export async function getHome(sources: CatalogSources): Promise<HomeData> {
   const summary = await getPricedSummary(sources);
   const index = summaryIndex(summary);
@@ -185,31 +173,13 @@ export async function getHome(sources: CatalogSources): Promise<HomeData> {
     const product = index.byId.get(slide.id);
     return product ? [card(product)] : [];
   });
-  const lookbook = index.byId.get(LOOKBOOK.productId);
-  const promoSummary = index.byId.get(PROMO_PRODUCT_ID);
-  // The promo band needs the summary text, which only the detail snapshot has. A cold detail reads that one product
-  // from D1 (about 13 rows, once); if that fails the band is left out instead of taking the home page down.
-  const promoDetail = promoSummary
-    ? await getProductDetail(sources, summary, promoSummary.id).catch((error: unknown) => {
-        console.error("promo product detail failed:", error);
-        return undefined;
-      })
-    : undefined;
-  const carousel = summary.products
-    .filter((product) => product.category === CAROUSEL_CATEGORY)
-    .slice(0, LISTING_PAGE_SIZE)
-    .map(card);
   const featured = selectFeatured(summary.products).map(card);
   const newest = selectNewest(summary.products).map(card);
   return {
     imageBase: sources.imageBase,
-    categoryNames: namesFor(index, [...featured, ...newest, ...hero, ...carousel]),
+    categoryNames: namesFor(index, [...featured, ...newest, ...hero]),
     featured,
     newest,
     hero,
-    lookbook: lookbook ? card(lookbook) : null,
-    promo:
-      promoDetail && promoSummary ? resolveProduct(priceDetail(promoDetail, promoSummary), sources.imageBase) : null,
-    carousel,
   };
 }

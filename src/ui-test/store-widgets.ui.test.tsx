@@ -26,7 +26,6 @@ vi.mock("@/lib/query", () => ({ useHome: () => ({ lookbook: null }), useCategori
 const { GlobalEffects } = await import("@/components/layout/GlobalEffects");
 const { QuickDock } = await import("@/components/layout/SiteChrome");
 const { SiteHeader } = await import("@/components/layout/SiteHeader");
-const { LookbookSpot } = await import("@/components/home/HomeSections");
 const { Swatch, SwatchGroup } = await import("@/components/ui/primitives");
 
 beforeEach(() => {
@@ -84,68 +83,6 @@ test("choosing a mobile menu link closes the menu", async () => {
   await user.click(link);
   expect(screen.queryByRole("navigation", { name: "Mobile" })).toBeNull();
   expect(menuToggle().getAttribute("aria-expanded")).toBe("false");
-});
-
-const lookbookProduct = {
-  id: 5,
-  name: "Breakfast dish",
-  price: 1200,
-  images: ["/dish.webp"],
-  variants: [
-    { name: "Sage", swatch: "#9caf88", availability: "in_stock", image: "/sage.webp" },
-    { name: "Honey", swatch: "#e0a458", availability: "in_stock", image: "/honey.webp" },
-  ],
-} as unknown as Parameters<typeof LookbookSpot>[0]["product"];
-
-function renderSpot() {
-  return render(
-    <>
-      <LookbookSpot product={lookbookProduct} spot={{ variant: 1, x: 21, y: 70 }} />
-      <button type="button">Elsewhere</button>
-    </>,
-  );
-}
-
-const marker = () => screen.getByRole("button", { name: "Breakfast dish, Honey" });
-
-test("a lookbook marker opens its product card, and a second press closes it", async () => {
-  const user = userEvent.setup();
-  const { container } = renderSpot();
-  expect(marker().getAttribute("aria-expanded")).toBe("false");
-  expect(screen.queryByRole("dialog")).toBeNull();
-
-  await user.click(marker());
-  expect(marker().getAttribute("aria-expanded")).toBe("true");
-  const card = screen.getByRole("dialog", { name: "Breakfast dish" });
-  expect(marker().getAttribute("aria-controls")).toBe(card.id);
-  expect(card.textContent).toContain("Honey");
-  expect(container.querySelector(".studio-spot.is-start.is-bottom.is-open")).toBeTruthy();
-  expect(container.querySelector(".studio-spot")?.getAttribute("style")).toContain("--x: 21%");
-
-  await user.click(marker());
-  expect(screen.queryByRole("dialog")).toBeNull();
-  expect(container.querySelector(".is-open")).toBeNull();
-});
-
-test("Escape and an outside press close a lookbook card, with focus on the marker", async () => {
-  const user = userEvent.setup();
-  renderSpot();
-  await user.click(marker());
-  await user.keyboard("{Escape}");
-  expect(screen.queryByRole("dialog")).toBeNull();
-  expect(document.activeElement).toBe(marker());
-
-  await user.click(marker());
-  await user.click(screen.getByRole("button", { name: "Elsewhere" }));
-  expect(screen.queryByRole("dialog")).toBeNull();
-});
-
-test("a lookbook card opens the piece", async () => {
-  const user = userEvent.setup();
-  renderSpot();
-  await user.click(marker());
-  await user.click(screen.getByRole("button", { name: "View piece" }));
-  expect(openProduct).toHaveBeenCalledWith(lookbookProduct, 1);
 });
 
 const colours = [
@@ -220,32 +157,25 @@ test("the group is one tab stop and the +N button follows it", async () => {
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "+2" }));
 });
 
-test("an agent can find the header menu, a lookbook marker and the colour group", async () => {
+test("an agent can find the header menu and the colour group", async () => {
   const agent = createAgent();
   render(
     <>
       <SiteHeader />
-      <LookbookSpot product={lookbookProduct} spot={{ variant: 1, x: 50, y: 20 }} />
       <Picker />
     </>,
   );
   const entries = agent.snapshot().filter((entry) => !entry.offPage && entry.component !== "more");
   for (const entry of entries) expect(entry.label, `${entry.component} ${entry.ref} has no name`).toBeTruthy();
   const labels = entries.map((entry) => entry.label);
-  for (const label of ["Choose a colour", "Breakfast dish, Honey"]) {
-    expect(labels, `${label} is missing from the snapshot`).toContain(label);
-  }
+  expect(labels, "Choose a colour is missing from the snapshot").toContain("Choose a colour");
   expect(labels.some((label) => /menu/i.test(label ?? ""))).toBe(true);
 
   const result = await agent.act({
-    steps: [
-      { ref: "Choose a colour", action: "setValue", args: ["Slate"] },
-      { ref: "Breakfast dish, Honey", action: "open" },
-    ],
+    steps: [{ ref: "Choose a colour", action: "setValue", args: ["Slate"] }],
   });
   expect(result.ok, result.error?.message).toBe(true);
   expect(screen.getByRole("radio", { name: "Slate" }).getAttribute("aria-checked")).toBe("true");
-  expect(screen.getByRole("dialog", { name: "Breakfast dish" })).toBeTruthy();
 });
 
 test("QuickDock Home link scrolls to the top instead of relying on the sticky #top header", async () => {

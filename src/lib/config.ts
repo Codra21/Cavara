@@ -32,21 +32,6 @@ export const HERO_SLIDES = [
   { id: 5, eyebrow: "Sculptural serveware", title: "Soft-edged dishes in four glazes.", word: "glazes" },
 ];
 
-export const PROMO_PRODUCT_ID = 10;
-export const CAROUSEL_CATEGORY = "drinkware";
-
-export const LOOKBOOK = {
-  productId: 5,
-  /** R2 key; resolve with mediaUrl(). */
-  image: "product-images/jba-oct/jba-yellow1.webp",
-  spots: [
-    { variant: 1, x: 50, y: 13 },
-    { variant: 3, x: 21, y: 29 },
-    { variant: 2, x: 89, y: 32 },
-    { variant: 0, x: 79, y: 63 },
-  ],
-};
-
 /** The header menu. "Products" is its own page; the others scroll to a section of the home page. */
 export const NAV_LINKS: readonly ({ label: string; to: "/products" } | { label: string; hash: string })[] = [
   { label: "Products", to: "/products" },

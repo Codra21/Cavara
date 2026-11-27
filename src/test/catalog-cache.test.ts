@@ -1,6 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { decodeSummary, encodeSummary, newGeneration } from "@/domain/catalog-snapshot";
-import { PROMO_PRODUCT_ID } from "@/lib/config";
 import {
   type CatalogSources,
   getCachedCatalog,
@@ -293,8 +292,7 @@ describe("getProductDetail and the public lookups", () => {
   });
 
   test("getCategories and getHome come from the summary with no D1 read", async () => {
-    const summary = await getCatalogSummary(sources());
-    await getProductDetail(sources(), summary, PROMO_PRODUCT_ID);
+    await getCatalogSummary(sources());
     d1.clear();
     const chrome = await getCategories(sources({ imageBase: "https://images.cavarabd.com" }));
     expect(chrome.imageBase).toBe("https://images.cavarabd.com");
@@ -306,21 +304,6 @@ describe("getProductDetail and the public lookups", () => {
     expect(home.featured.every((card) => card.featured)).toBe(true);
     expect(home.newest).toHaveLength(8);
     expect(home.hero.length).toBeGreaterThan(0);
-    expect(home.carousel.every((card) => card.category === "drinkware")).toBe(true);
-    expect(home.promo?.summary).toBeTruthy();
     expect(d1.reads()).toBe(0);
-  });
-
-  test("getHome leaves the promo band out when its detail cannot be read", async () => {
-    await getCatalogSummary(sources());
-    const broken: CatalogSources = {
-      ...sources(),
-      db: () => {
-        throw new Error("D1 down");
-      },
-    };
-    const home = await getHome(broken);
-    expect(home.promo).toBeNull();
-    expect(home.newest).toHaveLength(8);
   });
 });

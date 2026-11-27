@@ -41,7 +41,7 @@ export function useCategories(): Categories {
   return useSuspenseQuery({ ...categoriesQueryOptions(), select: withLookup }).data;
 }
 
-/** The home page's rows, hero, lookbook, promo and carousel. */
+/** The home page's rows and hero. */
 export const homeQueryOptions = () =>
   queryOptions({
     queryKey: ["home"],

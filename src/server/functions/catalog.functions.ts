@@ -112,7 +112,7 @@ export const getCategoriesFn = createServerFn({ method: "GET" }).handler(async (
   return result;
 });
 
-/** Every product the home page shows (rows, hero, lookbook, promo, carousel), from the summary. */
+/** Every product the home page shows (rows and hero), from the summary. */
 export const getHomeFn = createServerFn({ method: "GET" }).handler(async () => {
   const result = await getHome(catalogSources());
   cacheForBrowserCalls();

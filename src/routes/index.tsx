@@ -4,14 +4,7 @@ import { homeQueryOptions } from "@/lib/query";
 import { SITE_URL } from "@/lib/config";
 import { safeLoad } from "@/lib/safe-load";
 import { HeroSlider } from "@/components/home/HeroSlider";
-import {
-  CarouselSection,
-  CollectionsSection,
-  LookbookSection,
-  OrderingSection,
-  PromoSection,
-  StorySection,
-} from "@/components/home/HomeSections";
+import { CollectionsSection, OrderingSection, StorySection } from "@/components/home/HomeSections";
 import { FeaturedSection, NewArrivalsSection } from "@/components/home/HomeRows";
 
 interface HomeSearch {
@@ -44,11 +37,8 @@ function Home() {
     <>
       <HeroSlider />
       <FeaturedSection />
-      <CollectionsSection />
       <NewArrivalsSection />
-      <LookbookSection />
-      <CarouselSection />
-      <PromoSection />
+      <CollectionsSection />
       <StorySection />
       <OrderingSection />
     </>
