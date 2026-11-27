@@ -126,16 +126,33 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
   // A save can succeed with a warning from the server; it gets the warning style, not the success one.
   const [notice, setNotice] = useState<{ text: string; warning: boolean } | null>(null);
   const [problems, setProblems] = useState<string[]>([]);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   const save = useMutation({
-    mutationFn: (data: { id: number | null; revision: string; input: DiscountInput }) => saveDiscountFn({ data }),
-    onSuccess: async (result) => {
+    mutationFn: ({
+      source: _source,
+      ...data
+    }: {
+      id: number | null;
+      revision: string;
+      input: DiscountInput;
+      source: "form" | "toggle";
+    }) => saveDiscountFn({ data }),
+    onSuccess: async (result, variables) => {
       if (!result.ok) {
-        setProblems([result.error]);
+        if (variables.source === "toggle") setToggleError(result.error);
+        else setProblems([result.error]);
+        if ("conflict" in result && result.conflict) {
+          await queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "discounts"] });
+        }
         return;
       }
-      setProblems([]);
-      setDraft(null);
+      if (variables.source === "toggle") {
+        setToggleError(null);
+      } else {
+        setProblems([]);
+        setDraft(null);
+      }
       setNotice(
         "warning" in result && result.warning
           ? { text: result.warning, warning: true }
@@ -144,7 +161,11 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
       await queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "discounts"] });
       await queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "audit"] });
     },
-    onError: (error) => setProblems([error.message || "Could not save. Try again."]),
+    onError: (error, variables) => {
+      const msg = error.message || "Could not save. Try again.";
+      if (variables.source === "toggle") setToggleError(msg);
+      else setProblems([msg]);
+    },
   });
 
   const now = Date.now();
@@ -172,6 +193,12 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
       </div>
 
       <div aria-live="polite" className="grid gap-2">
+        {toggleError ? (
+          <Alert variant="destructive" role="alert">
+            <AlertCircle />
+            <AlertDescription>{toggleError}</AlertDescription>
+          </Alert>
+        ) : null}
         {problems.length && !draft ? (
           <Alert variant="destructive" role="alert">
             <AlertCircle />
@@ -197,7 +224,7 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
             setProblems([]);
             setDraft(null);
           }}
-          onSubmit={(data) => save.mutate(data)}
+          onSubmit={(data) => save.mutate({ ...data, source: "form" })}
         />
       ) : null}
 
@@ -279,6 +306,7 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
                               id: discount.id,
                               revision: discount.revision,
                               input: fromDiscount(discount, !discount.active),
+                              source: "toggle",
                             });
                           }}
                         >

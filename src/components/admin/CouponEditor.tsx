@@ -125,21 +125,42 @@ export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
   const [draft, setDraft] = useState<Draft | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [problems, setProblems] = useState<string[]>([]);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   const save = useMutation({
-    mutationFn: (data: { id: number | null; revision: string; input: CouponInput }) => saveCouponFn({ data }),
-    onSuccess: async (result) => {
+    mutationFn: ({
+      source: _source,
+      ...data
+    }: {
+      id: number | null;
+      revision: string;
+      input: CouponInput;
+      source: "form" | "toggle";
+    }) => saveCouponFn({ data }),
+    onSuccess: async (result, variables) => {
       if (!result.ok) {
-        setProblems([result.error]);
+        if (variables.source === "toggle") setToggleError(result.error);
+        else setProblems([result.error]);
+        if ("conflict" in result && result.conflict) {
+          await queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "coupons"] });
+        }
         return;
       }
-      setProblems([]);
-      setDraft(null);
+      if (variables.source === "toggle") {
+        setToggleError(null);
+      } else {
+        setProblems([]);
+        setDraft(null);
+      }
       setNotice(`Saved ${result.coupon.code}.`);
       await queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "coupons"] });
       await queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "audit"] });
     },
-    onError: (error) => setProblems([error.message || "Could not save. Try again."]),
+    onError: (error, variables) => {
+      const msg = error.message || "Could not save. Try again.";
+      if (variables.source === "toggle") setToggleError(msg);
+      else setProblems([msg]);
+    },
   });
 
   const now = Date.now();
@@ -169,6 +190,12 @@ export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
       </div>
 
       <div aria-live="polite" className="grid gap-2">
+        {toggleError ? (
+          <Alert variant="destructive" role="alert">
+            <AlertCircle />
+            <AlertDescription>{toggleError}</AlertDescription>
+          </Alert>
+        ) : null}
         {problems.length && !draft ? (
           <Alert variant="destructive" role="alert">
             <AlertCircle />
@@ -194,7 +221,7 @@ export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
             setProblems([]);
             setDraft(null);
           }}
-          onSubmit={(data) => save.mutate(data)}
+          onSubmit={(data) => save.mutate({ ...data, source: "form" })}
         />
       ) : null}
 
@@ -278,6 +305,7 @@ export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
                               id: coupon.id,
                               revision: coupon.revision,
                               input: fromCoupon(coupon, !coupon.active),
+                              source: "toggle",
                             });
                           }}
                         >
