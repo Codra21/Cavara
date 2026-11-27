@@ -1,5 +1,5 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, ArrowDown, ArrowUp, CheckCircle2, MapPin, Plus, Save } from "lucide-react";
+import { AlertCircle, ArrowDown, ArrowUp, CheckCircle2, MapPin, Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { type AdminZone, saveZonesSchema, type ZoneInput } from "@/domain/orders";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -207,6 +207,17 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
                   >
                     <ArrowDown />
                   </Button>
+                  {row.id === null ? (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={() => setRows((current) => current.filter((_, i) => i !== index))}
+                      aria-label={`Remove ${row.name || "unsaved area"}`}
+                    >
+                      <Trash2 />
+                    </Button>
+                  ) : null}
                 </div>
               </li>
             ))}

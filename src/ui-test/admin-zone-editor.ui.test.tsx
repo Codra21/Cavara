@@ -126,3 +126,15 @@ test("a background refetch updates clean rows without marking the form dirty", (
   expect(screen.getAllByLabelText<HTMLInputElement>("Charge (৳)")[0]!.value).toBe("110");
   expect((screen.getByRole("button", { name: "Save areas" }) as HTMLButtonElement).disabled).toBe(true);
 });
+
+test("an accidentally added unsaved area can be removed without reloading", async () => {
+  const user = userEvent.setup();
+  render(<Harness />);
+
+  await user.click(screen.getByRole("button", { name: "Add area" }));
+  expect(screen.getAllByLabelText("Name")).toHaveLength(3);
+
+  await user.click(screen.getByRole("button", { name: /Remove/i }));
+  expect(screen.getAllByLabelText("Name")).toHaveLength(2);
+  expect((screen.getByRole("button", { name: "Save areas" }) as HTMLButtonElement).disabled).toBe(true);
+});
