@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { adminCategoriesQuery, adminProductQuery } from "@/components/admin/queries";
 import { ProductEditor, type ProductSaveNotice } from "@/components/admin/ProductEditor";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -18,8 +18,7 @@ function parseProductId(raw: string): number | "new" | null {
 
 function ProductEditorRoute() {
   const { productId } = Route.useParams();
-  const [notice, setNotice] = useState<ProductSaveNotice | null>(null);
-  useEffect(() => setNotice(null), [productId]);
+  const [notice, setNotice] = useState<{ forId: string; value: ProductSaveNotice } | null>(null);
   const id = parseProductId(productId);
   const numericId = typeof id === "number" ? id : 0;
   const categories = useQuery(adminCategoriesQuery());
@@ -71,8 +70,8 @@ function ProductEditorRoute() {
         key={loaded ? `${loaded.id}:${loaded.revision}` : "new"}
         product={loaded}
         categories={categories.data}
-        savedNotice={notice}
-        onSaved={setNotice}
+        savedNotice={notice?.forId === productId ? notice.value : null}
+        onSaved={(value, savedId) => setNotice({ forId: String(savedId), value })}
       />
     </>
   );

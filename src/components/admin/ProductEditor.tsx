@@ -423,7 +423,7 @@ export function ProductEditor({
   product: AdminProduct | null;
   categories: AdminCategory[];
   savedNotice?: ProductSaveNotice | null;
-  onSaved?: (notice: ProductSaveNotice) => void;
+  onSaved?: (notice: ProductSaveNotice, savedId: number) => void;
 }) {
   const id = useId();
   const navigate = useNavigate();
@@ -514,7 +514,7 @@ export function ProductEditor({
       };
       setProblems([]);
       setLocalNotice(notice);
-      onSaved?.(notice);
+      onSaved?.(notice, result.id);
       // The product list, counts and this product refetch; the name list (one read per product) is patched instead.
       patchProductNames(queryClient, [
         { id: result.id, name: variables.name, slug: variables.slug, status: variables.status ?? "draft" },
