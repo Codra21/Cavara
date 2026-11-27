@@ -83,7 +83,7 @@ export function BagDrawer() {
       <div className="dialog-surface bag-surface">
         <div className="bag-header">
           <div>
-            <h2 id="bag-title">Your bag</h2>
+            <h2 id="bag-title">Your cart</h2>
             <p>
               {bagCount
                 ? !settled && !failed
@@ -94,7 +94,7 @@ export function BagDrawer() {
           </div>
           <button ref={closeRef} className="icon-button" type="button" onClick={closeBag}>
             <Icon name="fa-solid fa-xmark" />
-            <SrOnly>Close bag</SrOnly>
+            <SrOnly>Close cart</SrOnly>
           </button>
         </div>
 
@@ -226,7 +226,7 @@ export function BagDrawer() {
           </ul>
           {failed && bagCount > 0 && view === "bag" ? (
             <div className="bag-error" role="alert">
-              <p>We couldn&apos;t load the items in your bag. Check your connection and try again.</p>
+              <p>We couldn&apos;t load the items in your cart. Check your connection and try again.</p>
               <button className="button button-outline" type="button" onClick={retry}>
                 Try again
               </button>
@@ -234,9 +234,9 @@ export function BagDrawer() {
           ) : null}
           <div className="bag-empty" hidden={bagCount > 0 || view !== "bag"}>
             <span className="bag-empty-icon" aria-hidden="true">
-              <Icon name="fa-solid fa-bag-shopping" />
+              <Icon name="fa-solid fa-cart-shopping" />
             </span>
-            <h3>Your bag is empty</h3>
+            <h3>Your cart is empty</h3>
             <p>Add a few pieces you love, then check out in a minute. We call to confirm.</p>
             <button
               ref={browseRef}
@@ -317,7 +317,7 @@ export function BagDrawer() {
               window.requestAnimationFrame(() => browseRef.current?.focus());
             }}
           >
-            Clear bag
+            Clear cart
           </button>
         </div>
         <Toast inDialog />

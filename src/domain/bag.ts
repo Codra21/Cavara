@@ -19,7 +19,7 @@ const MAX_VARIANT_INDEX = 50;
 export const clampQty = (value: number) => Math.min(MAX_QTY, Math.max(1, value));
 
 /** Shown when adding a colour would make the bag's line count exceed MAX_BAG_LINES. */
-export const BAG_FULL_MESSAGE = `Your bag is full (${MAX_BAG_LINES} different pieces). Remove one to add another.`;
+export const BAG_FULL_MESSAGE = `Your cart is full (${MAX_BAG_LINES} different pieces). Remove one to add another.`;
 
 /**
  * Adds `qty` of a colour. A colour already in the bag gains quantity (capped at MAX_QTY). A new colour becomes a new

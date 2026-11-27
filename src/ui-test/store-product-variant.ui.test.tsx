@@ -104,7 +104,7 @@ test("adding to bag when already at MAX_QTY shows a max-limit toast instead of c
     </QueryClientProvider>,
   );
 
-  await user.click(screen.getAllByRole("button", { name: "Add to bag" })[0]!);
+  await user.click(screen.getAllByRole("button", { name: "Add to cart" })[0]!);
   expect(screen.getByText(/maximum 20 per colour/i)).toBeTruthy();
   expect(screen.queryByText(/1 item added/i)).toBeNull();
 });

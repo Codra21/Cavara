@@ -181,7 +181,7 @@ describe("submitOrder", () => {
       expect(Object.keys(result.fieldErrors).sort()).toEqual(["address", "name", "phone"]);
     }
     const empty = await submitOrder(db, request(db, { items: [] }), context());
-    expect(empty).toMatchObject({ ok: false, code: "validation", fieldErrors: { items: "Your bag is empty" } });
+    expect(empty).toMatchObject({ ok: false, code: "validation", fieldErrors: { items: "Your cart is empty" } });
   });
 
   test("a filled honeypot saves nothing", async () => {

@@ -342,10 +342,10 @@ export function StorySection() {
 }
 
 const STEPS = [
-  { title: "Build your bag", body: "Choose your pieces, colours and quantities. Your bag is saved on this device." },
+  { title: "Build your cart", body: "Choose your pieces, colours and quantities. Your cart is saved on this device." },
   {
     title: "Check out",
-    body: "Enter your name, mobile number and address. Prefer chat? Send the bag on WhatsApp or Messenger instead.",
+    body: "Enter your name, mobile number and address. Prefer chat? Send your cart on WhatsApp or Messenger instead.",
   },
   {
     title: "We call to confirm",
@@ -389,7 +389,7 @@ export function OrderingSection() {
         <div className="ordering-panel">
           <div className="ordering-head" data-reveal="">
             <h2 id="ordering-title">How ordering works</h2>
-            <p>Build your bag here, check out in a minute, and our team calls you to confirm.</p>
+            <p>Build your cart here, check out in a minute, and our team calls you to confirm.</p>
           </div>
           <ol className="steps">
             {STEPS.map((item, index) => (

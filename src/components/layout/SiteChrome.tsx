@@ -142,12 +142,12 @@ export function QuickDock() {
         <Icon name="fa-brands fa-whatsapp" />
         <span>Chat</span>
       </a>
-      <button type="button" aria-label={`Open bag, ${pluralize(bagCount, "item")}`} onClick={openBag}>
+      <button type="button" aria-label={`Open cart, ${pluralize(bagCount, "item")}`} onClick={openBag}>
         <span className="studio-dock-icon">
-          <Icon name="fa-solid fa-bag-shopping" />
+          <Icon name="fa-solid fa-cart-shopping" />
           <span className="studio-dock-count">{bagCount}</span>
         </span>
-        <span>Bag</span>
+        <span>Cart</span>
       </button>
     </nav>
   );

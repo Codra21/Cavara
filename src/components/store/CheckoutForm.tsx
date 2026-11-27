@@ -104,7 +104,7 @@ export function CheckoutForm({
     setCoupon(null);
     setCouponOpen(true);
     setCouponText(coupon.code);
-    setCouponError("Your bag changed. Apply your code again.");
+    setCouponError("Your cart changed. Apply your code again.");
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs only when the bag changes
   }, [bagSignature]);
 
@@ -197,7 +197,7 @@ export function CheckoutForm({
         setPending(false);
         setMessage({
           tone: "error",
-          text: "We couldn't run the security check. Your bag is unchanged. Reload the page and try again, or message us on WhatsApp.",
+          text: "We couldn't run the security check. Your cart is unchanged. Reload the page and try again, or message us on WhatsApp.",
         });
         window.requestAnimationFrame(() => errorSummary.current?.focus());
         return;
@@ -255,7 +255,7 @@ export function CheckoutForm({
     <form className="checkout" onSubmit={submit} noValidate aria-labelledby={`${id}-title`}>
       <div className="checkout-head">
         <button className="text-button checkout-back" type="button" onClick={onBack}>
-          ← Back to bag
+          ← Back to cart
         </button>
         <h3 id={`${id}-title`}>Delivery details</h3>
         <p>We call you to confirm the order. Pay cash on delivery or by mobile banking.</p>

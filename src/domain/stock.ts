@@ -54,8 +54,8 @@ export function isShort(line: Pick<StockLine, "availability" | "stock" | "qty">)
 export function shortageMessage(line: Pick<StockLine, "productName" | "variantName" | "stock">): string {
   const name = `${line.productName} (${line.variantName})`;
   return line.stock !== null && line.stock > 0
-    ? `${name}: only ${line.stock} left. Lower the quantity in your bag and send the order again.`
-    : `${name} is no longer available. Remove it from your bag and send the order again.`;
+    ? `${name}: only ${line.stock} left. Lower the quantity in your cart and send the order again.`
+    : `${name} is no longer available. Remove it from your cart and send the order again.`;
 }
 
 const note = z

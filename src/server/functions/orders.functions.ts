@@ -69,7 +69,7 @@ export const submitOrderFn = createServerFn({ method: "POST" })
       return {
         ok: false,
         code: "failed",
-        message: "Your order could not be saved. Your bag is unchanged. Please try again, or message us on WhatsApp.",
+        message: "Your order could not be saved. Your cart is unchanged. Please try again, or message us on WhatsApp.",
       };
     }
   });

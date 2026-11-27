@@ -59,7 +59,7 @@ export function SiteHeader() {
     count.classList.add("is-bumped");
   }, [bagBump]);
 
-  const bagLabel = `Open bag, ${pluralize(bagCount, "item")}`;
+  const bagLabel = `Open cart, ${pluralize(bagCount, "item")}`;
   const classes = ["site-header", scrolled && "is-scrolled", tucked && !menuOpen && "is-tucked"]
     .filter(Boolean)
     .join(" ");
@@ -107,7 +107,7 @@ export function SiteHeader() {
             </button>
             <ThemeToggle />
             <button className="bag-button" type="button" aria-label={bagLabel} onClick={openBag}>
-              <Icon name="fa-solid fa-bag-shopping" />
+              <Icon name="fa-solid fa-cart-shopping" />
               <span className="bag-count" ref={countRef}>
                 {bagCount}
               </span>

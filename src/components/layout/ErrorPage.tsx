@@ -36,7 +36,7 @@ function ServerErrorPage({ error, standalone = false }: Pick<ErrorComponentProps
           <h1 ref={heading} tabIndex={-1}>
             Something went wrong
           </h1>
-          <p>We couldn&apos;t load this page, though your bag is still saved. Try again or message us on WhatsApp.</p>
+          <p>We couldn&apos;t load this page, though your cart is still saved. Try again or message us on WhatsApp.</p>
           <div className="error-page-actions">
             <button className="button" type="button" onClick={() => window.location.reload()}>
               Try again

@@ -91,7 +91,7 @@ export const checkoutSchema = z
     deliveryCharge: z.number().int().min(0),
     items: z
       .array(checkoutItemSchema)
-      .min(1, "Your bag is empty")
+      .min(1, "Your cart is empty")
       .max(MAX_ORDER_LINES, `An order can hold up to ${MAX_ORDER_LINES} different pieces`),
     /** The coupon the shopper applied ("" for none), upper case. One per order. */
     couponCode: z

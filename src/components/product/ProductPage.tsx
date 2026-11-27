@@ -205,12 +205,12 @@ export function ProductPage({
     if (stockTag) return;
     const result = addToBag(product.id, variantIndex, quantity);
     if (!result.added) {
-      showToast(BAG_FULL_MESSAGE, { actionLabel: "View bag", action: openBag });
+      showToast(BAG_FULL_MESSAGE, { actionLabel: "View cart", action: openBag });
       return;
     }
     if (result.addedQty === 0) {
-      showToast(`Maximum ${MAX_QTY} per colour in your bag · ${variant.name}`, {
-        actionLabel: "View bag",
+      showToast(`Maximum ${MAX_QTY} per colour in your cart · ${variant.name}`, {
+        actionLabel: "View cart",
         action: openBag,
       });
       return;
@@ -219,10 +219,10 @@ export function ProductPage({
       result.addedQty < quantity
         ? `${pluralize(result.addedQty, "item")} added (max ${MAX_QTY} per colour) · ${variant.name}`
         : `${pluralize(result.addedQty, "item")} added · ${variant.name}`,
-      { actionLabel: "View bag", action: openBag },
+      { actionLabel: "View cart", action: openBag },
     );
   };
-  const addLabel = stockTag ?? (quantity > 1 ? `Add ${quantity} to bag` : "Add to bag");
+  const addLabel = stockTag ?? (quantity > 1 ? `Add ${quantity} to cart` : "Add to cart");
 
   return (
     <section className="pdp" aria-labelledby="pdp-title">
@@ -436,8 +436,8 @@ export function ProductPage({
               <div>
                 <h3>How ordering works</h3>
                 <ol>
-                  <li>Choose your colour and quantity, then add the piece to your bag.</li>
-                  <li>Check out with your name, mobile number and address, or send the bag on WhatsApp.</li>
+                  <li>Choose your colour and quantity, then add the piece to your cart.</li>
+                  <li>Check out with your name, mobile number and address, or send your cart on WhatsApp.</li>
                   <li>Our team calls to confirm delivery. Pay cash on delivery or by mobile banking.</li>
                 </ol>
               </div>

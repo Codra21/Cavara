@@ -64,7 +64,7 @@ export interface SubmitContext {
 const FAILED: SubmitOutcome = {
   ok: false,
   code: "failed",
-  message: "Your order could not be saved. Your bag is unchanged. Please try again, or message us on WhatsApp.",
+  message: "Your order could not be saved. Your cart is unchanged. Please try again, or message us on WhatsApp.",
 };
 
 // A blocked number gets its own answer: the rate-limit one told the shopper to wait 15 minutes, which never helps.
@@ -90,7 +90,7 @@ const OPEN_ORDERS: SubmitOutcome = {
 const CONFLICT: SubmitOutcome = {
   ok: false,
   code: "idempotency_conflict",
-  message: "This checkout was already sent with different details. Review your bag and send it again.",
+  message: "This checkout was already sent with different details. Review your cart and send it again.",
 };
 
 /**
@@ -188,11 +188,11 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
   for (const item of input.items) {
     const selection = selections.get(`${item.productId}:${item.variant}`);
     if (!selection || selection.status !== "published" || selection.availability === "out_of_stock") {
-      const name = selection ? `${selection.productName} (${selection.variantName})` : "A piece in your bag";
+      const name = selection ? `${selection.productName} (${selection.variantName})` : "A piece in your cart";
       return {
         ok: false,
         code: "unavailable",
-        message: `${name} is no longer available. Remove it from your bag and send the order again.`,
+        message: `${name} is no longer available. Remove it from your cart and send the order again.`,
       };
     }
     // A counted colour with fewer left than asked for ("only N left"); the order insert re-checks this atomically.
@@ -304,11 +304,11 @@ async function refusedAfterRead(
     const selection = selections.get(`${item.productId}:${item.variant}`);
     // A missing colour, or a product that is no longer published, is the same answer as the first check.
     if (!selection || selection.status !== "published") {
-      const name = selection ? `${selection.productName} (${selection.variantName})` : "A piece in your bag";
+      const name = selection ? `${selection.productName} (${selection.variantName})` : "A piece in your cart";
       return {
         ok: false,
         code: "unavailable",
-        message: `${name} is no longer available. Remove it from your bag and send the order again.`,
+        message: `${name} is no longer available. Remove it from your cart and send the order again.`,
       };
     }
     if (selection.availability === "out_of_stock" || isShort({ ...selection, qty: item.qty })) {

@@ -484,7 +484,7 @@ describe("placing an order", () => {
     expect(result).toEqual({
       ok: false,
       code: "unavailable",
-      message: "A piece in your bag is no longer available. Remove it from your bag and send the order again.",
+      message: "A piece in your cart is no longer available. Remove it from your cart and send the order again.",
     });
     expect(rowsIn(db, "orders")).toBe(0);
     expect(rowsIn(db, "order_items")).toBe(0);
@@ -501,7 +501,7 @@ describe("placing an order", () => {
     expect(result).toEqual({
       ok: false,
       code: "unavailable",
-      message: `${product.values.name} (Sage) is no longer available. Remove it from your bag and send the order again.`,
+      message: `${product.values.name} (Sage) is no longer available. Remove it from your cart and send the order again.`,
     });
     expect(rowsIn(db, "orders")).toBe(0);
   });
