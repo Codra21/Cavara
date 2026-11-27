@@ -107,9 +107,9 @@ function RootDocument({ children }: { children: ReactNode }) {
     // THEME_BOOT sets data-theme (light/dark) before hydration, so the attribute may differ from the server render.
     <html lang="en" data-theme="light" suppressHydrationWarning>
       <head>
+        <HeadContent />
         <script dangerouslySetInnerHTML={{ __html: THEME_BOOT }} />
         <script dangerouslySetInnerHTML={{ __html: INPUT_BOOT }} />
-        <HeadContent />
       </head>
       <body>
         {children}
