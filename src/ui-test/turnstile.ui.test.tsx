@@ -155,3 +155,29 @@ test("each token call gets its own widget", async () => {
   widgets[1]?.options.callback?.("t2");
   expect(await two).toBe("t2");
 });
+
+test("activating the turnstile panel promotes it to the top layer and exempts it from modal inert", async () => {
+  render(<TurnstilePanel />);
+  await flush();
+  const panel = document.getElementById("turnstile-panel") as HTMLElement;
+  const showPopover = vi.fn();
+  const hidePopover = vi.fn();
+  panel.showPopover = showPopover;
+  panel.hidePopover = hidePopover;
+
+  expect(panel.getAttribute("aria-live")).toBe("polite");
+
+  widgets[0]?.options["before-interactive-callback"]?.();
+  const blocked = ensureClearance({ force: true });
+  expect(panel.hasAttribute("data-active")).toBe(true);
+  expect(panel.getAttribute("popover")).toBe("manual");
+  expect(showPopover).toHaveBeenCalledTimes(1);
+
+  widgets[0]?.options["after-interactive-callback"]?.();
+  expect(panel.hasAttribute("data-active")).toBe(false);
+  expect(hidePopover).toHaveBeenCalledTimes(1);
+  expect(panel.hasAttribute("popover")).toBe(false);
+
+  widgets[0]?.options.callback?.("pass");
+  await blocked;
+});

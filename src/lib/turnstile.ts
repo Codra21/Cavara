@@ -82,7 +82,28 @@ function loadApi(): Promise<TurnstileApi | null> {
 // Showing a widget that needs the visitor. The panel (TurnstilePanel) and a checkout holder both use `data-active`.
 
 function setActive(element: HTMLElement | null, active: boolean) {
-  element?.toggleAttribute("data-active", active);
+  if (!element) return;
+  element.toggleAttribute("data-active", active);
+  if (element.id !== PANEL_ID) return;
+  if (active) {
+    if (typeof element.showPopover === "function") {
+      element.setAttribute("popover", "manual");
+      try {
+        element.showPopover();
+      } catch {
+        // Already open or unsupported in this environment.
+      }
+    }
+  } else if (element.hasAttribute("popover")) {
+    if (typeof element.hidePopover === "function") {
+      try {
+        element.hidePopover();
+      } catch {
+        // Already closed.
+      }
+    }
+    element.removeAttribute("popover");
+  }
 }
 
 /** Callbacks that track whether one widget is waiting on the visitor, plus a release for when it is removed. */
