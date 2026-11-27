@@ -26,8 +26,10 @@ export const MAX_OPEN_ORDERS = 2;
 export interface DeliveryZone {
   id: string;
   name: string;
-  /** Whole BDT. */
+  /** Base charge for the first kg, whole BDT. */
   charge: number;
+  /** Extra charge per additional kg (whole BDT, defaults to 20). */
+  perKgCharge?: number;
 }
 
 /**

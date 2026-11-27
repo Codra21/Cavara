@@ -10,6 +10,10 @@ export interface Category {
   name: string;
   description: string;
   image: string;
+  /** Parent category id for two-level subcategories; null or omitted for top-level categories. */
+  parentId?: CategoryId | null;
+  /** Public URL slug (changeable, defaults to id). */
+  slug?: string;
 }
 
 export interface Variant {

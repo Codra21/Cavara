@@ -6,7 +6,7 @@
 //   place. Their cost does not depend on how many products the shop has.
 // D1 bills rows read, index entries included; every query here starts from an index (see catalog-refresh.test.ts,
 // which checks the plans). Request paths never call this file: they go through src/server/catalog-cache.server.ts.
-import { type FullCatalog, type ProductDetail, toLegacyCatalog } from "@/domain/catalog-snapshot";
+import { capVariantStock, type FullCatalog, type ProductDetail, toLegacyCatalog } from "@/domain/catalog-snapshot";
 import type { SaleRule } from "@/domain/discounts";
 import type { DeliveryZone } from "@/domain/orders";
 import type { Availability, Catalog, Category } from "@/lib/types";
@@ -18,6 +18,13 @@ interface CategoryRow {
   description: string;
   image: string;
   sort: number;
+  parent_id: string | null;
+  slug: string | null;
+}
+
+interface CategorySlugRow {
+  old_slug: string;
+  category_id: string;
 }
 
 interface ProductRow {
@@ -31,6 +38,8 @@ interface ProductRow {
   price: number;
   regular_price: number | null;
   featured: number;
+  new_arrival: number;
+  weight_g: number | null;
   created_at: string;
   sort: number;
 }
@@ -43,12 +52,13 @@ interface VariantImageRow {
   name: string;
   swatch: string;
   availability: Availability;
+  stock: number | null;
   image_position: number | null;
   path: string | null;
 }
 
 const PRODUCT_COLUMNS =
-  "p.id, p.slug, p.name, p.category_id, p.summary, p.details, p.note, p.price, p.regular_price, p.featured, p.created_at, p.sort";
+  "p.id, p.slug, p.name, p.category_id, p.summary, p.details, p.note, p.price, p.regular_price, p.featured, p.new_arrival, p.weight_g, p.created_at, p.sort";
 
 function parseDetails(raw: string, productId: number): string[] {
   try {
@@ -79,7 +89,7 @@ function buildProducts(productRows: ProductRow[], variantRows: VariantImageRow[]
       if (row.position !== list.length)
         throw new Error(`product ${row.product_id} has a gap at variant position ${list.length}`);
       current = { id: row.id, images: [] };
-      list.push({ name: row.name, swatch: row.swatch, availability: row.availability, images: current.images });
+      list.push({ name: row.name, swatch: row.swatch, availability: row.availability, stock: capVariantStock(row.stock), images: current.images });
       variantsByProduct.set(row.product_id, list);
     }
     if (row.path !== null) current.images.push(row.path);
@@ -97,6 +107,8 @@ function buildProducts(productRows: ProductRow[], variantRows: VariantImageRow[]
         price: row.price,
         regularPrice: row.regular_price,
         featured: row.featured === 1,
+        newArrival: row.new_arrival === 1,
+        weightG: row.weight_g,
         // The date part of an ISO timestamp (UTC); the summary has no use for the time.
         createdAt: row.created_at.slice(0, 10),
         sort: row.sort,
@@ -116,13 +128,14 @@ function zonesFrom(rows: (DeliveryZone & { sort: number })[]): DeliveryZone[] {
   // A handful of rows; sorted here so the query needs no index or temp B-tree.
   return [...rows]
     .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
-    .map(({ id, name, charge }) => ({ id, name, charge }));
+    .map(({ id, name, charge, perKgCharge }) => ({ id, name, charge, perKgCharge: perKgCharge ?? 20 }));
 }
 
-export const ZONES_SQL = "SELECT id, name, charge, sort FROM delivery_zones WHERE active = 1";
+export const ZONES_SQL =
+  "SELECT id, name, charge, per_kg_charge AS perKgCharge, sort FROM delivery_zones WHERE active = 1";
 
 /** Variants and pictures of the published products: starts at idx_products_status_sort, then the two UNIQUE indexes. */
-export const ALL_VARIANTS_SQL = `SELECT v.id, v.product_id, v.position, v.name, v.swatch, v.availability, i.position AS image_position, i.path
+export const ALL_VARIANTS_SQL = `SELECT v.id, v.product_id, v.position, v.name, v.swatch, v.availability, v.stock, i.position AS image_position, i.path
        FROM products p
        JOIN product_variants v ON v.product_id = p.id
        LEFT JOIN product_images i ON i.variant_id = v.id
@@ -134,13 +147,14 @@ export const ALL_PRODUCTS_SQL = `SELECT ${PRODUCT_COLUMNS} FROM products p WHERE
 export const ONE_PRODUCT_SQL = `SELECT ${PRODUCT_COLUMNS} FROM products p WHERE p.id = ? AND p.status = 'published'`;
 
 /** UNIQUE (product_id, position), then UNIQUE (variant_id, position): the rows of one product only. */
-export const ONE_VARIANTS_SQL = `SELECT v.id, v.product_id, v.position, v.name, v.swatch, v.availability, i.position AS image_position, i.path
+export const ONE_VARIANTS_SQL = `SELECT v.id, v.product_id, v.position, v.name, v.swatch, v.availability, v.stock, i.position AS image_position, i.path
        FROM product_variants v
        LEFT JOIN product_images i ON i.variant_id = v.id
        WHERE v.product_id = ?`;
 
 // A handful of rows, sorted below so the query needs no temp B-tree.
-export const CATEGORIES_SQL = "SELECT id, name, description, image, sort FROM categories";
+export const CATEGORIES_SQL = "SELECT id, name, description, image, sort, parent_id, slug FROM categories WHERE active = 1";
+export const CATEGORY_SLUGS_SQL = "SELECT old_slug, category_id FROM category_slugs";
 
 const SALE_COLUMNS = `id, scope, category_id AS categoryId, product_id AS productId, type, value, starts_at AS startsAt,
     ends_at AS endsAt`;
@@ -167,16 +181,28 @@ export async function readLiveSales(db: D1Database, now: Date): Promise<SaleRule
  * snapshot.
  */
 export async function readPublishedCatalog(db: D1Database, now = new Date()): Promise<FullCatalog> {
-  const [categoryResult, productResult, variantResult, zoneResult, saleResult] = await db.batch([
+  const [categoryResult, productResult, variantResult, zoneResult, saleResult, slugResult] = await db.batch([
     db.prepare(CATEGORIES_SQL),
     db.prepare(ALL_PRODUCTS_SQL),
     db.prepare(ALL_VARIANTS_SQL),
     db.prepare(ZONES_SQL),
     db.prepare(LIVE_SALES_SQL).bind(now.toISOString()),
+    db.prepare(CATEGORY_SLUGS_SQL),
   ]);
   const categories: Category[] = ((categoryResult?.results ?? []) as CategoryRow[])
     .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
-    .map(({ id, name, description, image }) => ({ id, name, description, image }));
+    .map(({ id, name, description, image, parent_id, slug }) => ({
+      id,
+      name,
+      description,
+      image,
+      parentId: parent_id ?? null,
+      slug: slug || id,
+    }));
+  const categorySlugs: Record<string, string> = {};
+  for (const row of (slugResult?.results ?? []) as CategorySlugRow[]) {
+    categorySlugs[row.old_slug] = row.category_id;
+  }
   return {
     categories,
     products: buildProducts(
@@ -185,6 +211,7 @@ export async function readPublishedCatalog(db: D1Database, now = new Date()): Pr
     ),
     zones: zonesFrom((zoneResult?.results ?? []) as (DeliveryZone & { sort: number })[]),
     sales: sortSales((saleResult?.results ?? []) as SaleRule[]),
+    categorySlugs,
   };
 }
 
@@ -217,7 +244,7 @@ export async function readSnapshotProduct(db: D1Database, id: number): Promise<P
  */
 export const MANY_PRODUCTS_SQL = `SELECT ${PRODUCT_COLUMNS} FROM json_each(?) j JOIN products p ON p.id = j.value WHERE p.status = 'published'`;
 
-export const MANY_VARIANTS_SQL = `SELECT v.id, v.product_id, v.position, v.name, v.swatch, v.availability, i.position AS image_position, i.path
+export const MANY_VARIANTS_SQL = `SELECT v.id, v.product_id, v.position, v.name, v.swatch, v.availability, v.stock, i.position AS image_position, i.path
        FROM json_each(?) j
        JOIN products p ON p.id = j.value AND p.status = 'published'
        JOIN product_variants v ON v.product_id = p.id

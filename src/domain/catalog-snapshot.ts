@@ -11,6 +11,7 @@
 import { bestSale, type SaleRule, saleBadge, strikePrice } from "@/domain/discounts";
 import { mediaUrl } from "@/domain/media";
 import type { DeliveryZone } from "@/domain/orders";
+import { MAX_QTY } from "@/lib/config";
 import type { Availability, Catalog, Category, Product, Variant } from "@/lib/types";
 
 /**
@@ -19,8 +20,8 @@ import type { Availability, Catalog, Category, Product, Variant } from "@/lib/ty
  */
 export const SNAPSHOT_VERSION = 2;
 
-/** Version of the summary document alone: 3 added the sales list (P9.2). The detail shape did not change. */
-export const SUMMARY_VERSION = 3;
+/** Version of the summary document alone: 4 added stock cap, newArrival, weightG, subcategories & perKgCharge (C2.2). */
+export const SUMMARY_VERSION = 4;
 
 const AVAILABILITY_CODES: readonly Availability[] = ["in_stock", "out_of_stock", "preorder"];
 
@@ -31,6 +32,8 @@ export interface SummaryVariant {
   availability: Availability;
   /** First picture of this colour (an R2 key in a snapshot, a URL in function output); null when it has none. */
   image: string | null;
+  /** Counted stock capped at MAX_QTY (20); null when uncounted. */
+  stock?: number | null;
 }
 
 /** A variant's position is its index in `variants` (positions are 0..n-1 without gaps). */
@@ -43,6 +46,9 @@ export interface ProductSummary {
   /** The struck-through price, when the product is on offer. */
   regularPrice: number | null;
   featured: boolean;
+  newArrival?: boolean;
+  /** Weight in grams; null means default 1000 g (1 kg). */
+  weightG?: number | null;
   /** `YYYY-MM-DD` (UTC) the product was created. */
   createdAt: string;
   /** The D1 `sort` value. Only used to keep the list in display order; never sent to the browser. */
@@ -71,6 +77,8 @@ export interface CatalogSummary {
   zones: DeliveryZone[];
   /** Sales that are on or still to come (active, not yet ended when written). Dates are checked again at read time. */
   sales: SaleRule[];
+  /** Old category slugs mapped to their current category id, for 301 redirects without D1 reads. */
+  categorySlugs?: Record<string, string>;
   /** Display order: `sort`, then id. */
   products: ProductSummary[];
 }
@@ -80,6 +88,8 @@ export interface DetailVariant {
   swatch: string;
   availability: Availability;
   images: string[];
+  /** Counted stock capped at MAX_QTY (20); null when uncounted. */
+  stock?: number | null;
 }
 
 export interface ProductDetail {
@@ -90,6 +100,8 @@ export interface ProductDetail {
   price: number;
   regularPrice: number | null;
   featured: boolean;
+  newArrival?: boolean;
+  weightG?: number | null;
   createdAt: string;
   sort: number;
   summary: string;
@@ -110,6 +122,7 @@ export interface FullCatalog {
   products: ProductDetail[];
   zones: DeliveryZone[];
   sales: SaleRule[];
+  categorySlugs?: Record<string, string>;
 }
 
 let generationCount = 0;
@@ -132,6 +145,9 @@ export const comparePosition = (a: { sort: number; id: number }, b: { sort: numb
 
 // Projections
 
+export const capVariantStock = (stock: number | null | undefined): number | null =>
+  typeof stock === "number" ? Math.min(MAX_QTY, Math.max(0, Math.floor(stock))) : null;
+
 export function toProductSummary(product: ProductDetail): ProductSummary {
   const [first, ...rest] = product.variants;
   return {
@@ -142,6 +158,8 @@ export function toProductSummary(product: ProductDetail): ProductSummary {
     price: product.price,
     regularPrice: product.regularPrice,
     featured: product.featured,
+    newArrival: product.newArrival ?? false,
+    weightG: product.weightG ?? null,
     createdAt: product.createdAt,
     sort: product.sort,
     images: first.images.slice(0, 2),
@@ -150,6 +168,7 @@ export function toProductSummary(product: ProductDetail): ProductSummary {
       swatch: variant.swatch,
       availability: variant.availability,
       image: variant.images[0] ?? null,
+      stock: capVariantStock(variant.stock),
     })),
   };
 }
@@ -190,6 +209,7 @@ export function toSummary(full: FullCatalog, gen: string): CatalogSummary {
     categories: full.categories,
     zones: full.zones,
     sales: full.sales,
+    categorySlugs: full.categorySlugs ?? {},
     products: full.products.map(toProductSummary),
   };
 }
@@ -201,7 +221,7 @@ export function toSummary(full: FullCatalog, gen: string): CatalogSummary {
  * [id, slug, name, category, price, regularPrice (0 = none), featured (0|1), createdAt, sort, card images,
  *  colours: [name, swatch, availability code, image (omitted for colour 0, which uses the first card image)][]].
  */
-type StoredVariant = [string, string, number, string?];
+type StoredVariant = [string, string, number, (string | null)?, (number | null)?];
 type StoredProduct = [
   number,
   string,
@@ -214,6 +234,8 @@ type StoredProduct = [
   number,
   string[],
   StoredVariant[],
+  number,
+  number,
 ];
 
 interface StoredSummary {
@@ -222,6 +244,7 @@ interface StoredSummary {
   categories: Category[];
   zones: DeliveryZone[];
   sales: SaleRule[];
+  categorySlugs?: Record<string, string>;
   products: StoredProduct[];
 }
 
@@ -229,9 +252,11 @@ export function encodeSummary(summary: CatalogSummary): string {
   const products = summary.products.map((product): StoredProduct => {
     const variants = product.variants.map((variant, index): StoredVariant => {
       const code = AVAILABILITY_CODES.indexOf(variant.availability);
-      return index === 0 || !variant.image
-        ? [variant.name, variant.swatch, code]
-        : [variant.name, variant.swatch, code, variant.image];
+      const image = index === 0 || !variant.image ? null : variant.image;
+      const stock = capVariantStock(variant.stock);
+      if (stock !== null) return [variant.name, variant.swatch, code, image, stock];
+      if (image !== null) return [variant.name, variant.swatch, code, image];
+      return [variant.name, variant.swatch, code];
     });
     return [
       product.id,
@@ -245,6 +270,8 @@ export function encodeSummary(summary: CatalogSummary): string {
       product.sort,
       product.images,
       variants,
+      product.newArrival ? 1 : 0,
+      product.weightG ?? 0,
     ];
   });
   const stored: StoredSummary = {
@@ -253,6 +280,9 @@ export function encodeSummary(summary: CatalogSummary): string {
     categories: summary.categories,
     zones: summary.zones,
     sales: summary.sales,
+    ...(summary.categorySlugs && Object.keys(summary.categorySlugs).length > 0
+      ? { categorySlugs: summary.categorySlugs }
+      : {}),
     products,
   };
   return JSON.stringify(stored);
@@ -271,8 +301,22 @@ export function decodeSummary(json: string): CatalogSummary {
   if (!Array.isArray(stored.sales) || !stored.sales.every(isStoredSale)) bad("sales");
   if (!Array.isArray(stored.products)) bad("products");
   const products = stored.products.map((row): ProductSummary => {
-    if (!Array.isArray(row) || row.length !== 11) bad("product row");
-    const [id, slug, name, category, price, regular, featured, createdAt, sort, images, variants] = row;
+    if (!Array.isArray(row) || row.length !== 13) bad("product row");
+    const [
+      id,
+      slug,
+      name,
+      category,
+      price,
+      regular,
+      featured,
+      createdAt,
+      sort,
+      images,
+      variants,
+      newArrival,
+      weightG,
+    ] = row;
     if (
       typeof id !== "number" ||
       typeof slug !== "string" ||
@@ -293,18 +337,35 @@ export function decodeSummary(json: string): CatalogSummary {
       price,
       regularPrice: regular > 0 ? regular : null,
       featured: featured === 1,
+      newArrival: newArrival === 1,
+      weightG: typeof weightG === "number" && weightG > 0 ? weightG : null,
       createdAt,
       sort,
       images,
-      variants: variants.map(([variantName, swatch, code, image], index): SummaryVariant => {
+      variants: variants.map(([variantName, swatch, code, image, stock], index): SummaryVariant => {
         const availability = AVAILABILITY_CODES[code];
         if (typeof variantName !== "string" || typeof swatch !== "string" || !availability)
           bad(`variant of product ${id}`);
-        return { name: variantName, swatch, availability, image: index === 0 ? (images[0] ?? null) : (image ?? null) };
+        return {
+          name: variantName,
+          swatch,
+          availability,
+          image: index === 0 ? (images[0] ?? null) : (image ?? null),
+          stock: capVariantStock(stock),
+        };
       }),
     };
   });
-  return { gen: stored.gen, categories: stored.categories, zones: stored.zones, sales: stored.sales, products };
+  const categorySlugs =
+    stored.categorySlugs && typeof stored.categorySlugs === "object" ? stored.categorySlugs : {};
+  return {
+    gen: stored.gen,
+    categories: stored.categories,
+    zones: stored.zones,
+    sales: stored.sales,
+    categorySlugs,
+    products,
+  };
 }
 
 function isStoredSale(value: unknown): value is SaleRule {

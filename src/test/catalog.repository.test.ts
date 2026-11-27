@@ -57,7 +57,7 @@ describe("getPublishedCatalog", () => {
     // Seed paths are "/product-images/…"; 0005 turns them into R2 keys, served at /media/<key> with no IMAGE_BASE_URL.
     const media = (path: string) => `/media${path}`;
     expect(catalog.imageBase).toBe("");
-    expect(catalog.categories).toEqual(CATEGORIES.map((category) => ({ ...category, image: media(category.image) })));
+    expect(catalog.categories).toEqual(CATEGORIES.map((category) => ({ ...category, image: media(category.image), parentId: null, slug: category.id })));
     // The seed source has no availability; D1 defaults every colour to in stock.
     const expected: Product[] = PRODUCTS.map((product) => {
       const [first, ...rest] = product.variants.map((variant): Variant => ({

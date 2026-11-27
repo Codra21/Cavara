@@ -73,7 +73,7 @@ const PATCH_ATTEMPTS = 3;
 // matching stored shape changes so old entries are ignored (and change the object keys in snapshotKeys, the migration
 // scripts and wrangler.jsonc with them).
 const EDGE_LEGACY_PATH = "/__cache/catalog/v1";
-const EDGE_SUMMARY_PATH = "/__cache/catalog/v3";
+const EDGE_SUMMARY_PATH = "/__cache/catalog/v4";
 const edgeDetailPath = (id: number) => `/__cache/catalog/v2/product/${id}`;
 
 /** Object names inside the IMAGES bucket. */
@@ -91,7 +91,7 @@ export interface SnapshotKeys {
  */
 export function snapshotKeys(legacyKey: string): SnapshotKeys {
   const dir = legacyKey.slice(0, legacyKey.lastIndexOf("/") + 1);
-  return { legacy: legacyKey, summary: `${dir}catalog-v3.json`, detail: (id) => `${dir}products/v2/${id}.json` };
+  return { legacy: legacyKey, summary: `${dir}catalog-v4.json`, detail: (id) => `${dir}products/v2/${id}.json` };
 }
 
 export interface StoredObject {

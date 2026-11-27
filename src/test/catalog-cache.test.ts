@@ -48,9 +48,9 @@ afterEach(() => {
 
 describe("snapshot keys", () => {
   test("the summary and detail objects sit next to the legacy one", () => {
-    expect(keys.summary).toBe("snapshots/catalog-v3.json");
+    expect(keys.summary).toBe("snapshots/catalog-v4.json");
     expect(keys.detail(7)).toBe("snapshots/products/v2/7.json");
-    expect(snapshotKeys("catalog-v1.json").summary).toBe("catalog-v3.json");
+    expect(snapshotKeys("catalog-v1.json").summary).toBe("catalog-v4.json");
   });
 });
 
@@ -58,7 +58,7 @@ describe("getCatalogSummary", () => {
   test("the first read goes to D1 and writes both objects and the edge copy; the next comes from memory", async () => {
     const first = await getCatalogSummary(sources());
     expect(first.products.length).toBe(24);
-    expect(d1.reads()).toBe(5); // one batch: categories, products, variants, zones, sales
+    expect(d1.reads()).toBe(6); // one batch: categories, products, variants, zones, sales
     expect(store.objects.has(keys.summary)).toBe(true);
     expect(store.objects.has(keys.legacy)).toBe(true);
     expect(edge.entries.size).toBe(2);
@@ -71,7 +71,7 @@ describe("getCatalogSummary", () => {
     await getCatalogSummary(sources());
     await invalidateCatalogCache("");
     edge.entries.set(
-      new URL("/__cache/catalog/v3", "https://cavarabd.com").toString(),
+      new URL("/__cache/catalog/v4", "https://cavarabd.com").toString(),
       store.objects.get(keys.summary)!.json,
     );
     store.resetCounts();
@@ -150,7 +150,7 @@ describe("getCachedCatalog (legacy v1)", () => {
   test("a miss rebuilds both objects from one D1 read; the next read needs no D1", async () => {
     const catalog = await getCachedCatalog(sources());
     expect(catalog.products.length).toBe(24);
-    expect(d1.reads()).toBe(5);
+    expect(d1.reads()).toBe(6);
     expect(store.objects.has(keys.summary)).toBe(true);
     await freshDataCenter();
     d1.clear();

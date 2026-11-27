@@ -281,7 +281,7 @@ describe("rows read per save", () => {
     expect(d1.rowsReturned()).toBe(1); // only the one active zone is read
     expect(store.writes).toEqual([keys.summary, keys.legacy]);
     const summary = await getCatalogSummary(sources());
-    expect(summary.zones).toEqual([{ id: "inside-dhaka", name: "Inside Dhaka", charge: 95 }]);
+    expect(summary.zones).toEqual([{ id: "inside-dhaka", name: "Inside Dhaka", charge: 95, perKgCharge: 20 }]);
     expect((await getCachedCatalog(sources())).deliveryZones).toEqual(summary.zones);
     expect(summary.products.length).toBe(24);
   });

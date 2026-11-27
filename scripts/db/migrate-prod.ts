@@ -26,7 +26,7 @@ const BACKUP_BUCKET = "cavara-backups";
 // wrangler.jsonc env.production. Details are not listed on purpose (see step 5); to drop them anyway, bump the
 // `products/v2/` folder in snapshotKeys().
 const SNAPSHOT_OBJECTS = [
-  "cavara-images-prod/snapshots/catalog-v3.json",
+  "cavara-images-prod/snapshots/catalog-v4.json",
   "cavara-images-prod/snapshots/catalog-v1.json",
 ];
 const summary: string[] = [];
