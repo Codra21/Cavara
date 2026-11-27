@@ -197,11 +197,24 @@ export function ProductPage({
 
   const add = () => {
     if (stockTag) return;
-    if (!addToBag(product.id, variantIndex, quantity)) {
+    const result = addToBag(product.id, variantIndex, quantity);
+    if (!result.added) {
       showToast(BAG_FULL_MESSAGE, { actionLabel: "View bag", action: openBag });
       return;
     }
-    showToast(`${pluralize(quantity, "item")} added · ${variant.name}`, { actionLabel: "View bag", action: openBag });
+    if (result.addedQty === 0) {
+      showToast(`Maximum ${MAX_QTY} per colour in your bag · ${variant.name}`, {
+        actionLabel: "View bag",
+        action: openBag,
+      });
+      return;
+    }
+    showToast(
+      result.addedQty < quantity
+        ? `${pluralize(result.addedQty, "item")} added (max ${MAX_QTY} per colour) · ${variant.name}`
+        : `${pluralize(result.addedQty, "item")} added · ${variant.name}`,
+      { actionLabel: "View bag", action: openBag },
+    );
   };
   const addLabel = stockTag ?? (quantity > 1 ? `Add ${quantity} to bag` : "Add to bag");
 

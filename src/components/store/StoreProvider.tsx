@@ -18,7 +18,7 @@ interface StoreValue {
   bagCount: number;
   bagBump: number;
   /** False when the bag already holds the most lines an order can have and this colour is not one of them. */
-  addToBag: (productId: number, variant: number, qty?: number) => boolean;
+  addToBag: (productId: number, variant: number, qty?: number) => { added: boolean; addedQty: number };
   updateBagItem: (productId: number, variant: number, qty: number) => void;
   clearBag: () => void;
 
@@ -120,11 +120,16 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const addToBag = useCallback(
     (productId: number, variant: number, qty = 1) => {
       // An order holds at most MAX_BAG_LINES lines, so a longer bag could never be placed (see addBagLine).
+      const before = bagRef.current.find((item) => item.id === productId && item.variant === variant)?.qty ?? 0;
       const result = addBagLine(bagRef.current, productId, variant, qty);
-      if (!result.added) return false;
-      setBag(result.bag);
-      setBagBump((value) => value + 1);
-      return true;
+      if (!result.added) return { added: false, addedQty: 0 };
+      const after = result.bag.find((item) => item.id === productId && item.variant === variant)?.qty ?? 0;
+      const addedQty = Math.max(0, after - before);
+      if (addedQty > 0) {
+        setBag(result.bag);
+        setBagBump((value) => value + 1);
+      }
+      return { added: true, addedQty };
     },
     [setBag],
   );

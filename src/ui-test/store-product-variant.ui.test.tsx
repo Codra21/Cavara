@@ -1,8 +1,9 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { useEffect } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { expect, test, vi } from "vitest";
+import { afterEach, expect, test, vi } from "vitest";
 import type { PublicProduct } from "@/domain/catalog-snapshot";
 import { StoreProvider, useStore } from "@/components/store/StoreProvider";
 import { STORAGE_KEYS } from "@/lib/config";
@@ -18,6 +19,9 @@ vi.mock("@/lib/query", () => ({
 }));
 
 const { ProductPage } = await import("@/components/product/ProductPage");
+const { Toast } = await import("@/components/layout/SiteChrome");
+
+afterEach(cleanup);
 
 const product: PublicProduct = {
   id: 1,
@@ -74,4 +78,26 @@ test("rememberViewed on initial mount preserves previously stored recently-viewe
     </StoreProvider>,
   );
   expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.recent) ?? "[]")).toEqual([30, 10, 20]);
+});
+
+test("adding to bag when already at MAX_QTY shows a max-limit toast instead of claiming items were added", async () => {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }),
+  });
+  localStorage.setItem(STORAGE_KEYS.bag, JSON.stringify([{ id: 1, variant: 0, qty: 20 }]));
+  const queryClient = new QueryClient();
+  const user = userEvent.setup();
+  render(
+    <QueryClientProvider client={queryClient}>
+      <StoreProvider>
+        <ProductPage product={product} category={{ id: "drinkware", name: "Drinkware", description: "", image: "" }} />
+        <Toast />
+      </StoreProvider>
+    </QueryClientProvider>,
+  );
+
+  await user.click(screen.getAllByRole("button", { name: "Add to bag" })[0]!);
+  expect(screen.getByText(/maximum 20 per colour/i)).toBeTruthy();
+  expect(screen.queryByText(/1 item added/i)).toBeNull();
 });
