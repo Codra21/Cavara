@@ -59,7 +59,8 @@ export async function signOutWithCookie() {
   setPrivateNoStore();
   const owner = getOwnerCredentials();
   if (owner) await signOut(getDb(), owner, getCookie(ADMIN_SESSION_COOKIE));
-  deleteCookie(ADMIN_SESSION_COOKIE, { path: "/" });
+  const { maxAge: _maxAge, ...clearOptions } = sessionCookieOptions(new URL(getRequest().url));
+  deleteCookie(ADMIN_SESSION_COOKIE, clearOptions);
   return { ok: true as const };
 }
 
