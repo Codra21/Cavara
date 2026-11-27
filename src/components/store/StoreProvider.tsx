@@ -23,6 +23,7 @@ interface StoreValue {
   clearBag: () => void;
 
   selectedVariant: (productId: number) => number;
+  pickedVariant: (productId: number) => number | undefined;
   selectVariant: (productId: number, variant: number) => void;
 
   theme: Theme;
@@ -142,6 +143,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const clearBag = useCallback(() => setBag([]), [setBag]);
 
+  const pickedVariant = useCallback((productId: number) => selectedVariants[productId], [selectedVariants]);
   const selectedVariant = useCallback((productId: number) => selectedVariants[productId] ?? 0, [selectedVariants]);
   const selectVariant = useCallback((productId: number, variant: number) => {
     if (!Number.isInteger(variant) || variant < 0) return;
@@ -185,6 +187,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       updateBagItem,
       clearBag,
       selectedVariant,
+      pickedVariant,
       selectVariant,
       theme,
       toggleTheme,
@@ -205,6 +208,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       clearBag,
       selectedVariants,
       selectedVariant,
+      pickedVariant,
       selectVariant,
       theme,
       toggleTheme,

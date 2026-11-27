@@ -116,7 +116,7 @@ export function ProductPage({
   category: Category | null;
   initialVariant?: number | undefined;
 }) {
-  const { selectedVariant, selectVariant, addToBag, showToast, openBag, recent, rememberViewed } = useStore();
+  const { pickedVariant, selectVariant, addToBag, showToast, openBag, recent, rememberViewed } = useStore();
   const [quantity, setQuantity] = useState(1);
   const [tab, setTab] = useState<TabId>("description");
   const [barVisible, setBarVisible] = useState(false);
@@ -125,9 +125,9 @@ export function ProductPage({
 
   const category = loadedCategory ?? { id: product.category, name: "Collection" };
   // A colour picked earlier on another page can be out of range after the editor removed colours.
-  const picked = selectedVariant(product.id);
+  const picked = pickedVariant(product.id);
   const urlVariant = initialVariant !== undefined && product.variants[initialVariant] ? initialVariant : undefined;
-  const variantIndex = product.variants[picked] ? picked : (urlVariant ?? 0);
+  const variantIndex = picked !== undefined && product.variants[picked] ? picked : (urlVariant ?? 0);
   const variant = getVariant(product, variantIndex);
   const stockTag = availabilityTag(variant.availability);
   const pageUrl = `${SITE_URL}/products/${product.slug}`;
