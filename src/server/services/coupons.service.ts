@@ -62,7 +62,7 @@ export async function checkCoupon(
   let itemsTotal = 0;
   for (const item of items) {
     const selection = selections.get(`${item.productId}:${item.variant}`);
-    if (!selection || selection.status !== "published" || selection.availability === "out_of_stock") continue;
+    if (!selection || selection.status !== "published" || selection.availability !== "in_stock") continue;
     const sale = bestSale(
       sales,
       { id: selection.productId, category: selection.category },

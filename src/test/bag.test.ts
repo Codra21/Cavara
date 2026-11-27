@@ -149,7 +149,7 @@ describe("resolveBagLines", () => {
     expect(line).toMatchObject({ status: "unavailable", product: { id: 2 } });
   });
 
-  test("an out-of-stock colour is flagged and adds nothing to the subtotal; pre-order is buyable", () => {
+  test("sold-out and pre-order colours are blocked and add nothing to the subtotal", () => {
     const lines = resolveBagLines(
       [
         { id: 1, variant: 0, qty: 1 },
@@ -158,8 +158,8 @@ describe("resolveBagLines", () => {
       ],
       { products: [card(1, 100, ["in_stock", "out_of_stock", "preorder"])], missing: [] },
     );
-    expect(lines.map((line) => line.status)).toEqual(["ok", "out_of_stock", "ok"]);
-    expect(bagSubtotal(lines)).toBe(100 + 300);
+    expect(lines.map((line) => line.status)).toEqual(["ok", "out_of_stock", "unavailable"]);
+    expect(bagSubtotal(lines)).toBe(100);
     expect(canCheckout(lines)).toBe(false);
   });
 
@@ -193,9 +193,9 @@ describe("bag text", () => {
   });
 
   test("availabilityTag names only out-of-stock colours", () => {
-    expect(availabilityTag("out_of_stock")).toBe("Out of stock");
+    expect(availabilityTag("out_of_stock")).toBe("Sold out");
     expect(availabilityTag("in_stock")).toBeNull();
-    expect(availabilityTag("preorder")).toBeNull();
+    expect(availabilityTag("preorder")).toBe("Pre-order");
     expect(availabilityTag(undefined)).toBeNull();
   });
 });

@@ -98,9 +98,9 @@ export function resolveBagLines(items: BagItem[], lookup: BagLookup | undefined)
       return missing.has(item.id) ? { status: "unavailable", item, product: null } : { status: "pending", item };
     const variant = product.variants[item.variant];
     if (!variant) return { status: "unavailable", item, product };
-    return variant.availability === "out_of_stock"
-      ? { status: "out_of_stock", item, product, variant }
-      : { status: "ok", item, product, variant };
+    if (variant.availability === "out_of_stock") return { status: "out_of_stock", item, product, variant };
+    if (variant.availability === "preorder") return { status: "unavailable", item, product };
+    return { status: "ok", item, product, variant };
   });
 }
 
@@ -121,7 +121,9 @@ export const blockedLines = (lines: BagLine[]) =>
 
 /** Short tag for a line or card colour. null when nothing needs saying. */
 export function availabilityTag(availability: Availability | undefined): string | null {
-  return availability === "out_of_stock" ? "Out of stock" : null;
+  if (availability === "out_of_stock") return "Sold out";
+  if (availability === "preorder") return "Pre-order";
+  return null;
 }
 
 /** The WhatsApp and Messenger text. Only buyable lines are listed, numbered from 1. */

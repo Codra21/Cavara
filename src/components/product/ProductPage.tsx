@@ -36,7 +36,7 @@ function PageCard({ product, categoryName }: { product: ProductCard; categoryNam
       <button className="studio-carousel-card" type="button" onClick={() => openProduct(product)}>
         <span className="studio-carousel-media">
           <img src={product.images[0]} alt="" loading="lazy" width={800} height={800} />
-          {soldOut(product) ? <span className="product-badge is-sold-out">Out of stock</span> : null}
+          {soldOut(product) ? <span className="product-badge is-sold-out">Sold out</span> : null}
         </span>
         <span className="eyebrow">{categoryName}</span>
         <span className="studio-carousel-name">{product.name}</span>
@@ -390,26 +390,47 @@ export function ProductPage({
                 </SwatchGroup>
               </div>
 
-              <div className="pdp-buy" ref={buyRef}>
-                <Quantity
-                  value={quantity}
-                  max={MAX_QTY}
-                  onChange={(next) => setQuantity(Math.min(MAX_QTY, Math.max(1, next)))}
-                />
-                <button className="button pdp-add" type="button" onClick={add} disabled={stockTag !== null}>
-                  {addLabel}
-                </button>
-              </div>
-              {stockTag === null ? (
-                <a
-                  className="button button-outline pdp-now"
-                  href={whatsappUrl(singleOrderMessage(product, variant, quantity))}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <Icon name="fa-brands fa-whatsapp" /> Order now on WhatsApp
-                </a>
-              ) : null}
+              {variant.availability === "preorder" ? (
+                <div className="pdp-preorder" ref={buyRef}>
+                  <a
+                    className="button pdp-add"
+                    href={whatsappUrl(
+                      `Hi Cavara, I'd like to request a pre-order for ${product.name} (${variant.name}, ${formatPrice(product.price)}).`,
+                    )}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <Icon name="fa-brands fa-whatsapp" /> Request on WhatsApp
+                  </a>
+                  <p className="pdp-summary" style={{ marginTop: "0.5rem" }}>
+                    Pre-order pieces are arranged directly on WhatsApp. Our team calls first to confirm and arrange the
+                    50% advance by phone.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="pdp-buy" ref={buyRef}>
+                    <Quantity
+                      value={quantity}
+                      max={MAX_QTY}
+                      onChange={(next) => setQuantity(Math.min(MAX_QTY, Math.max(1, next)))}
+                    />
+                    <button className="button pdp-add" type="button" onClick={add} disabled={stockTag !== null}>
+                      {addLabel}
+                    </button>
+                  </div>
+                  {stockTag === null ? (
+                    <a
+                      className="button button-outline pdp-now"
+                      href={whatsappUrl(singleOrderMessage(product, variant, quantity))}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Icon name="fa-brands fa-whatsapp" /> Order now on WhatsApp
+                    </a>
+                  ) : null}
+                </>
+              )}
 
               <p className="pdp-summary">{product.summary}</p>
               {product.details.length ? (

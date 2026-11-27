@@ -187,13 +187,13 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
   const lines: OrderLine[] = [];
   for (const item of input.items) {
     const selection = selections.get(`${item.productId}:${item.variant}`);
-    if (!selection || selection.status !== "published" || selection.availability === "out_of_stock") {
+    if (!selection || selection.status !== "published" || selection.availability !== "in_stock") {
       const name = selection ? `${selection.productName} (${selection.variantName})` : "A piece in your cart";
-      return {
-        ok: false,
-        code: "unavailable",
-        message: `${name} is no longer available. Remove it from your cart and send the order again.`,
-      };
+      const message =
+        selection?.availability === "preorder"
+          ? `${name} is pre-order only — request it on WhatsApp. Remove it from your cart to place this order.`
+          : `${name} is no longer available. Remove it from your cart and send the order again.`;
+      return { ok: false, code: "unavailable", message };
     }
     // A counted colour with fewer left than asked for ("only N left"); the order insert re-checks this atomically.
     if (isShort({ ...selection, qty: item.qty })) {

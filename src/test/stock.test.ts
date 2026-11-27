@@ -237,8 +237,7 @@ describe("adjustStock", () => {
     });
     const sage = product.variants[0]!;
     expect(await count(db, product.id, sage.id, 0)).toMatchObject({ ok: true, stock: 0, availability: "preorder" });
-    const placed = await order(db, [{ productId: product.id, variant: 0, qty: 5 }]);
-    expect(placed.ok).toBe(true);
+    db.sqlite.query("UPDATE product_variants SET stock = -5 WHERE id = ?").run(sage.id);
 
     const restock = await adjustStock(
       db,
@@ -506,15 +505,18 @@ describe("placing an order", () => {
     expect(rowsIn(db, "orders")).toBe(0);
   });
 
-  test("a counted pre-order colour may go below 0 and stays pre-order; uncounted colours are not tracked", async () => {
+  test("a pre-order colour is refused at checkout; uncounted in-stock colours are not tracked", async () => {
     const db = createTestD1();
     const product = await makeProduct(db, ["Sage"], {
       variants: [{ id: null, name: "Sage", swatch: "#ccc", availability: "preorder", images: [IMG] }],
     });
     const sage = product.variants[0]!;
     await count(db, product.id, sage.id, 1);
-    expect(await order(db, [{ productId: product.id, variant: 0, qty: 3 }])).toMatchObject({ ok: true });
-    expect(stockOf(db, sage.id)).toEqual({ stock: -2, availability: "preorder" });
+    expect(await order(db, [{ productId: product.id, variant: 0, qty: 3 }])).toMatchObject({
+      ok: false,
+      code: "unavailable",
+    });
+    expect(stockOf(db, sage.id)).toEqual({ stock: 1, availability: "preorder" });
 
     const plain = await makeProduct(db, ["Sage"]);
     expect(await order(db, [{ productId: plain.id, variant: 0, qty: 3 }])).toMatchObject({ ok: true });

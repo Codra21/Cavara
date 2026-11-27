@@ -210,7 +210,7 @@ export function BagDrawer() {
                               }
                             />
                           ) : (
-                            <span className="stock-tag">Out of stock</span>
+                            <span className="stock-tag">Sold out</span>
                           )}
                           <button className="bag-remove" type="button" onClick={() => remove(line, product.name)}>
                             Remove
