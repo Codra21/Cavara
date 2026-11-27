@@ -100,7 +100,10 @@ export async function adjustStock(
   if (starting && variant.stock !== null) return { ok: false, error: "This colour is already counted. Reload." };
   if (!starting && variant.stock === null) return { ok: false, error: "Start counting this colour first." };
   if (input.action === "out" && (variant.stock ?? 0) < input.quantity) {
-    return { ok: false, error: `Only ${variant.stock} in stock, so ${input.quantity} cannot go out.` };
+    return {
+      ok: false,
+      error: `Only ${Math.max(0, variant.stock ?? 0)} in stock, so ${input.quantity} cannot go out.`,
+    };
   }
 
   const delta = input.action === "out" ? -input.quantity : input.quantity;
@@ -109,8 +112,11 @@ export async function adjustStock(
   // P: the state this change expects, evaluated before the UPDATE changes it.
   const predicate = starting
     ? "v.id = ? AND v.product_id = ? AND v.stock IS NULL"
-    : "v.id = ? AND v.product_id = ? AND v.stock IS NOT NULL AND v.stock + ? >= 0";
-  const predicateParams = starting ? [input.variantId, input.productId] : [input.variantId, input.productId, delta];
+    : input.action === "out"
+      ? "v.id = ? AND v.product_id = ? AND v.stock IS NOT NULL AND v.stock + ? >= 0"
+      : "v.id = ? AND v.product_id = ? AND v.stock IS NOT NULL";
+  const predicateParams =
+    input.action === "out" ? [input.variantId, input.productId, delta] : [input.variantId, input.productId];
   const newStock = starting ? "?" : "v.stock + ?";
   const newStockParams = [starting ? input.quantity : delta];
 

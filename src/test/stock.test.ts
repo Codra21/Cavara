@@ -230,6 +230,31 @@ describe("adjustStock", () => {
     ).toMatchObject({ ok: false });
   });
 
+  test("partial stock in succeeds on a back-ordered counted pre-order colour", async () => {
+    const db = createTestD1();
+    const product = await makeProduct(db, ["Sage"], {
+      variants: [{ id: null, name: "Sage", swatch: "#ccc", availability: "preorder", images: [IMG] }],
+    });
+    const sage = product.variants[0]!;
+    expect(await count(db, product.id, sage.id, 0)).toMatchObject({ ok: true, stock: 0, availability: "preorder" });
+    const placed = await order(db, [{ productId: product.id, variant: 0, qty: 5 }]);
+    expect(placed.ok).toBe(true);
+
+    const restock = await adjustStock(
+      db,
+      owner,
+      adjustStockSchema.parse({
+        productId: product.id,
+        variantId: sage.id,
+        action: "in",
+        quantity: 2,
+        note: "Partial shipment",
+      }),
+      T0,
+    );
+    expect(restock).toMatchObject({ ok: true, stock: -3, availability: "preorder" });
+  });
+
   test("a colour on pre-order stays pre-order at any count", async () => {
     const db = createTestD1();
     const product = await makeProduct(db, ["Sage"], {
