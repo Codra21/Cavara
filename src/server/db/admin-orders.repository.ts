@@ -7,6 +7,8 @@
 import type { AdminIdentity, AuditValue } from "@/domain/admin";
 import {
   type AdminOrderDetail,
+  PAYMENT_METHOD_LABELS,
+  type PaymentMethod,
   type AdminOrderEvent,
   type AdminOrderLine,
   type AdminOrderPage,
@@ -40,11 +42,13 @@ interface OrderRow {
   item_count: number;
   status: OrderStatus;
   payment_status: PaymentStatus;
+  amount_paid?: number;
+  payment_method?: PaymentMethod | null;
   created_at: string;
 }
 
 const SUMMARY_COLUMNS =
-  "id, reference, customer_name, phone, zone_name, total, item_count, status, payment_status, created_at";
+  "id, reference, customer_name, phone, zone_name, total, item_count, status, payment_status, amount_paid, payment_method, created_at";
 
 const toSummary = (row: OrderRow): AdminOrderSummary => ({
   id: row.id,
@@ -56,6 +60,8 @@ const toSummary = (row: OrderRow): AdminOrderSummary => ({
   itemCount: row.item_count,
   status: row.status,
   paymentStatus: row.payment_status,
+  amountPaid: row.amount_paid ?? 0,
+  paymentMethod: row.payment_method ?? null,
   createdAt: row.created_at,
 });
 
@@ -110,6 +116,7 @@ interface DetailRow extends OrderRow {
   note: string;
   zone_id: string;
   delivery_charge: number;
+  total_weight_g?: number;
   subtotal: number;
   items_total: number | null;
   coupon_code: string | null;
@@ -131,7 +138,7 @@ async function readOrder(db: D1Database, id: string): Promise<OrderRead | null> 
   const [orderResult, lineResult, historyResult] = await db.batch([
     db
       .prepare(
-        `SELECT ${SUMMARY_COLUMNS}, address, note, zone_id, delivery_charge, subtotal, items_total, coupon_code,
+        `SELECT ${SUMMARY_COLUMNS}, address, note, zone_id, delivery_charge, total_weight_g, subtotal, items_total, coupon_code,
            coupon_discount, coupon_id, coupon_returned, version, shop_day
          FROM orders WHERE id = ?`,
       )
@@ -163,6 +170,7 @@ async function readOrder(db: D1Database, id: string): Promise<OrderRead | null> 
       note: row.note,
       zoneId: row.zone_id,
       deliveryCharge: row.delivery_charge,
+      totalWeightG: row.total_weight_g ?? 0,
       subtotal: row.subtotal,
       // NULL on orders placed before coupons existed, which had no discount.
       itemsTotal: row.items_total ?? row.subtotal,
@@ -251,7 +259,21 @@ export async function updateOrderStatus(
     const refusal = await reopenRefusal(db, input.id);
     if (refusal) return { ok: false, error: refusal };
   }
-  const paymentChanged = current.paymentStatus !== input.paymentStatus;
+  const currentPaid = current.amountPaid ?? 0;
+  const currentMethod = current.paymentMethod ?? null;
+  const nextAmountPaid =
+    input.amountPaid !== undefined
+      ? input.amountPaid
+      : input.paymentStatus === "paid"
+        ? current.total
+        : input.paymentStatus === "unpaid"
+          ? 0
+          : currentPaid;
+  const nextPaymentMethod = input.paymentMethod !== undefined ? input.paymentMethod : currentMethod;
+  const paymentChanged =
+    current.paymentStatus !== input.paymentStatus ||
+    nextAmountPaid !== currentPaid ||
+    nextPaymentMethod !== currentMethod;
   if (!statusChanged && !paymentChanged && !input.note) return { ok: true, version: current.version };
 
   // The coupon this order used and whether it gave the use back (a cancel while unpaid). Read with the order above.
@@ -273,13 +295,15 @@ export async function updateOrderStatus(
   const statements: D1PreparedStatement[] = [
     db
       .prepare(
-        `UPDATE orders SET status = ?, payment_status = ?, version = version + 1, change_token = ?, updated_at = ?
+        `UPDATE orders SET status = ?, payment_status = ?, amount_paid = ?, payment_method = ?, version = version + 1, change_token = ?, updated_at = ?
            ${stamp ? `, ${stamp} = ?` : ""}
          WHERE id = ? AND version = ?${reopening ? ` AND ${REOPEN_FITS} AND ${COUPON_USE_FITS}` : ""}`,
       )
       .bind(
         input.status,
         input.paymentStatus,
+        nextAmountPaid,
+        nextPaymentMethod,
         token,
         at,
         ...(stamp ? [at] : []),
@@ -300,7 +324,15 @@ export async function updateOrderStatus(
         current.paymentStatus,
         input.paymentStatus,
         actor.username,
-        input.note,
+        [
+          input.note,
+          nextAmountPaid !== currentPaid || nextPaymentMethod !== currentMethod
+            ? `Paid ৳${nextAmountPaid}${nextPaymentMethod ? ` via ${PAYMENT_METHOD_LABELS[nextPaymentMethod]}` : ""}`
+            : "",
+        ]
+          .filter(Boolean)
+          .join(" · ")
+          .slice(0, 300),
         at,
         ...guardParams,
       ),

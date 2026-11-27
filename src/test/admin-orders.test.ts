@@ -246,3 +246,26 @@ describe("saveZones", () => {
     expect((await getOrder(db, id))!.deliveryCharge).toBe(100);
   });
 });
+
+describe("partial payment (C3.2)", () => {
+  test("records partially_paid status, amountPaid, paymentMethod, and history entry", async () => {
+    const db = createTestD1();
+    const { id } = await placeOrder(db);
+    const updated = await updateOrderStatus(db, owner, {
+      id,
+      version: 1,
+      status: "confirmed",
+      paymentStatus: "partially_paid",
+      amountPaid: 500,
+      paymentMethod: "bkash",
+      note: "50% advance received",
+    });
+    expect(updated.ok).toBe(true);
+    const order = await getOrder(db, id);
+    expect(order?.paymentStatus).toBe("partially_paid");
+    expect(order?.amountPaid).toBe(500);
+    expect(order?.paymentMethod).toBe("bkash");
+    expect(order?.history.at(-1)?.toPaymentStatus).toBe("partially_paid");
+    expect(order?.history.at(-1)?.note).toContain("Paid ৳500 via bKash");
+  });
+});

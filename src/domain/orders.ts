@@ -6,7 +6,7 @@ import { MAX_QTY } from "@/lib/config";
 export const ORDER_STATUSES = ["new", "confirmed", "dispatched", "delivered", "cancelled"] as const;
 export type OrderStatus = (typeof ORDER_STATUSES)[number];
 
-export const PAYMENT_STATUSES = ["unpaid", "paid", "refunded"] as const;
+export const PAYMENT_STATUSES = ["unpaid", "partially_paid", "paid", "refunded"] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 /** Statuses that count as a sale on the dashboard (revenue and profit). */
@@ -237,8 +237,18 @@ export const STATUS_LABELS: Record<OrderStatus, string> = {
   cancelled: "Cancelled",
 };
 
+export const PAYMENT_METHODS = ["bkash", "nagad", "cash"] as const;
+export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
+
+export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
+  bkash: "bKash",
+  nagad: "Nagad",
+  cash: "Cash",
+};
+
 export const PAYMENT_LABELS: Record<PaymentStatus, string> = {
   unpaid: "Unpaid",
+  partially_paid: "Partially paid",
   paid: "Paid",
   refunded: "Refunded",
 };
@@ -259,6 +269,8 @@ export const updateOrderSchema = z
     version: z.number().int().min(1),
     status: z.enum(ORDER_STATUSES),
     paymentStatus: z.enum(PAYMENT_STATUSES),
+    amountPaid: z.number().int().min(0).max(10_000_000).optional(),
+    paymentMethod: z.enum(PAYMENT_METHODS).nullable().optional(),
     note: z
       .string()
       .transform((value) => value.trim())
@@ -297,6 +309,8 @@ export interface AdminOrderSummary {
   itemCount: number;
   status: OrderStatus;
   paymentStatus: PaymentStatus;
+  amountPaid?: number;
+  paymentMethod?: PaymentMethod | null;
   createdAt: string;
 }
 

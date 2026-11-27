@@ -60,6 +60,7 @@ const PAYMENT_BADGE_META: Record<
 > = {
   paid: { variant: "success", icon: CheckCircle2 },
   unpaid: { variant: "outline", icon: Clock },
+  partially_paid: { variant: "warning", icon: Clock },
   refunded: { variant: "warning", icon: RotateCcw },
 };
 

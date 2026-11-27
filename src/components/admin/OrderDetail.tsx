@@ -19,7 +19,10 @@ import {
   formatPhone,
   type OrderStatus,
   PAYMENT_LABELS,
+  PAYMENT_METHOD_LABELS,
+  PAYMENT_METHODS,
   PAYMENT_STATUSES,
+  type PaymentMethod,
   type PaymentStatus,
   STATUS_ACTIONS,
   STATUS_LABELS,
@@ -28,6 +31,7 @@ import {
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableFooter, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -127,12 +131,24 @@ export function OrderDetail({
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<OrderStatus>(order.status);
   const [payment, setPayment] = useState<PaymentStatus>(order.paymentStatus);
+  const [amountPaid, setAmountPaid] = useState<string>(String(order.amountPaid ?? 0));
+  const [paymentMethod, setPaymentMethod] = useState<string>(order.paymentMethod ?? "__none__");
   const [note, setNote] = useState("");
   const [problem, setProblem] = useState<{ text: string; conflict: boolean } | null>(null);
   const [confirmCancel, setConfirmCancel] = useState(false);
 
+  const parsedAmountPaid = Math.max(0, Math.trunc(Number(amountPaid) || 0));
+  const resolvedMethod: PaymentMethod | null =
+    paymentMethod === "__none__" ? null : (paymentMethod as PaymentMethod);
+  const balanceDue = Math.max(0, order.total - (order.amountPaid ?? 0));
+
   const next = STATUS_TRANSITIONS[order.status];
-  const dirty = status !== order.status || payment !== order.paymentStatus || note.trim() !== "";
+  const dirty =
+    status !== order.status ||
+    payment !== order.paymentStatus ||
+    parsedAmountPaid !== (order.amountPaid ?? 0) ||
+    resolvedMethod !== (order.paymentMethod ?? null) ||
+    note.trim() !== "";
   const knownCost = order.lines.every((line) => line.costPrice !== null);
   // The coupon comes out of the margin, the same figure the dashboard's profit uses (orderSales).
   const margin =
@@ -143,7 +159,7 @@ export function OrderDetail({
 
   const save = useMutation({
     mutationFn: () =>
-      updateOrderFn({ data: { id: order.id, version: order.version, status, paymentStatus: payment, note } }),
+      updateOrderFn({ data: { id: order.id, version: order.version, status, paymentStatus: payment, amountPaid: parsedAmountPaid, paymentMethod: resolvedMethod, note } }),
     onSuccess: async (result) => {
       setConfirmCancel(false);
       if (!result.ok) {
@@ -185,7 +201,7 @@ export function OrderDetail({
           <h1 className="text-2xl font-bold tracking-tight tabular-nums">{order.reference}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Placed <time dateTime={order.createdAt}>{adminTimeFormat.format(new Date(order.createdAt))}</time> ·{" "}
-            <span className="font-medium text-foreground">{formatPrice(order.total)}</span>
+            <span className="font-medium text-foreground">{formatPrice(order.total)}</span> · Paid {formatPrice(order.amountPaid ?? 0)} · Balance due <span className="font-medium text-foreground">{formatPrice(balanceDue)}</span>{order.paymentMethod ? ` (${PAYMENT_METHOD_LABELS[order.paymentMethod]})` : ""}
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm">
@@ -285,7 +301,15 @@ export function OrderDetail({
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${id}-payment`}>Payment</Label>
-                <Select value={payment} onValueChange={(value) => setPayment(value as PaymentStatus)}>
+                <Select
+                  value={payment}
+                  onValueChange={(value) => {
+                    const nextPay = value as PaymentStatus;
+                    setPayment(nextPay);
+                    if (nextPay === "paid") setAmountPaid(String(order.total));
+                    else if (nextPay === "unpaid") setAmountPaid("0");
+                  }}
+                >
                   <SelectTrigger id={`${id}-payment`} className="w-full">
                     <SelectValue />
                   </SelectTrigger>
@@ -297,6 +321,36 @@ export function OrderDetail({
                     ))}
                   </SelectContent>
                 </Select>
+              </div>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="grid gap-1.5">
+                  <Label htmlFor={`${id}-amount-paid`}>Amount paid (৳)</Label>
+                  <Input
+                    id={`${id}-amount-paid`}
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    step={1}
+                    value={amountPaid}
+                    onChange={(event) => setAmountPaid(event.target.value)}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor={`${id}-payment-method`}>Payment method</Label>
+                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                    <SelectTrigger id={`${id}-payment-method`} className="w-full">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="__none__">Not set</SelectItem>
+                      {PAYMENT_METHODS.map((method) => (
+                        <SelectItem key={method} value={method}>
+                          {PAYMENT_METHOD_LABELS[method]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${id}-note`}>Note for the history (optional)</Label>
