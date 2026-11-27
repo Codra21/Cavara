@@ -188,7 +188,7 @@ function request(
     zoneId: "inside-dhaka",
     address: "House 1, Road 2, Dhanmondi, Dhaka",
     note: "",
-    deliveryCharge: 80,
+    deliveryCharge: 80 + 20 * Math.max(0, items.reduce((sum, item) => sum + item.qty, 0) - 1),
     items,
     website: "",
     ...over,
@@ -218,12 +218,12 @@ describe("checkout with a coupon", () => {
     const discount = Math.floor(itemsTotal / 10);
     const result = await submit(db, request(items, { couponCode: " save10 ", couponDiscount: discount }));
     if (!result.ok) throw new Error(result.message);
-    expect(result.total).toBe(itemsTotal - discount + 80);
+    expect(result.total).toBe(itemsTotal - discount + 100);
     expect(row(db, "SELECT items_total, subtotal, total, coupon_code, coupon_id, coupon_discount FROM orders")).toEqual(
       {
         items_total: itemsTotal,
         subtotal: itemsTotal - discount,
-        total: itemsTotal - discount + 80,
+        total: itemsTotal - discount + 100,
         coupon_code: "SAVE10",
         coupon_id: coupon,
         coupon_discount: discount,

@@ -25,6 +25,7 @@ interface ProductRow {
   price: number;
   regular_price: number | null;
   cost_price: number | null;
+  weight_g: number | null;
   status: ProductStatus;
   featured: number;
   sort: number;
@@ -67,7 +68,7 @@ export async function getAdminProduct(db: D1Database, id: number): Promise<Admin
   const [productResult, variantResult, imageResult] = await db.batch([
     db
       .prepare(
-        `SELECT id, slug, name, category_id, summary, details, note, price, regular_price, cost_price, status, featured,
+        `SELECT id, slug, name, category_id, summary, details, note, price, regular_price, cost_price, weight_g, status, featured,
            sort, revision, updated_at FROM products WHERE id = ?`,
       )
       .bind(id),
@@ -108,6 +109,7 @@ export async function getAdminProduct(db: D1Database, id: number): Promise<Admin
     price: row.price,
     regularPrice: row.regular_price,
     costPrice: row.cost_price,
+    weightG: row.weight_g,
     status: row.status,
     featured: row.featured === 1,
     sort: row.sort,
@@ -189,6 +191,7 @@ export async function saveProduct(db: D1Database, options: SaveProductOptions): 
       input.price,
       input.regularPrice,
       input.costPrice,
+      input.weightG,
       input.status,
       input.featured ? 1 : 0,
       input.sort,
@@ -200,8 +203,8 @@ export async function saveProduct(db: D1Database, options: SaveProductOptions): 
         db
           .prepare(
             `INSERT INTO products (id, slug, name, category_id, summary, details, note, price, regular_price, cost_price,
-             status, featured, sort, archived_at, revision, created_at, updated_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'archived' THEN ? END, ?, ?, ?)`,
+             weight_g, status, featured, sort, archived_at, revision, created_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'archived' THEN ? END, ?, ?, ?)`,
           )
           .bind(id, ...fields, input.status, now, nextRevision, now, now),
       );
@@ -210,7 +213,7 @@ export async function saveProduct(db: D1Database, options: SaveProductOptions): 
         db
           .prepare(
             `UPDATE products SET slug = ?, name = ?, category_id = ?, summary = ?, details = ?, note = ?, price = ?,
-             regular_price = ?, cost_price = ?, status = ?, featured = ?, sort = ?,
+             regular_price = ?, cost_price = ?, weight_g = ?, status = ?, featured = ?, sort = ?,
              archived_at = CASE WHEN ? = 'archived' THEN COALESCE(archived_at, ?) END,
              revision = ?, updated_at = ?
            WHERE id = ? AND revision = ?`,

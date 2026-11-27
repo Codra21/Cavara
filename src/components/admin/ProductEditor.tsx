@@ -733,7 +733,7 @@ export function ProductEditor({
               onChange={(e) => set("price", toTaka(e.target.value) ?? 0)}
             />
           </Field>
-          <Field label="Regular price (৳)" htmlFor={`${id}-regular`} hint="Optional. Not shown on the shop yet.">
+          <Field label="Regular price (৳)" htmlFor={`${id}-regular`} hint="Optional. Struck through when above price.">
             <Input
               id={`${id}-regular`}
               type="number"
@@ -757,6 +757,22 @@ export function ProductEditor({
               step={1}
               value={values.costPrice ?? ""}
               onChange={(e) => set("costPrice", toTaka(e.target.value))}
+            />
+          </Field>
+          <Field
+            label="Weight (g)"
+            htmlFor={`${id}-weight`}
+            hint="Optional. Blank counts as 1 kg (1000 g) for delivery."
+          >
+            <Input
+              id={`${id}-weight`}
+              type="number"
+              inputMode="numeric"
+              min={1}
+              max={100000}
+              step={1}
+              value={values.weightG ?? ""}
+              onChange={(e) => set("weightG", toTaka(e.target.value))}
             />
           </Field>
         </CardContent>

@@ -30,7 +30,7 @@ async function placeOrder(db: TestD1, at = T0, phone = "01712345678") {
       zoneId: "inside-dhaka",
       address: "Secret Street 1, Dhaka 1205",
       note: "",
-      deliveryCharge: 80,
+      deliveryCharge: 120,
       items: [{ productId: product!.id, variant: product!.position, qty: 3, unitPrice: product!.price }],
       website: "",
     },

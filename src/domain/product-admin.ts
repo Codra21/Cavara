@@ -58,6 +58,14 @@ export const productInputSchema = z
     price: money.min(1, "Price must be at least ৳1"),
     regularPrice: money.min(1).nullable(),
     costPrice: money.nullable(),
+    weightG: z
+      .number()
+      .int("Whole grams only")
+      .min(1, "Weight must be at least 1 g")
+      .max(100_000, "Weight must be at most 100 kg")
+      .nullable()
+      .optional()
+      .transform((value) => value ?? null),
     status: z.enum(PRODUCT_STATUSES),
     featured: z.boolean(),
     sort: z.number().int().min(-100_000).max(100_000),
@@ -124,6 +132,7 @@ export interface AdminProduct {
   price: number;
   regularPrice: number | null;
   costPrice: number | null;
+  weightG?: number | null;
   status: ProductStatus;
   featured: boolean;
   sort: number;
@@ -206,6 +215,7 @@ export function emptyProductForm(categoryId = ""): ProductFormValues {
     price: 0,
     regularPrice: null,
     costPrice: null,
+    weightG: null,
     status: "draft",
     featured: false,
     sort: 0,
@@ -224,6 +234,7 @@ export function productToForm(product: AdminProduct): ProductFormValues {
     price: product.price,
     regularPrice: product.regularPrice,
     costPrice: product.costPrice,
+    weightG: product.weightG ?? null,
     status: product.status,
     featured: product.featured,
     sort: product.sort,

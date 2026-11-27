@@ -22,6 +22,8 @@
 // Telegram alerts (unit 8) are written to an outbox after the order commits, so a failed alert never loses an order.
 import { createHash, createHmac } from "node:crypto";
 import {
+  calculateDeliveryCharge,
+  calculateTotalWeightG,
   canonicalCheckout,
   type CheckoutInput,
   checkoutFieldErrors,
@@ -215,35 +217,39 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
   }
 
   const itemsTotal = lines.reduce((sum, line) => sum + line.unitPrice * line.qty, 0);
+  const totalWeightG = calculateTotalWeightG(lines);
+  const deliveryCharge = calculateDeliveryCharge(zone, totalWeightG);
   const couponRule = input.couponCode ? await readCouponByCode(db, input.couponCode) : null;
   const coupon = input.couponCode ? couponAnswer(couponRule, input.couponCode, itemsTotal, now.getTime()) : null;
   const couponChanged =
     coupon !== null ? !coupon.ok || coupon.discount !== input.couponDiscount : input.couponDiscount !== 0;
 
   const priceChanged = input.items.some((item, index) => lines[index]!.unitPrice !== item.unitPrice);
-  if (priceChanged || zone.charge !== input.deliveryCharge || couponChanged) {
+  if (priceChanged || deliveryCharge !== input.deliveryCharge || couponChanged) {
     return {
       ok: false,
       code: "price_changed",
       message:
-        coupon !== null && couponChanged && !priceChanged && zone.charge === input.deliveryCharge
+        coupon !== null && couponChanged && !priceChanged && deliveryCharge === input.deliveryCharge
           ? couponChangedMessage(coupon)
           : "Some prices changed since you opened the shop. Check the new total, then send the order again.",
       prices: lines.map((line) => ({ productId: line.productId, variant: line.variant, unitPrice: line.unitPrice })),
-      deliveryCharge: zone.charge,
+      deliveryCharge,
       coupon,
     };
   }
 
   const discount = coupon?.ok ? coupon.discount : 0;
   const subtotal = itemsTotal - discount;
-  const total = subtotal + zone.charge;
+  const total = subtotal + deliveryCharge;
   const base = {
     id: (context.newId ?? (() => crypto.randomUUID()))(),
     idempotencyKey: input.idempotencyKey,
     payloadHash,
     input,
     zone,
+    deliveryCharge,
+    totalWeightG,
     lines,
     itemsTotal,
     coupon: coupon?.ok && couponRule ? { id: couponRule.id, code: coupon.code, discount } : null,

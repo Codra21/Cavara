@@ -32,6 +32,29 @@ export interface DeliveryZone {
   perKgCharge?: number;
 }
 
+/** Blank product weight counts as 1 kg (1000 g). */
+export const DEFAULT_PRODUCT_WEIGHT_G = 1000;
+/** Default extra charge per kg above the first kg (whole BDT). */
+export const DEFAULT_PER_KG_CHARGE = 20;
+
+/** Total parcel weight in grams; items with a blank/null weight count as 1000 g each. */
+export function calculateTotalWeightG(items: readonly { weightG?: number | null; qty: number }[]): number {
+  return items.reduce((sum, item) => sum + (item.weightG ?? DEFAULT_PRODUCT_WEIGHT_G) * item.qty, 0);
+}
+
+/**
+ * Weight-based delivery charge: zone base + per-kg step × (ceil(total kg) − 1).
+ * Example: 1.2 kg inside Dhaka (৳80 base, ৳20/kg) = 80 + 20 × (2 − 1) = ৳100.
+ */
+export function calculateDeliveryCharge(
+  zone: Pick<DeliveryZone, "charge" | "perKgCharge">,
+  totalWeightG: number,
+): number {
+  const billedKg = Math.max(1, Math.ceil(totalWeightG / 1000));
+  const perKg = zone.perKgCharge ?? DEFAULT_PER_KG_CHARGE;
+  return zone.charge + perKg * (billedKg - 1);
+}
+
 /**
  * Bangladeshi mobile number in its 11-digit local form (01XXXXXXXXX), or null.
  * Accepts spaces, dashes, dots and brackets, and the +880 / 880 / 0088 country prefixes.
@@ -316,6 +339,7 @@ export interface AdminOrderDetail extends AdminOrderSummary {
   note: string;
   zoneId: string;
   deliveryCharge: number;
+  totalWeightG?: number;
   /** The item total after the coupon (what revenue counts). */
   subtotal: number;
   /** The item total before the coupon; equals `subtotal` on orders without one and on orders placed before P9.3. */
@@ -371,6 +395,7 @@ export const zoneInputSchema = z.object({
     .transform((value) => value.replace(/\s+/g, " ").trim())
     .pipe(z.string().min(1, "Name the delivery area").max(60)),
   charge: z.number().int("Whole taka only").min(0).max(100_000),
+  perKgCharge: z.number().int("Whole taka only").min(0).max(100_000).default(DEFAULT_PER_KG_CHARGE),
   active: z.boolean(),
 });
 

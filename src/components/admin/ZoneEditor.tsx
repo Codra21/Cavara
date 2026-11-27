@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, ArrowDown, ArrowUp, CheckCircle2, MapPin, Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
-import { type AdminZone, saveZonesSchema, type ZoneInput } from "@/domain/orders";
+import { type AdminZone, DEFAULT_PER_KG_CHARGE, saveZonesSchema, type ZoneInput } from "@/domain/orders";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { Label } from "@/components/ui/label";
 import { saveZonesFn } from "@/server/functions/admin-orders.functions";
 import { ADMIN_QUERY_KEY } from "./queries";
 
-type Row = Omit<ZoneInput, "charge"> & { charge: string; key: string };
+type Row = Omit<ZoneInput, "charge" | "perKgCharge"> & { charge: string; perKgCharge: string; key: string };
 
 const toRows = (zones: AdminZone[]): Row[] =>
   zones.map((zone) => ({
@@ -20,6 +20,7 @@ const toRows = (zones: AdminZone[]): Row[] =>
     id: zone.id,
     name: zone.name,
     charge: String(zone.charge),
+    perKgCharge: String(zone.perKgCharge ?? DEFAULT_PER_KG_CHARGE),
     active: zone.active,
   }));
 
@@ -88,6 +89,7 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
       id: row.id,
       name: row.name,
       charge: row.charge.trim() === "" ? Number.NaN : Number(row.charge),
+      perKgCharge: row.perKgCharge.trim() === "" ? Number.NaN : Number(row.perKgCharge),
       active: row.active,
     }));
     const parsed = saveZonesSchema.safeParse({ zones: input });
@@ -149,7 +151,7 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
             {rows.map((row, index) => (
               <li
                 key={row.key}
-                className={`grid items-end gap-3 rounded-md border p-3 transition-colors sm:grid-cols-[minmax(0,1fr)_8rem_auto_auto] ${
+                className={`grid items-end gap-3 rounded-md border p-3 transition-colors sm:grid-cols-[minmax(0,1fr)_7.5rem_7.5rem_auto_auto] ${
                   row.active ? "border-border bg-card" : "border-border/60 bg-muted/40 opacity-75"
                 }`}
               >
@@ -167,7 +169,7 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
                   />
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor={`${id}-${row.key}-charge`}>Charge (৳)</Label>
+                  <Label htmlFor={`${id}-${row.key}-charge`}>Base 1 kg (৳)</Label>
                   <Input
                     id={`${id}-${row.key}-charge`}
                     type="number"
@@ -176,6 +178,18 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
                     step={1}
                     value={row.charge}
                     onChange={(event) => update(index, { charge: event.target.value })}
+                  />
+                </div>
+                <div className="grid gap-1.5">
+                  <Label htmlFor={`${id}-${row.key}-perkg`}>Extra kg (৳)</Label>
+                  <Input
+                    id={`${id}-${row.key}-perkg`}
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    step={1}
+                    value={row.perKgCharge}
+                    onChange={(event) => update(index, { perKgCharge: event.target.value })}
                   />
                 </div>
                 <div className="flex h-8 items-center gap-2">
@@ -230,7 +244,7 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
             onClick={() =>
               setRows((current) => [
                 ...current,
-                { key: crypto.randomUUID(), id: null, name: "", charge: "", active: true },
+                { key: crypto.randomUUID(), id: null, name: "", charge: "", perKgCharge: String(DEFAULT_PER_KG_CHARGE), active: true },
               ])
             }
           >

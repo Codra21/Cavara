@@ -105,6 +105,8 @@ export interface Selection {
   stock: number | null;
   /** The colour's row id. Stock is reserved by this, not by `variant`, a position a product save can renumber. */
   variantId: number;
+  /** Product weight in grams; null counts as 1000 g. */
+  weightG: number | null;
 }
 
 /** A line as it is saved: `unitPrice` is what is charged, `listPrice` what it cost before the sale that took the rest. */
@@ -118,7 +120,7 @@ export async function readSelections(
   const { results } = await db
     .prepare(
       `SELECT v.id AS variantId, v.product_id AS productId, p.category_id AS category, v.position AS variant, p.name AS productName, v.name AS variantName,
-         p.status, v.availability, p.price AS unitPrice, p.cost_price AS costPrice, v.stock
+         p.status, v.availability, p.price AS unitPrice, p.cost_price AS costPrice, v.stock, p.weight_g AS weightG
        FROM json_each(?) j
        JOIN product_variants v
          ON v.product_id = json_extract(j.value, '$[0]') AND v.position = json_extract(j.value, '$[1]')
@@ -131,7 +133,7 @@ export async function readSelections(
 
 export async function readActiveZone(db: D1Database, id: string): Promise<DeliveryZone | null> {
   return db
-    .prepare("SELECT id, name, charge FROM delivery_zones WHERE id = ? AND active = 1")
+    .prepare("SELECT id, name, charge, per_kg_charge AS perKgCharge FROM delivery_zones WHERE id = ? AND active = 1")
     .bind(id)
     .first<DeliveryZone>();
 }
@@ -143,6 +145,8 @@ export interface NewOrder {
   payloadHash: string;
   input: CheckoutInput;
   zone: DeliveryZone;
+  deliveryCharge?: number;
+  totalWeightG?: number;
   lines: OrderLine[];
   /** The item total before the coupon (the sum of the line totals). */
   itemsTotal: number;
@@ -198,9 +202,9 @@ export async function insertOrder(db: D1Database, order: NewOrder): Promise<bool
     db
       .prepare(
         `INSERT INTO orders (id, reference, idempotency_key, payload_hash, customer_name, phone, address, note,
-           zone_id, zone_name, delivery_charge, subtotal, total, item_count, shop_day, created_at, updated_at,
+           zone_id, zone_name, delivery_charge, total_weight_g, subtotal, total, item_count, shop_day, created_at, updated_at,
            items_total, coupon_code, coupon_id, coupon_discount)
-         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+         SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
          WHERE ${NO_SHORT_LINE} AND ${COUPON_USABLE} AND ${PHONE_ALLOWED}`,
       )
       .bind(
@@ -214,7 +218,8 @@ export async function insertOrder(db: D1Database, order: NewOrder): Promise<bool
         input.note,
         order.zone.id,
         order.zone.name,
-        order.zone.charge,
+        order.deliveryCharge ?? order.zone.charge,
+        order.totalWeightG ?? 0,
         order.subtotal,
         order.total,
         order.itemCount,

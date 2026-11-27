@@ -396,8 +396,8 @@ export async function updateOrderStatus(
 
 export async function listZones(db: D1Database): Promise<AdminZone[]> {
   const { results } = await db
-    .prepare("SELECT id, name, charge, active, sort FROM delivery_zones")
-    .all<{ id: string; name: string; charge: number; active: number; sort: number }>();
+    .prepare("SELECT id, name, charge, per_kg_charge AS perKgCharge, active, sort FROM delivery_zones")
+    .all<{ id: string; name: string; charge: number; perKgCharge: number; active: number; sort: number }>();
   return results
     .map((row) => ({ ...row, active: row.active === 1 }))
     .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id));
@@ -425,7 +425,7 @@ export type SaveZonesResult = { ok: true; zones: AdminZone[] } | { ok: false; er
 export async function saveZones(
   db: D1Database,
   actor: AdminIdentity,
-  zones: ZoneInput[],
+  zones: (Omit<ZoneInput, "perKgCharge"> & { perKgCharge?: number })[],
   now = new Date(),
 ): Promise<SaveZonesResult> {
   const existing = await listZones(db);
@@ -443,11 +443,12 @@ export async function saveZones(
     ...rows.map((zone) =>
       db
         .prepare(
-          `INSERT INTO delivery_zones (id, name, charge, active, sort, updated_at) VALUES (?, ?, ?, ?, ?, ?)
-           ON CONFLICT (id) DO UPDATE SET name = excluded.name, charge = excluded.charge, active = excluded.active,
+          `INSERT INTO delivery_zones (id, name, charge, per_kg_charge, active, sort, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+           ON CONFLICT (id) DO UPDATE SET name = excluded.name, charge = excluded.charge,
+             per_kg_charge = excluded.per_kg_charge, active = excluded.active,
              sort = excluded.sort, updated_at = excluded.updated_at`,
         )
-        .bind(zone.id, zone.name, zone.charge, zone.active ? 1 : 0, zone.sort, at),
+        .bind(zone.id, zone.name, zone.charge, zone.perKgCharge ?? 20, zone.active ? 1 : 0, zone.sort, at),
     ),
     auditStatement(
       db,

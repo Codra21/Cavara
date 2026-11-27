@@ -92,7 +92,7 @@ function checkout(items: { productId: number; variant: number; qty: number; unit
     zoneId: "inside-dhaka",
     address: "House 1, Road 2, Dhanmondi, Dhaka",
     note: "",
-    deliveryCharge: 80,
+    deliveryCharge: 80 + 20 * Math.max(0, items.reduce((sum, item) => sum + item.qty, 0) - 1),
     items: items.map((item) => ({ ...item, unitPrice: item.unitPrice ?? 500 })),
     website: "",
   };

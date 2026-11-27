@@ -3,6 +3,8 @@ import { type CouponAnswer, normalizeCouponCode } from "@/domain/coupons";
 import type { BuyableLine } from "@/domain/bag";
 import { formatPrice } from "@/domain/catalog";
 import {
+  calculateDeliveryCharge,
+  calculateTotalWeightG,
   type CheckoutField,
   type CheckoutRequest,
   type DeliveryZone,
@@ -85,9 +87,16 @@ export function CheckoutForm({
     ...line,
     unitPrice: serverPrices.get(priceKey(line.item.id, line.item.variant)) ?? line.product.price,
   }));
+  const totalWeightG = calculateTotalWeightG(
+    lines.map((line) => ({ weightG: line.product.weightG, qty: line.item.qty })),
+  );
+  const chargeForZone = (candidate: DeliveryZone) =>
+    serverCharge && serverCharge.zoneId === candidate.id
+      ? serverCharge.charge
+      : calculateDeliveryCharge(candidate, totalWeightG);
   const zone = zones.find((candidate) => candidate.id === draft.zoneId) ?? zones[0];
   const zoneId = zone?.id ?? "";
-  const deliveryCharge = serverCharge && serverCharge.zoneId === zoneId ? serverCharge.charge : (zone?.charge ?? 0);
+  const deliveryCharge = zone ? chargeForZone(zone) : 0;
   const subtotal = lines.reduce((sum, line) => sum + line.unitPrice * line.item.qty, 0);
   const couponDiscount = coupon?.discount ?? 0;
   const total = Math.max(0, subtotal - couponDiscount) + deliveryCharge;
@@ -315,7 +324,7 @@ export function CheckoutForm({
               }}
             />
             <span>{option.name}</span>
-            <strong>{formatPrice(option.id === serverCharge?.zoneId ? serverCharge.charge : option.charge)}</strong>
+            <strong>{formatPrice(chargeForZone(option))}</strong>
           </label>
         ))}
         {fieldError("zoneId")}

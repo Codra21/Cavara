@@ -256,7 +256,7 @@ function checkout(items: { productId: number; variant: number; qty: number; unit
     zoneId: "inside-dhaka",
     address: "House 1, Road 2, Dhanmondi, Dhaka",
     note: "",
-    deliveryCharge: 80,
+    deliveryCharge: 80 + 20 * Math.max(0, items.reduce((sum, item) => sum + item.qty, 0) - 1),
     items,
     website: "",
   };
@@ -274,10 +274,10 @@ describe("checkout", () => {
 
     const result = await place(db, [{ productId: product.id, variant: 0, qty: 2, unitPrice: charged }]);
     if (!result.ok) throw new Error(result.message);
-    expect(result.total).toBe(charged * 2 + 80);
+    expect(result.total).toBe(charged * 2 + 100);
     expect(db.sqlite.query("SELECT subtotal, total FROM orders").get()).toEqual({
       subtotal: charged * 2,
-      total: charged * 2 + 80,
+      total: charged * 2 + 100,
     });
     expect(db.sqlite.query("SELECT unit_price, list_price, discount_id, line_total FROM order_items").get()).toEqual({
       unit_price: charged,

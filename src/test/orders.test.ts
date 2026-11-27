@@ -1,3 +1,4 @@
+import { calculateDeliveryCharge, calculateTotalWeightG } from "@/domain/orders";
 import { describe, expect, test } from "bun:test";
 import { type CheckoutRequest, normalizePhone, ORDER_LIMITS, shopDay } from "@/domain/orders";
 import { getPublishedCatalog } from "@/server/db/catalog.repository";
@@ -30,7 +31,7 @@ function request(db: TestD1, over: Partial<CheckoutRequest> = {}): CheckoutReque
     zoneId: "inside-dhaka",
     address: "House 12, Road 5, Dhanmondi, Dhaka",
     note: "Call before coming",
-    deliveryCharge: 80,
+    deliveryCharge: 120,
     items: [
       { productId: a!.id, variant: a!.position, qty: 2, unitPrice: a!.price },
       { productId: b!.id, variant: b!.position, qty: 1, unitPrice: b!.price },
@@ -75,15 +76,16 @@ describe("submitOrder", () => {
       customer_name: "Nusrat Jahan",
       phone: "01712345678",
       zone_name: "Inside Dhaka",
-      delivery_charge: 80,
+      delivery_charge: 120,
+      total_weight_g: 3000,
       subtotal,
-      total: subtotal + 80,
+      total: subtotal + 120,
       item_count: 3,
       status: "new",
       payment_status: "unpaid",
       shop_day: "2026-11-07",
     });
-    expect(result.total).toBe(subtotal + 80);
+    expect(result.total).toBe(subtotal + 120);
     const lines = db.sqlite
       .query("SELECT line, qty, unit_price, cost_price, line_total FROM order_items ORDER BY line")
       .all();
@@ -133,7 +135,7 @@ describe("submitOrder", () => {
     const body = request(db);
     const cheap = { ...body, items: body.items.map((item) => ({ ...item, unitPrice: 1 })) };
     const result = await submitOrder(db, cheap, context());
-    expect(result).toMatchObject({ ok: false, code: "price_changed", deliveryCharge: 80 });
+    expect(result).toMatchObject({ ok: false, code: "price_changed", deliveryCharge: 120 });
     if (!result.ok && result.code === "price_changed") {
       expect(result.prices.map((p) => p.unitPrice)).toEqual(body.items.map((item) => item.unitPrice));
     }
@@ -148,10 +150,10 @@ describe("submitOrder", () => {
 
   test("uses the zone's current charge and rejects inactive zones", async () => {
     const db = createTestD1();
-    const outside = await submitOrder(db, request(db, { zoneId: "outside-dhaka", deliveryCharge: 150 }), context());
+    const outside = await submitOrder(db, request(db, { zoneId: "outside-dhaka", deliveryCharge: 190 }), context());
     expect(outside).toMatchObject({ ok: true });
     db.sqlite.run("UPDATE delivery_zones SET active = 0 WHERE id = 'outside-dhaka'");
-    const closed = await submitOrder(db, request(db, { zoneId: "outside-dhaka", deliveryCharge: 150 }), context());
+    const closed = await submitOrder(db, request(db, { zoneId: "outside-dhaka", deliveryCharge: 190 }), context());
     expect(closed).toMatchObject({ ok: false, code: "validation", fieldErrors: { zoneId: "Choose a delivery area" } });
   });
 
@@ -223,8 +225,8 @@ describe("delivery zones", () => {
   test("are seeded with the Owner's charges and shipped in the public catalogue", async () => {
     const catalog = await getPublishedCatalog(createTestD1());
     expect(catalog.deliveryZones).toEqual([
-      { id: "inside-dhaka", name: "Inside Dhaka", charge: 80 },
-      { id: "outside-dhaka", name: "Outside Dhaka", charge: 150 },
+      { id: "inside-dhaka", name: "Inside Dhaka", charge: 80, perKgCharge: 20 },
+      { id: "outside-dhaka", name: "Outside Dhaka", charge: 150, perKgCharge: 20 },
     ]);
   });
 });
@@ -257,4 +259,62 @@ test("formatPhone writes numbers the local way", async () => {
   const { formatPhone } = await import("@/domain/orders");
   expect(formatPhone("01812000222")).toBe("01812-000222");
   expect(formatPhone("12345")).toBe("12345");
+});
+
+describe("weight-based delivery charge (C2.3)", () => {
+  test("blank weight counts as 1 kg and extra kg rounds up with ceil", () => {
+    const dhaka = { charge: 80, perKgCharge: 20 };
+    const outside = { charge: 150, perKgCharge: 20 };
+    expect(calculateTotalWeightG([{ weightG: null, qty: 1 }])).toBe(1000);
+    expect(calculateDeliveryCharge(dhaka, 1000)).toBe(80);
+    expect(calculateDeliveryCharge(dhaka, 1200)).toBe(100); // 1.2 kg -> 80 + 20 * (2 - 1)
+    expect(calculateDeliveryCharge(dhaka, 2000)).toBe(100);
+    expect(calculateDeliveryCharge(dhaka, 2001)).toBe(120);
+    expect(calculateDeliveryCharge(outside, 1200)).toBe(170);
+  });
+
+  test("server recomputes weight-based delivery charge and saves total_weight_g snapshot", async () => {
+    const db = createTestD1();
+    await db.prepare("UPDATE products SET weight_g = 600 WHERE id = 1").run();
+    const res = await submitOrder(
+      db,
+      {
+        idempotencyKey: crypto.randomUUID(),
+        name: "Ayesha",
+        phone: "01712345678",
+        zoneId: "inside-dhaka",
+        address: "House 12, Road 4, Dhanmondi, Dhaka",
+        note: "",
+        deliveryCharge: 80, // stale 1kg charge; 2 x 600g = 1200g -> ৳100
+        items: [{ productId: 1, variant: 0, qty: 2, unitPrice: 1200 }],
+        website: "",
+      },
+      { client: "127.0.0.1", limitSecret: "test-secret" },
+    );
+    expect(res.ok).toBe(false);
+    if (!res.ok && res.code === "price_changed") {
+      expect(res.deliveryCharge).toBe(100);
+      const retry = await submitOrder(
+        db,
+        {
+          idempotencyKey: crypto.randomUUID(),
+          name: "Ayesha",
+          phone: "01712345678",
+          zoneId: "inside-dhaka",
+          address: "House 12, Road 4, Dhanmondi, Dhaka",
+          note: "",
+          deliveryCharge: res.deliveryCharge,
+          items: [{ productId: 1, variant: 0, qty: 2, unitPrice: res.prices[0]!.unitPrice }],
+          website: "",
+        },
+        { client: "127.0.0.1", limitSecret: "test-secret" },
+      );
+      expect(retry.ok).toBe(true);
+      const saved = await db
+        .prepare("SELECT delivery_charge, total_weight_g FROM orders WHERE reference = ?")
+        .bind(retry.ok ? retry.reference : "")
+        .first<{ delivery_charge: number; total_weight_g: number }>();
+      expect(saved).toEqual({ delivery_charge: 100, total_weight_g: 1200 });
+    }
+  });
 });

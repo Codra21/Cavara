@@ -32,7 +32,7 @@ async function placeOrder(db: TestD1, over: { phone?: string; at?: Date; client?
       zoneId: "inside-dhaka",
       address: "House 1, Road 2, Dhanmondi, Dhaka",
       note: "",
-      deliveryCharge: 80,
+      deliveryCharge: 100,
       items: [{ productId: product!.id, variant: product!.position, qty: 2, unitPrice: product!.price }],
       website: "",
     },
@@ -204,8 +204,8 @@ describe("saveZones", () => {
     ]);
     expect(result.ok).toBe(true);
     expect((await getPublishedCatalog(db)).deliveryZones).toEqual([
-      { id: "inside-dhaka", name: "Inside Dhaka", charge: 90 },
-      { id: "dhaka-suburbs", name: "Dhaka Suburbs", charge: 120 },
+      { id: "inside-dhaka", name: "Inside Dhaka", charge: 90, perKgCharge: 20 },
+      { id: "dhaka-suburbs", name: "Dhaka Suburbs", charge: 120, perKgCharge: 20 },
     ]);
     expect((await listZones(db)).find((zone) => zone.id === "outside-dhaka")?.active).toBe(false);
     expect((await listAudit(db))[0]).toMatchObject({ action: "zones.updated" });
@@ -243,6 +243,6 @@ describe("saveZones", () => {
       { id: "inside-dhaka", name: "Inside Dhaka", charge: 100, active: true },
       { id: "outside-dhaka", name: "Outside Dhaka", charge: 150, active: true },
     ]);
-    expect((await getOrder(db, id))!.deliveryCharge).toBe(80);
+    expect((await getOrder(db, id))!.deliveryCharge).toBe(100);
   });
 });
