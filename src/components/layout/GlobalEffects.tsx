@@ -137,15 +137,17 @@ export function GlobalEffects() {
     return () => document.removeEventListener("keydown", onKey);
   }, [goToShop]);
 
-  // Broken images fall back to the tinted placeholder styling; clear it once a replacement image loads.
+  // Broken images fall back to the tinted placeholder styling. A wrapper can hold two images (a card's hover picture),
+  // so it keeps the fallback until none of its images is broken; a replacement that loads clears its own mark.
   useEffect(() => {
-    const onError = (event: Event) => {
-      if (event.target instanceof HTMLImageElement) event.target.closest(MEDIA_WRAPPERS)?.classList.add("media-failed");
+    const mark = (event: Event, failed: boolean) => {
+      if (!(event.target instanceof HTMLImageElement)) return;
+      event.target.toggleAttribute("data-media-failed", failed);
+      const wrapper = event.target.closest(MEDIA_WRAPPERS);
+      wrapper?.classList.toggle("media-failed", Boolean(wrapper.querySelector("img[data-media-failed]")));
     };
-    const onLoad = (event: Event) => {
-      if (event.target instanceof HTMLImageElement)
-        event.target.closest(MEDIA_WRAPPERS)?.classList.remove("media-failed");
-    };
+    const onError = (event: Event) => mark(event, true);
+    const onLoad = (event: Event) => mark(event, false);
     document.addEventListener("error", onError, true);
     document.addEventListener("load", onLoad, true);
     return () => {

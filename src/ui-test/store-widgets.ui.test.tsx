@@ -282,3 +282,28 @@ test("GlobalEffects removes .media-failed when a replacement image loads", () =>
   img.dispatchEvent(new Event("load"));
   expect(wrapper.classList.contains("media-failed")).toBe(false);
 });
+
+test("GlobalEffects keeps .media-failed while another image in the same wrapper is still broken", () => {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }),
+  });
+  const { container } = render(
+    <>
+      <GlobalEffects />
+      <div className="product-media">
+        <img alt="Mug" src="/media/broken.webp" />
+        <img alt="" src="/media/hover.webp" />
+      </div>
+    </>,
+  );
+  const wrapper = container.querySelector(".product-media")!;
+  const [main, hover] = Array.from(container.querySelectorAll("img"));
+
+  main!.dispatchEvent(new Event("error"));
+  hover!.dispatchEvent(new Event("load"));
+  expect(wrapper.classList.contains("media-failed")).toBe(true);
+
+  main!.dispatchEvent(new Event("load"));
+  expect(wrapper.classList.contains("media-failed")).toBe(false);
+});

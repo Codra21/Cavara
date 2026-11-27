@@ -99,13 +99,13 @@ export function CheckoutForm({
   useEffect(() => {
     if (prevBagSignature.current === bagSignature) return;
     prevBagSignature.current = bagSignature;
-    setCoupon((current) => {
-      if (!current) return null;
-      setCouponOpen(true);
-      setCouponText(current.code);
-      setCouponError("Your bag changed — apply your code again.");
-      return null;
-    });
+    if (!coupon) return;
+    // The discount was worked out for the old bag, so the shopper applies the code again.
+    setCoupon(null);
+    setCouponOpen(true);
+    setCouponText(coupon.code);
+    setCouponError("Your bag changed. Apply your code again.");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs only when the bag changes
   }, [bagSignature]);
 
   const applyAnswer = (answer: CouponAnswer) => {
