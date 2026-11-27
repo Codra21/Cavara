@@ -200,6 +200,28 @@ describe("saveProduct", () => {
     expect(orphanImages.n).toBe(0);
   });
 
+  test("rejects duplicate colour ids in one save", async () => {
+    const db = createTestD1();
+    const { id, revision } = await create(db, form({ status: "published" }));
+    const loaded = (await getAdminProduct(db, id))!;
+    const only = loaded.variants[0]!;
+    const dupForm = {
+      ...productToForm(loaded),
+      variants: [only, { ...only, name: "Duplicate" }],
+    };
+    expect(productInputSchema.safeParse(dupForm).success).toBe(false);
+    // Also verify the repository refuses duplicate ids even if called directly.
+    const result = await saveProduct(db, {
+      actor: owner,
+      id,
+      revision,
+      input: { ...parse(productToForm(loaded)), variants: [only, { ...only, name: "Duplicate" }] },
+    });
+    expect(result).toMatchObject({ ok: false, conflict: true });
+    // Storefront catalogue must still load without position gaps.
+    expect((await getPublishedCatalog(db)).products.some((item) => item.id === id)).toBe(true);
+  });
+
   test("rejects a colour id from another product", async () => {
     const db = createTestD1();
     const a = await create(db);

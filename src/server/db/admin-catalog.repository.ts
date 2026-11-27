@@ -169,7 +169,7 @@ export async function saveProduct(db: D1Database, options: SaveProductOptions): 
       ? new Set<number>()
       : new Set((secondResult?.results ?? []).map((row) => Number(row.id)));
     const keptIds = input.variants.flatMap((variant) => (variant.id === null ? [] : [variant.id]));
-    if (keptIds.some((variantId) => !existingIds.has(variantId))) {
+    if (new Set(keptIds).size !== keptIds.length || keptIds.some((variantId) => !existingIds.has(variantId))) {
       return {
         ok: false,
         conflict: true,

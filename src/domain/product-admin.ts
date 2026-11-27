@@ -64,6 +64,18 @@ export const productInputSchema = z
     variants: z.array(variantInputSchema).max(MAX_VARIANTS),
   })
   .superRefine((product, ctx) => {
+    const seenIds = new Set<number>();
+    product.variants.forEach((variant, index) => {
+      if (variant.id === null) return;
+      if (seenIds.has(variant.id)) {
+        ctx.addIssue({
+          code: "custom",
+          path: ["variants", index, "id"],
+          message: "Each existing colour can only appear once",
+        });
+      }
+      seenIds.add(variant.id);
+    });
     // The storefront cannot show or bag a product without a colour that has a picture.
     if (product.status !== "published") return;
     if (product.variants.length === 0) {
