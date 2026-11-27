@@ -3847,7 +3847,7 @@
   }
 
   @media (max-width: 768px) {
-    body {
+    body:has(.studio-dock) {
       padding-bottom: calc(62px + env(safe-area-inset-bottom));
     }
 
