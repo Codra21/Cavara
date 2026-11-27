@@ -37,7 +37,7 @@ import { ActionDialog } from "./ActionDialog";
 import { adminTimeFormat } from "./ActivityLog";
 import { BlockPhoneCard } from "./BlockPhoneCard";
 import { OrderStatusBadge, PaymentBadge } from "./OrderList";
-import { ADMIN_QUERY_KEY } from "./queries";
+import { ADMIN_QUERY_KEY, invalidateProductData } from "./queries";
 
 const PROGRESS_STEPS: readonly OrderStatus[] = ["new", "confirmed", "dispatched", "delivered"];
 
@@ -146,6 +146,13 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
         queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "order", order.id] }),
         queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "dashboard"] }),
         queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "audit"] }),
+        ...(status !== order.status
+          ? [
+              queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "coupons"] }),
+              queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "stock-movements"] }),
+              invalidateProductData(queryClient),
+            ]
+          : []),
       ]);
     },
     onError: (error) => {
