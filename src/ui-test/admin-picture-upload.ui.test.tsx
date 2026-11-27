@@ -78,3 +78,18 @@ test("picked pictures go through the optimize and upload pipeline as File object
   await user.upload(input, [first]);
   await waitFor(() => expect(uploadImageFn).toHaveBeenCalledTimes(3));
 });
+
+test("unsupported picture types show an error instead of being silently dropped", async () => {
+  const user = userEvent.setup({ pointerEventsCheck: 0, applyAccept: false });
+  const { container } = render(<ProductEditor product={null} categories={[{ id: "tableware", name: "Tableware" }]} />, {
+    wrapper: Providers,
+  });
+
+  await user.click(screen.getByRole("button", { name: "Add colour" }));
+  const input = container.querySelector<HTMLInputElement>('input[type="file"]')!;
+  const gif = new File(["GIF89a"], "anim.gif", { type: "image/gif" });
+  await user.upload(input, [gif]);
+
+  expect(await screen.findByText(/anim\.gif is not a supported image type/i)).toBeTruthy();
+  expect(uploadImageFn).not.toHaveBeenCalled();
+});

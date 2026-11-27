@@ -164,6 +164,10 @@ function PictureUpload({
           accept={UPLOAD_ACCEPT}
           value={NO_FILES}
           onValueChange={(files) => upload(files)}
+          onReject={(rejected) => {
+            setSummary([]);
+            setErrors(rejected.map((item) => `${item.file.name} is not a supported image type.`));
+          }}
           disabled={Boolean(status) || room <= 0}
         >
           <FileInputTrigger
