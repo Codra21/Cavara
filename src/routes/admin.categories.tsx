@@ -11,7 +11,7 @@ const categoriesQueryOptions = () =>
   });
 
 export const Route = createFileRoute("/admin/categories")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(categoriesQueryOptions()),
+  loader: ({ context }) => context.queryClient.query(categoriesQueryOptions()),
   head: () => ({ meta: [{ title: "Categories · Cavara Admin" }] }),
   component: AdminCategoriesPage,
 });

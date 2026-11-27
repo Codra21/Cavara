@@ -23,5 +23,8 @@ export const saveHomeSettingsFn = createServerFn({ method: "POST" })
     const refreshed = await refreshHomeSettings(catalogSources(), result.settings);
     return refreshed
       ? result
-      : { ...result, warning: "Saved, but the home cache could not refresh immediately. It will catch up within 5 minutes." };
+      : {
+          ...result,
+          warning: "Saved, but the home cache could not refresh immediately. It will catch up within 5 minutes.",
+        };
   });

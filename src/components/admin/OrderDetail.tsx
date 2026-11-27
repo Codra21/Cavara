@@ -138,8 +138,7 @@ export function OrderDetail({
   const [confirmCancel, setConfirmCancel] = useState(false);
 
   const parsedAmountPaid = Math.max(0, Math.trunc(Number(amountPaid) || 0));
-  const resolvedMethod: PaymentMethod | null =
-    paymentMethod === "__none__" ? null : (paymentMethod as PaymentMethod);
+  const resolvedMethod: PaymentMethod | null = paymentMethod === "__none__" ? null : (paymentMethod as PaymentMethod);
   const balanceDue = Math.max(0, order.total - (order.amountPaid ?? 0));
 
   const next = STATUS_TRANSITIONS[order.status];
@@ -159,7 +158,17 @@ export function OrderDetail({
 
   const save = useMutation({
     mutationFn: () =>
-      updateOrderFn({ data: { id: order.id, version: order.version, status, paymentStatus: payment, amountPaid: parsedAmountPaid, paymentMethod: resolvedMethod, note } }),
+      updateOrderFn({
+        data: {
+          id: order.id,
+          version: order.version,
+          status,
+          paymentStatus: payment,
+          amountPaid: parsedAmountPaid,
+          paymentMethod: resolvedMethod,
+          note,
+        },
+      }),
     onSuccess: async (result) => {
       setConfirmCancel(false);
       if (!result.ok) {
@@ -201,7 +210,10 @@ export function OrderDetail({
           <h1 className="text-2xl font-bold tracking-tight tabular-nums">{order.reference}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             Placed <time dateTime={order.createdAt}>{adminTimeFormat.format(new Date(order.createdAt))}</time> ·{" "}
-            <span className="font-medium text-foreground">{formatPrice(order.total)}</span> · Paid {formatPrice(order.amountPaid ?? 0)} · Balance due <span className="font-medium text-foreground">{formatPrice(balanceDue)}</span>{order.paymentMethod ? ` (${PAYMENT_METHOD_LABELS[order.paymentMethod]})` : ""}
+            <span className="font-medium text-foreground">{formatPrice(order.total)}</span> · Paid{" "}
+            {formatPrice(order.amountPaid ?? 0)} · Balance due{" "}
+            <span className="font-medium text-foreground">{formatPrice(balanceDue)}</span>
+            {order.paymentMethod ? ` (${PAYMENT_METHOD_LABELS[order.paymentMethod]})` : ""}
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm">

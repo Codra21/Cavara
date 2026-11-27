@@ -89,7 +89,16 @@ if (command === "create") {
   if (!dryRun) {
     sqlite.run(
       "INSERT INTO categories (id, name, slug, description, image, parent_id, sort, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      [id, parsed.data.name, parsed.data.slug, parsed.data.description, parsed.data.image, parsed.data.parentId, parsed.data.sort, 1],
+      [
+        id,
+        parsed.data.name,
+        parsed.data.slug,
+        parsed.data.description,
+        parsed.data.image,
+        parsed.data.parentId,
+        parsed.data.sort,
+        1,
+      ],
     );
     console.log(`Created category "${id}". Remember to rebuild the catalog snapshot.`);
   }
@@ -171,10 +180,18 @@ if (command === "move") {
     console.error("Hierarchy error:", err);
     process.exit(1);
   }
-  console.log(JSON.stringify({ action: "move", dryRun, id: current.id, fromParent: current.parentId, toParent: nextParent }, null, 2));
+  console.log(
+    JSON.stringify(
+      { action: "move", dryRun, id: current.id, fromParent: current.parentId, toParent: nextParent },
+      null,
+      2,
+    ),
+  );
   if (!dryRun) {
     sqlite.run("UPDATE categories SET parent_id = ? WHERE id = ?", [nextParent, current.id]);
-    console.log(`Moved category "${current.id}" under ${nextParent ?? "top-level"}. Remember to rebuild the catalog snapshot.`);
+    console.log(
+      `Moved category "${current.id}" under ${nextParent ?? "top-level"}. Remember to rebuild the catalog snapshot.`,
+    );
   }
   process.exit(0);
 }

@@ -85,8 +85,8 @@ export async function getRelatedProducts(sources: CatalogSources, slug: string):
   const summary = await getPricedSummary(sources);
   const index = summaryIndex(summary);
   const current = index.bySlug.get(slug);
-  const products = (current ? selectRelated(summary.products, current, undefined, summary.categories) : []).map((product) =>
-    resolveCard(product, sources.imageBase),
+  const products = (current ? selectRelated(summary.products, current, undefined, summary.categories) : []).map(
+    (product) => resolveCard(product, sources.imageBase),
   );
   return { imageBase: sources.imageBase, products, categoryNames: namesFor(index, products) };
 }
@@ -197,10 +197,7 @@ export interface HomeData {
 
 /** Everything the home page shows, straight from the cached summary. */
 export async function getHome(sources: CatalogSources): Promise<HomeData> {
-  const [summary, rawSettings] = await Promise.all([
-    getPricedSummary(sources),
-    getCachedHomeSettings(sources),
-  ]);
+  const [summary, rawSettings] = await Promise.all([getPricedSummary(sources), getCachedHomeSettings(sources)]);
   const index = summaryIndex(summary);
   const card = (product: ProductSummary) => resolveCard(product, sources.imageBase);
   const hero = HERO_SLIDES.flatMap((slide) => {

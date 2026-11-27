@@ -302,21 +302,8 @@ export function decodeSummary(json: string): CatalogSummary {
   if (!Array.isArray(stored.products)) bad("products");
   const products = stored.products.map((row): ProductSummary => {
     if (!Array.isArray(row) || row.length !== 13) bad("product row");
-    const [
-      id,
-      slug,
-      name,
-      category,
-      price,
-      regular,
-      featured,
-      createdAt,
-      sort,
-      images,
-      variants,
-      newArrival,
-      weightG,
-    ] = row;
+    const [id, slug, name, category, price, regular, featured, createdAt, sort, images, variants, newArrival, weightG] =
+      row;
     if (
       typeof id !== "number" ||
       typeof slug !== "string" ||
@@ -356,8 +343,7 @@ export function decodeSummary(json: string): CatalogSummary {
       }),
     };
   });
-  const categorySlugs =
-    stored.categorySlugs && typeof stored.categorySlugs === "object" ? stored.categorySlugs : {};
+  const categorySlugs = stored.categorySlugs && typeof stored.categorySlugs === "object" ? stored.categorySlugs : {};
   return {
     gen: stored.gen,
     categories: stored.categories,

@@ -1,11 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, FolderTree, Plus, Save } from "lucide-react";
 import { useEffect, useId, useMemo, useState } from "react";
-import {
-  type CategoryInput,
-  categoryInputSchema,
-  type ManagedCategory,
-} from "@/domain/categories-admin";
+import { type CategoryInput, categoryInputSchema, type ManagedCategory } from "@/domain/categories-admin";
 import { slugify } from "@/domain/product-admin";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -116,7 +112,8 @@ export function CategoryManager({ categories }: { categories: ManagedCategory[] 
     handles.push(
       mc.registerTool({
         name: "cavara_list_categories",
-        description: "List all Cavara categories and subcategories with their stable ids, URL slugs, parentId, and product counts.",
+        description:
+          "List all Cavara categories and subcategories with their stable ids, URL slugs, parentId, and product counts.",
         inputSchema: { type: "object", properties: {} },
         execute: async () => ({ categories }),
       }),
@@ -330,7 +327,10 @@ export function CategoryManager({ categories }: { categories: ManagedCategory[] 
               </div>
               <div className="grid gap-1.5">
                 <Label htmlFor={`${id}-parent`}>Parent category</Label>
-                <Select value={form.parentId} onValueChange={(value) => setForm((prev) => ({ ...prev, parentId: value }))}>
+                <Select
+                  value={form.parentId}
+                  onValueChange={(value) => setForm((prev) => ({ ...prev, parentId: value }))}
+                >
                   <SelectTrigger id={`${id}-parent`} className="w-full">
                     <SelectValue />
                   </SelectTrigger>

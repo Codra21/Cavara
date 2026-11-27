@@ -89,7 +89,13 @@ function buildProducts(productRows: ProductRow[], variantRows: VariantImageRow[]
       if (row.position !== list.length)
         throw new Error(`product ${row.product_id} has a gap at variant position ${list.length}`);
       current = { id: row.id, images: [] };
-      list.push({ name: row.name, swatch: row.swatch, availability: row.availability, stock: capVariantStock(row.stock), images: current.images });
+      list.push({
+        name: row.name,
+        swatch: row.swatch,
+        availability: row.availability,
+        stock: capVariantStock(row.stock),
+        images: current.images,
+      });
       variantsByProduct.set(row.product_id, list);
     }
     if (row.path !== null) current.images.push(row.path);
@@ -153,7 +159,8 @@ export const ONE_VARIANTS_SQL = `SELECT v.id, v.product_id, v.position, v.name, 
        WHERE v.product_id = ?`;
 
 // A handful of rows, sorted below so the query needs no temp B-tree.
-export const CATEGORIES_SQL = "SELECT id, name, description, image, sort, parent_id, slug FROM categories WHERE active = 1";
+export const CATEGORIES_SQL =
+  "SELECT id, name, description, image, sort, parent_id, slug FROM categories WHERE active = 1";
 export const CATEGORY_SLUGS_SQL = "SELECT old_slug, category_id FROM category_slugs";
 
 const SALE_COLUMNS = `id, scope, category_id AS categoryId, product_id AS productId, type, value, starts_at AS startsAt,

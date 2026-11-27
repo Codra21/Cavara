@@ -1,5 +1,15 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertCircle, ArrowDown, ArrowUp, CheckCircle2, ImagePlus, LayoutTemplate, Plus, Save, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowDown,
+  ArrowUp,
+  CheckCircle2,
+  ImagePlus,
+  LayoutTemplate,
+  Plus,
+  Save,
+  Trash2,
+} from "lucide-react";
 import { useId, useState } from "react";
 import {
   HOME_SECTION_LABELS,
@@ -32,13 +42,7 @@ function move<T>(list: T[], from: number, to: number): T[] {
   return next;
 }
 
-function ImageUploadButton({
-  label,
-  onUploaded,
-}: {
-  label: string;
-  onUploaded: (key: string) => void;
-}) {
+function ImageUploadButton({ label, onUploaded }: { label: string; onUploaded: (key: string) => void }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -163,7 +167,9 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <LayoutTemplate aria-hidden="true" className="size-4 text-primary" />
-              <CardTitle>Banners ({settings.banners.length}/{MAX_HOME_BANNERS})</CardTitle>
+              <CardTitle>
+                Banners ({settings.banners.length}/{MAX_HOME_BANNERS})
+              </CardTitle>
             </div>
             <Button
               type="button"
@@ -265,7 +271,11 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
                   />
                   {banner.desktopImage ? (
                     <img
-                      src={banner.desktopImage.startsWith("/") || /^https?:\/\//.test(banner.desktopImage) ? banner.desktopImage : mediaUrl(imageBase, banner.desktopImage)}
+                      src={
+                        banner.desktopImage.startsWith("/") || /^https?:\/\//.test(banner.desktopImage)
+                          ? banner.desktopImage
+                          : mediaUrl(imageBase, banner.desktopImage)
+                      }
                       alt=""
                       className="h-20 w-40 rounded border border-border object-cover"
                     />
@@ -427,7 +437,10 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
             <Label>Philosophy images ({settings.philosophy.images.length}/4)</Label>
             <div className="flex flex-wrap gap-2">
               {settings.philosophy.images.map((key, idx) => (
-                <div key={`${key}-${idx}`} className="flex items-center gap-2 rounded border border-border p-1.5 text-xs">
+                <div
+                  key={`${key}-${idx}`}
+                  className="flex items-center gap-2 rounded border border-border p-1.5 text-xs"
+                >
                   <span className="max-w-[12rem] truncate">{key}</span>
                   <Button
                     type="button"

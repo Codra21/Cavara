@@ -90,7 +90,16 @@ export async function saveCategory(
           `UPDATE categories SET name = ?, slug = ?, description = ?, image = ?, parent_id = ?, sort = ?, active = ?
            WHERE id = ?`,
         )
-        .bind(input.name, input.slug, input.description, input.image, input.parentId, input.sort, input.active ? 1 : 0, id),
+        .bind(
+          input.name,
+          input.slug,
+          input.description,
+          input.image,
+          input.parentId,
+          input.sort,
+          input.active ? 1 : 0,
+          id,
+        ),
     );
     if (current.slug !== input.slug) {
       // Record the old slug so /collections/<old_slug> 301-redirects to this category.
@@ -112,7 +121,16 @@ export async function saveCategory(
           `INSERT INTO categories (id, name, slug, description, image, parent_id, sort, active)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
         )
-        .bind(id, input.name, input.slug, input.description, input.image, input.parentId, input.sort, input.active ? 1 : 0),
+        .bind(
+          id,
+          input.name,
+          input.slug,
+          input.description,
+          input.image,
+          input.parentId,
+          input.sort,
+          input.active ? 1 : 0,
+        ),
     );
     statements.push(db.prepare("DELETE FROM category_slugs WHERE old_slug = ?").bind(input.slug));
   }

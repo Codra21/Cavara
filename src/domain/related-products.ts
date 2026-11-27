@@ -7,7 +7,9 @@ import type { Category } from "@/lib/types";
 export const RELATED_LIMIT = 4;
 
 const isSoldOut = (product: { variants?: readonly { availability: string }[] }): boolean =>
-  Boolean(product.variants && product.variants.length > 0 && product.variants.every((v) => v.availability === "out_of_stock"));
+  Boolean(
+    product.variants && product.variants.length > 0 && product.variants.every((v) => v.availability === "out_of_stock"),
+  );
 
 /**
  * Related product order (C2.6 / #4):

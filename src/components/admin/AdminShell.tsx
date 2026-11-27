@@ -1,6 +1,18 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "@tanstack/react-router";
-import { FolderTree, LayoutDashboard, LayoutTemplate, LogOut, Moon, Package, Percent, ShieldBan, ShoppingBag, Sun, Truck } from "lucide-react";
+import {
+  FolderTree,
+  LayoutDashboard,
+  LayoutTemplate,
+  LogOut,
+  Moon,
+  Package,
+  Percent,
+  ShieldBan,
+  ShoppingBag,
+  Sun,
+  Truck,
+} from "lucide-react";
 import { type ReactNode, useEffect, useState } from "react";
 import type { AdminIdentity } from "@/domain/admin";
 import { Alert, AlertDescription } from "@/components/ui/alert";

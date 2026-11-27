@@ -1,3 +1,4 @@
+import { invalidateCatalogCache } from "@/server/catalog-cache.server";
 import { describe, expect, test } from "bun:test";
 import type { AdminIdentity } from "@/domain/admin";
 import { validateCategoryParent } from "@/domain/categories-admin";
@@ -44,9 +45,9 @@ describe("category manager, two-level hierarchy, and 301 slug redirects (C2.6)",
     ];
     expect(validateCategoryParent("cups", "mugs", existing)).toContain("two levels");
     expect(validateCategoryParent("drinkware", "drinkware", existing)).toContain("own parent");
-    expect(validateCategoryParent("drinkware", "serveware", [...existing, { id: "serveware", parentId: null }])).toContain(
-      "subcategories",
-    );
+    expect(
+      validateCategoryParent("drinkware", "serveware", [...existing, { id: "serveware", parentId: null }]),
+    ).toContain("subcategories");
   });
 
   test("creating a subcategory and renaming a slug records a 301 redirect in category_slugs", async () => {
@@ -81,6 +82,7 @@ describe("category manager, two-level hierarchy, and 301 slug redirects (C2.6)",
     if (!renamed.ok) return;
     expect(renamed.category.oldSlugs).toEqual(["ceramic-mugs"]);
 
+    await invalidateCatalogCache("");
     const listing = await listProductsPage({ imageBase: "", db: () => db }, { category: "ceramic-mugs" });
     expect(listing.redirectTo).toBe("/collections/drinkware/handcrafted-mugs");
 

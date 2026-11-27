@@ -70,10 +70,7 @@ export type PhilosophyConfig = z.output<typeof philosophyConfigSchema>;
 
 export const homeSettingsSchema = z.object({
   banners: z.array(homeBannerSchema).max(MAX_HOME_BANNERS, `At most ${MAX_HOME_BANNERS} banners`),
-  sections: z
-    .array(homeSectionConfigSchema)
-    .min(1)
-    .max(HOME_SECTION_KEYS.length),
+  sections: z.array(homeSectionConfigSchema).min(1).max(HOME_SECTION_KEYS.length),
   philosophy: philosophyConfigSchema,
 });
 

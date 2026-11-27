@@ -13,8 +13,9 @@ const ids = z
   .max(MAX_BULK_SELECTION, `Select at most ${MAX_BULK_SELECTION} products`)
   .refine((list) => new Set(list).size === list.length, "Each product can be selected once");
 
-const plain = (action: "publish" | "unpublish" | "archive" | "feature" | "unfeature" | "new_arrival" | "clear_new_arrival") =>
-  z.object({ action: z.literal(action), ids });
+const plain = (
+  action: "publish" | "unpublish" | "archive" | "feature" | "unfeature" | "new_arrival" | "clear_new_arrival",
+) => z.object({ action: z.literal(action), ids });
 
 export const bulkProductActionSchema = z.discriminatedUnion("action", [
   plain("publish"),

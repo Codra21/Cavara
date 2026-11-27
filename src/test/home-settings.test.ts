@@ -62,13 +62,22 @@ describe("home banners and editor settings (C3.3)", () => {
       imageBase: "",
       db: () => db,
       store,
-      keys: { legacy: "snapshots/catalog-v1.json", summary: "snapshots/catalog-v4.json", detail: (id: number) => `snapshots/products/v2/${id}.json` },
+      keys: {
+        legacy: "snapshots/catalog-v1.json",
+        summary: "snapshots/catalog-v4.json",
+        detail: (id: number) => `snapshots/products/v2/${id}.json`,
+      },
     };
     await refreshHomeSettings(sources, saved.settings);
     expect(store.objects.has("snapshots/home-v1.json")).toBe(true);
 
     clearHomeMemoryCache();
-    const cached = await getCachedHomeSettings({ ...sources, db: () => { throw new Error("D1 should not be called"); } });
+    const cached = await getCachedHomeSettings({
+      ...sources,
+      db: () => {
+        throw new Error("D1 should not be called");
+      },
+    });
     expect(cached.banners[0]?.heading).toBe("Autumn Glazes");
   });
 });

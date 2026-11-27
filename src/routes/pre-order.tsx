@@ -6,11 +6,14 @@ import { safeLoad } from "@/lib/safe-load";
 
 export const Route = createFileRoute("/pre-order")({
   loader: ({ context }) =>
-    safeLoad("pre-order products", () => context.queryClient.ensureQueryData(listingQueryOptions({ availability: "preorder" }))),
+    safeLoad("pre-order products", () => context.queryClient.query(listingQueryOptions({ availability: "preorder" }))),
   head: () => ({
     meta: [
       { title: "Pre-order — Cavara" },
-      { name: "description", content: "Browse pieces available for pre-order at Cavara and request directly on WhatsApp." },
+      {
+        name: "description",
+        content: "Browse pieces available for pre-order at Cavara and request directly on WhatsApp.",
+      },
     ],
   }),
   component: PreOrderPage,
@@ -41,7 +44,11 @@ function PreOrderPage() {
           <ul className="product-grid">
             {data.products.map((product, index) => (
               <li key={product.id}>
-                <ProductCard product={product} categoryName={data.categoryNames[product.category] ?? ""} index={index} />
+                <ProductCard
+                  product={product}
+                  categoryName={data.categoryNames[product.category] ?? ""}
+                  index={index}
+                />
               </li>
             ))}
           </ul>

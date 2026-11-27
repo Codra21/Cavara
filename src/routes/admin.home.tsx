@@ -11,7 +11,7 @@ const adminHomeQueryOptions = () =>
   });
 
 export const Route = createFileRoute("/admin/home")({
-  loader: ({ context }) => context.queryClient.ensureQueryData(adminHomeQueryOptions()),
+  loader: ({ context }) => context.queryClient.query(adminHomeQueryOptions()),
   head: () => ({ meta: [{ title: "Home page · Cavara Admin" }] }),
   component: AdminHomePage,
 });

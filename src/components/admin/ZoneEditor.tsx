@@ -169,7 +169,7 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
                   />
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor={`${id}-${row.key}-charge`}>Base 1 kg (৳)</Label>
+                  <Label htmlFor={`${id}-${row.key}-charge`}>Charge (৳)</Label>
                   <Input
                     id={`${id}-${row.key}-charge`}
                     type="number"
@@ -244,7 +244,14 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
             onClick={() =>
               setRows((current) => [
                 ...current,
-                { key: crypto.randomUUID(), id: null, name: "", charge: "", perKgCharge: String(DEFAULT_PER_KG_CHARGE), active: true },
+                {
+                  key: crypto.randomUUID(),
+                  id: null,
+                  name: "",
+                  charge: "",
+                  perKgCharge: String(DEFAULT_PER_KG_CHARGE),
+                  active: true,
+                },
               ])
             }
           >

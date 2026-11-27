@@ -42,7 +42,7 @@ Remove `--dry-run` only after reviewing the JSON plan.
 
 When an Owner is signed in on `/admin/categories`, `CategoryManager` registers two WebMCP tools via `navigator.modelContext.registerTool`:
 
-| Tool | Purpose |
-| --- | --- |
-| `cavara_list_categories` | Returns every category and subcategory with `id`, `slug`, `parentId`, `active`, `productCount`, and `oldSlugs`. |
-| `cavara_save_category` | Creates or updates a category via `saveCategoryFn` (validates two-level hierarchy, records `category_slugs` 301 redirects, writes an audit row, and rebuilds the R2 catalog snapshot). |
+| Tool                     | Purpose                                                                                                                                                                                |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cavara_list_categories` | Returns every category and subcategory with `id`, `slug`, `parentId`, `active`, `productCount`, and `oldSlugs`.                                                                        |
+| `cavara_save_category`   | Creates or updates a category via `saveCategoryFn` (validates two-level hierarchy, records `category_slugs` 301 redirects, writes an audit row, and rebuilds the R2 catalog snapshot). |

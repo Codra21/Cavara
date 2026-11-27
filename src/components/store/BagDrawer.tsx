@@ -200,7 +200,12 @@ export function BagDrawer() {
                           {variant.name} ·{" "}
                           <PriceTag price={product.price} regularPrice={product.regularPrice} sale={product.sale} />{" "}
                           each
-                          {lowStock ? <> · <span className="stock-tag is-low">{lowStock}</span></> : null}
+                          {lowStock ? (
+                            <>
+                              {" "}
+                              · <span className="stock-tag is-low">{lowStock}</span>
+                            </>
+                          ) : null}
                         </p>
                         <div className="bag-item-controls">
                           {line.status === "ok" ? (

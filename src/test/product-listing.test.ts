@@ -273,7 +273,11 @@ describe("sold-out filter (C2.8)", () => {
       sales: [],
       products: [
         { ...base, id: 1, variants: [{ name: "A", swatch: "#fff", availability: "in_stock" as const, image: null }] },
-        { ...base, id: 2, variants: [{ name: "B", swatch: "#000", availability: "out_of_stock" as const, image: null }] },
+        {
+          ...base,
+          id: 2,
+          variants: [{ name: "B", swatch: "#000", availability: "out_of_stock" as const, image: null }],
+        },
       ],
     };
     const page = listProducts(summary, { availability: "sold-out" });

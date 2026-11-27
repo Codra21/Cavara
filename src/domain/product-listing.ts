@@ -179,11 +179,7 @@ export function listProducts(summary: CatalogSummary, query: ListQuery): ListPag
       product.variants.length > 0 && product.variants.every((variant) => variant.availability === "out_of_stock");
     const inAvailability =
       query.availability === undefined ||
-      (query.availability === "in-stock"
-        ? stocked
-        : query.availability === "preorder"
-          ? preorder
-          : soldOut);
+      (query.availability === "in-stock" ? stocked : query.availability === "preorder" ? preorder : soldOut);
 
     if (inPrice && inAvailability)
       categoryCounts.set(product.category, (categoryCounts.get(product.category) ?? 0) + 1);

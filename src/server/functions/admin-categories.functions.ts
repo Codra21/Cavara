@@ -20,5 +20,8 @@ export const saveCategoryFn = createServerFn({ method: "POST" })
     const rebuilt = await rebuildCatalog(catalogSources());
     return rebuilt
       ? result
-      : { ...result, warning: "Saved, but the shop snapshot could not refresh immediately. It will rebuild on the next visit." };
+      : {
+          ...result,
+          warning: "Saved, but the shop snapshot could not refresh immediately. It will rebuild on the next visit.",
+        };
   });

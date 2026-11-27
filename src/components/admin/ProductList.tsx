@@ -385,7 +385,11 @@ export function ProductList() {
                   </TableHeader>
                   <TableBody>
                     {rows.map((product) => (
-                      <TableRow key={product.id} data-state={selected.has(product.id) ? "selected" : undefined} className={product.lowStockColours > 0 ? "bg-warning/10 hover:bg-warning/15" : undefined}>
+                      <TableRow
+                        key={product.id}
+                        data-state={selected.has(product.id) ? "selected" : undefined}
+                        className={product.lowStockColours > 0 ? "bg-warning/10 hover:bg-warning/15" : undefined}
+                      >
                         <TableCell className="pl-4">
                           <Checkbox
                             checked={selected.has(product.id)}

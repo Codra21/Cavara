@@ -49,7 +49,13 @@ function Home() {
             case "collections":
               return <CollectionsSection key="collections" heading={section.heading || undefined} />;
             case "philosophy":
-              return <StorySection key="philosophy" heading={section.heading || undefined} philosophy={home.settings?.philosophy} />;
+              return (
+                <StorySection
+                  key="philosophy"
+                  heading={section.heading || undefined}
+                  philosophy={home.settings?.philosophy}
+                />
+              );
             case "ordering":
               return <OrderingSection key="ordering" heading={section.heading || undefined} />;
           }

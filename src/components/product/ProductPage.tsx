@@ -374,7 +374,11 @@ export function ProductPage({
               <div className="pdp-option">
                 <p className="pdp-option-label">
                   Colour: <strong>{variant.name}</strong>
-                  {stockTag ? <span className="stock-tag">{stockTag}</span> : lowStock ? <span className="stock-tag is-low">{lowStock}</span> : null}
+                  {stockTag ? (
+                    <span className="stock-tag">{stockTag}</span>
+                  ) : lowStock ? (
+                    <span className="stock-tag is-low">{lowStock}</span>
+                  ) : null}
                 </p>
                 <SwatchGroup
                   label="Choose a colour"
