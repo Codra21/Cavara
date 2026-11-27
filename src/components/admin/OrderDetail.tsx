@@ -112,7 +112,17 @@ function FulfillmentTracker({ status }: { status: OrderStatus }) {
   );
 }
 
-export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwner: boolean }) {
+export function OrderDetail({
+  order,
+  isOwner,
+  warning,
+  onWarning,
+}: {
+  order: AdminOrderDetail;
+  isOwner: boolean;
+  warning?: string | null;
+  onWarning?: (warning: string | null) => void;
+}) {
   const id = useId();
   const queryClient = useQueryClient();
   const [status, setStatus] = useState<OrderStatus>(order.status);
@@ -140,6 +150,7 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
         setProblem({ text: result.error, conflict: Boolean(result.conflict) });
         return;
       }
+      onWarning?.("warning" in result && result.warning ? result.warning : null);
       // The detail remounts on the new version with fresh state; lists and the activity log refetch.
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "orders"] }),
@@ -163,6 +174,12 @@ export function OrderDetail({ order, isOwner }: { order: AdminOrderDetail; isOwn
 
   return (
     <div className="grid gap-6">
+      {warning ? (
+        <Alert variant="warning" role="status">
+          <AlertCircle />
+          <AlertDescription>{warning}</AlertDescription>
+        </Alert>
+      ) : null}
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight tabular-nums">{order.reference}</h1>

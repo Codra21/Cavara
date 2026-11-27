@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
+import { useEffect, useState } from "react";
 import { OrderDetail } from "@/components/admin/OrderDetail";
 import { adminOrderQuery } from "@/components/admin/queries";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -13,6 +14,8 @@ export const Route = createFileRoute("/admin/orders/$orderId")({
 
 function OrderRoute() {
   const { orderId } = Route.useParams();
+  const [warning, setWarning] = useState<string | null>(null);
+  useEffect(() => setWarning(null), [orderId]);
   const { adminSession } = Route.useRouteContext();
   const valid = UUID.test(orderId);
   const order = useQuery({ ...adminOrderQuery(orderId), enabled: valid });
@@ -60,6 +63,8 @@ function OrderRoute() {
         key={`${order.data.id}:${order.data.version}`}
         order={order.data}
         isOwner={adminSession.admin?.role === "owner"}
+        warning={warning}
+        onWarning={setWarning}
       />
     </>
   );

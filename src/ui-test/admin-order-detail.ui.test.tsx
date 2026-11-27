@@ -86,3 +86,36 @@ test("cancelling an order invalidates coupons, stock movements and product queri
   expect(keys).toContainEqual(["admin", "stock-movements"]);
   expect(invalidateProductData).toHaveBeenCalledWith(client);
 });
+
+test("a cache-refresh warning from updateOrderFn is surfaced via onWarning and rendered", async () => {
+  updateOrderFn.mockReset().mockResolvedValue({
+    ok: true,
+    version: 2,
+    warning: "Saved, but the shop's copy of the stock could not be updated.",
+  });
+  const onWarning = vi.fn();
+  const client = new QueryClient();
+  const user = userEvent.setup({ pointerEventsCheck: 0 });
+
+  render(
+    <QueryClientProvider client={client}>
+      <OrderDetail
+        order={baseOrder}
+        isOwner
+        warning="Saved, but the shop's copy of the stock could not be updated."
+        onWarning={onWarning}
+      />
+    </QueryClientProvider>,
+  );
+
+  expect(screen.getByRole("status").textContent).toContain("shop's copy of the stock");
+
+  await user.click(screen.getByRole("combobox", { name: /Status/i }));
+  await user.click(await screen.findByRole("option", { name: /Cancel/i }));
+  await user.click(screen.getByRole("button", { name: /^Save$/i }));
+  await user.click(await screen.findByRole("button", { name: /Cancel order/i }));
+
+  await waitFor(() =>
+    expect(onWarning).toHaveBeenCalledWith("Saved, but the shop's copy of the stock could not be updated."),
+  );
+});
