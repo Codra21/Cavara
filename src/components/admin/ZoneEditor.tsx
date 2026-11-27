@@ -1,6 +1,6 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, ArrowDown, ArrowUp, CheckCircle2, MapPin, Plus, Save } from "lucide-react";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { type AdminZone, saveZonesSchema, type ZoneInput } from "@/domain/orders";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -23,16 +23,25 @@ const toRows = (zones: AdminZone[]): Row[] =>
     active: zone.active,
   }));
 
+const serializeRows = (rows: Row[]) => JSON.stringify(rows.map(({ key: _key, ...row }) => row));
+
 /** Owner-only list of delivery areas: rename, re-price, reorder, add, switch off. Areas are never deleted. */
 export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
   const id = useId();
   const queryClient = useQueryClient();
+  const [baseline, setBaseline] = useState<Row[]>(() => toRows(zones));
   const [rows, setRows] = useState<Row[]>(() => toRows(zones));
   const [problems, setProblems] = useState<string[]>([]);
   const [notice, setNotice] = useState<{ text: string; warning: boolean } | null>(null);
-  const dirty =
-    JSON.stringify(rows.map(({ key: _key, ...row }) => row)) !==
-    JSON.stringify(toRows(zones).map(({ key: _key, ...row }) => row));
+  const dirty = serializeRows(rows) !== serializeRows(baseline);
+
+  useEffect(() => {
+    if (dirty) return;
+    const next = toRows(zones);
+    if (serializeRows(next) === serializeRows(baseline)) return;
+    setRows(next);
+    setBaseline(next);
+  }, [zones, dirty, baseline]);
   const firstActiveIndex = rows.findIndex((row) => row.active);
 
   const update = (index: number, patch: Partial<Row>) => {
@@ -61,7 +70,9 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
         text: "warning" in result && result.warning ? result.warning : "Saved. Checkout uses the new charges now.",
         warning,
       });
-      setRows(toRows(result.zones));
+      const saved = toRows(result.zones);
+      setRows(saved);
+      setBaseline(saved);
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "zones"] }),
         queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "audit"] }),

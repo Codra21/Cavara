@@ -104,3 +104,25 @@ test("an agent can find and change every delivery area control", async () => {
   expect(screen.getAllByRole("checkbox", { name: "Active" })[1]!.getAttribute("aria-checked")).toBe("false");
   expect((screen.getByRole("button", { name: "Save areas" }) as HTMLButtonElement).disabled).toBe(false);
 });
+
+test("a background refetch updates clean rows without marking the form dirty", () => {
+  const client = new QueryClient();
+  const { rerender } = render(
+    <QueryClientProvider client={client}>
+      <ZoneEditor zones={zones} />
+    </QueryClientProvider>,
+  );
+
+  expect((screen.getByRole("button", { name: "Save areas" }) as HTMLButtonElement).disabled).toBe(true);
+  expect(screen.getAllByLabelText<HTMLInputElement>("Charge (৳)")[0]!.value).toBe("80");
+
+  const refetched: AdminZone[] = [{ ...zones[0]!, charge: 110 }, zones[1]!];
+  rerender(
+    <QueryClientProvider client={client}>
+      <ZoneEditor zones={refetched} />
+    </QueryClientProvider>,
+  );
+
+  expect(screen.getAllByLabelText<HTMLInputElement>("Charge (৳)")[0]!.value).toBe("110");
+  expect((screen.getByRole("button", { name: "Save areas" }) as HTMLButtonElement).disabled).toBe(true);
+});
