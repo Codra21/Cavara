@@ -15,6 +15,7 @@ import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DeliveryReturnsRouteImport } from './routes/delivery-returns'
 import { Route as HealthzRouteImport } from './routes/healthz'
+import { Route as PreOrderRouteImport } from './routes/pre-order'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -62,6 +63,11 @@ const DeliveryReturnsRoute = DeliveryReturnsRouteImport.update({
 const HealthzRoute = HealthzRouteImport.update({
   id: '/healthz',
   path: '/healthz',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PreOrderRoute = PreOrderRouteImport.update({
+  id: '/pre-order',
+  path: '/pre-order',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PrivacyRoute = PrivacyRouteImport.update({
@@ -163,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/delivery-returns': typeof DeliveryReturnsRoute
   '/healthz': typeof HealthzRoute
+  '/pre-order': typeof PreOrderRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -188,6 +195,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/delivery-returns': typeof DeliveryReturnsRoute
   '/healthz': typeof HealthzRoute
+  '/pre-order': typeof PreOrderRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -215,6 +223,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/delivery-returns': typeof DeliveryReturnsRoute
   '/healthz': typeof HealthzRoute
+  '/pre-order': typeof PreOrderRoute
   '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
   '/terms': typeof TermsRoute
@@ -243,6 +252,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/delivery-returns'
     | '/healthz'
+    | '/pre-order'
     | '/privacy'
     | '/sitemap.xml'
     | '/terms'
@@ -268,6 +278,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/delivery-returns'
     | '/healthz'
+    | '/pre-order'
     | '/privacy'
     | '/sitemap.xml'
     | '/terms'
@@ -294,6 +305,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/delivery-returns'
     | '/healthz'
+    | '/pre-order'
     | '/privacy'
     | '/sitemap.xml'
     | '/terms'
@@ -321,6 +333,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   DeliveryReturnsRoute: typeof DeliveryReturnsRoute
   HealthzRoute: typeof HealthzRoute
+  PreOrderRoute: typeof PreOrderRoute
   PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   TermsRoute: typeof TermsRoute
@@ -373,6 +386,13 @@ declare module '@tanstack/react-router' {
       path: '/healthz'
       fullPath: '/healthz'
       preLoaderRoute: typeof HealthzRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pre-order': {
+      id: '/pre-order'
+      path: '/pre-order'
+      fullPath: '/pre-order'
+      preLoaderRoute: typeof PreOrderRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/privacy': {
@@ -548,6 +568,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   DeliveryReturnsRoute: DeliveryReturnsRoute,
   HealthzRoute: HealthzRoute,
+  PreOrderRoute: PreOrderRoute,
   PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
   TermsRoute: TermsRoute,

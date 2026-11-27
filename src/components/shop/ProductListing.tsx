@@ -188,9 +188,10 @@ export function ProductListing({ category, search }: { category?: string; search
   const name = category ? (head.category?.name ?? "") : "All products";
   const sort = search.sort ?? DEFAULT_SORT;
   // A filter that cannot change the list is hidden, unless the visitor already uses it.
-  const { all, inStock, preorder } = facets.availability;
-  const availabilityChoices = (["in-stock", "preorder"] as const).filter(
-    (choice) => search.availability === choice || offersChoice([choice === "in-stock" ? inStock : preorder], all),
+  const { all, inStock, preorder, soldOut } = facets.availability;
+  const availabilityCounts = { "in-stock": inStock, preorder, "sold-out": soldOut } as const;
+  const availabilityChoices = (["in-stock", "preorder", "sold-out"] as const).filter(
+    (choice) => search.availability === choice || offersChoice([availabilityCounts[choice]], all),
   );
   const showAvailability = availabilityChoices.length > 0;
   const showPrice =

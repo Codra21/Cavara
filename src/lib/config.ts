@@ -34,11 +34,12 @@ export const HERO_SLIDES = [
 
 /** The header menu. "How to order" scrolls to the home section; the rest are their own pages. */
 export const NAV_LINKS: readonly (
-  | { label: string; to: "/products" | "/collections" | "/about" | "/contact" }
+  | { label: string; to: "/products" | "/collections" | "/pre-order" | "/about" | "/contact" }
   | { label: string; hash: string }
 )[] = [
   { label: "Products", to: "/products" },
   { label: "Collections", to: "/collections" },
+  { label: "Pre-order", to: "/pre-order" },
   { label: "About", to: "/about" },
   { label: "How to order", hash: "ordering" },
   { label: "Contact", to: "/contact" },

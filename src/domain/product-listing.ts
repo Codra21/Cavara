@@ -18,11 +18,12 @@ export const SORT_LABELS: Record<SortKey, string> = {
 };
 
 /** Without a value every product is listed, sold out ones included (they carry a tag on the card). */
-export const AVAILABILITY_FILTERS = ["in-stock", "preorder"] as const;
+export const AVAILABILITY_FILTERS = ["in-stock", "preorder", "sold-out"] as const;
 export type AvailabilityFilter = (typeof AVAILABILITY_FILTERS)[number];
 export const AVAILABILITY_LABELS: Record<AvailabilityFilter, string> = {
   "in-stock": "In stock",
   preorder: "Pre-order",
+  "sold-out": "Sold out",
 };
 
 export const MAX_SEARCH_LENGTH = 80;
@@ -57,7 +58,7 @@ export interface ListFacets {
   /** Cheapest and dearest price among products matching every filter but price; null when there are none. */
   price: { min: number; max: number } | null;
   /** Matches for each availability choice, ignoring the availability filter itself. */
-  availability: { all: number; inStock: number; preorder: number };
+  availability: { all: number; inStock: number; preorder: number; soldOut: number };
 }
 
 export interface ListPage {
@@ -152,7 +153,7 @@ export function listProducts(summary: CatalogSummary, query: ListQuery): ListPag
   const matches: ProductSummary[] = [];
   let priceLow = Infinity;
   let priceHigh = -Infinity;
-  const availability = { all: 0, inStock: 0, preorder: 0 };
+  const availability = { all: 0, inStock: 0, preorder: 0, soldOut: 0 };
 
   const matchedCat = query.category
     ? summary.categories.find((cat) => cat.slug === query.category || cat.id === query.category)
@@ -174,7 +175,15 @@ export function listProducts(summary: CatalogSummary, query: ListQuery): ListPag
     const inPrice = (min === undefined || product.price >= min) && (max === undefined || product.price <= max);
     const stocked = hasColour(product, "in_stock");
     const preorder = hasColour(product, "preorder");
-    const inAvailability = query.availability === undefined || (query.availability === "in-stock" ? stocked : preorder);
+    const soldOut =
+      product.variants.length > 0 && product.variants.every((variant) => variant.availability === "out_of_stock");
+    const inAvailability =
+      query.availability === undefined ||
+      (query.availability === "in-stock"
+        ? stocked
+        : query.availability === "preorder"
+          ? preorder
+          : soldOut);
 
     if (inPrice && inAvailability)
       categoryCounts.set(product.category, (categoryCounts.get(product.category) ?? 0) + 1);
@@ -186,6 +195,7 @@ export function listProducts(summary: CatalogSummary, query: ListQuery): ListPag
       availability.all += 1;
       if (stocked) availability.inStock += 1;
       if (preorder) availability.preorder += 1;
+      if (soldOut) availability.soldOut += 1;
     }
     if (inCategory && inPrice && inAvailability) matches.push(product);
   }

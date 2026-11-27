@@ -166,6 +166,7 @@ describe("facets", () => {
       all: 3,
       inStock: 1,
       preorder: 1,
+      soldOut: 1,
     });
   });
   test("offersChoice is true only when an option differs from the full list", () => {
@@ -249,5 +250,34 @@ describe("new arrivals checkbox rule (C2.5)", () => {
       { ...base, id: 4, createdAt: "2026-04-01", newArrival: false },
     ];
     expect(selectNewest(items, 3).map((item) => item.id)).toEqual([3, 1, 2]);
+  });
+});
+
+describe("sold-out filter (C2.8)", () => {
+  test("sold-out filter matches products where all colours are out_of_stock", () => {
+    const base = {
+      slug: "p",
+      name: "Piece",
+      category: "drinkware",
+      price: 1000,
+      regularPrice: null,
+      featured: false,
+      createdAt: "2026-01-01",
+      sort: 1,
+      images: ["a.webp"],
+    };
+    const summary = {
+      gen: "g",
+      categories: [{ id: "drinkware", name: "Drinkware", description: "", image: "" }],
+      zones: [],
+      sales: [],
+      products: [
+        { ...base, id: 1, variants: [{ name: "A", swatch: "#fff", availability: "in_stock" as const, image: null }] },
+        { ...base, id: 2, variants: [{ name: "B", swatch: "#000", availability: "out_of_stock" as const, image: null }] },
+      ],
+    };
+    const page = listProducts(summary, { availability: "sold-out" });
+    expect(page.items.map((item) => item.id)).toEqual([2]);
+    expect(page.facets.availability.soldOut).toBe(1);
   });
 });
