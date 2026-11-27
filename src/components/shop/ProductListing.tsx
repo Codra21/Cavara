@@ -10,6 +10,7 @@ import {
   cleanSearchText,
   DEFAULT_SORT,
   hasActiveFilters,
+  MAX_PRICE,
   offersChoice,
   parseListSearch,
   SORT_KEYS,
@@ -334,8 +335,9 @@ export function ProductListing({ category, search }: { category?: string; search
                   onValueChange={setMinPrice}
                   onValueCommit={(value) => commitPrice("min", value)}
                   min={0}
+                  max={MAX_PRICE}
                   locale="en-US"
-                  format={{ useGrouping: false }}
+                  format={{ useGrouping: false, maximumFractionDigits: 0 }}
                 >
                   <NumberInputControl
                     inputMode="numeric"
@@ -349,8 +351,9 @@ export function ProductListing({ category, search }: { category?: string; search
                   onValueChange={setMaxPrice}
                   onValueCommit={(value) => commitPrice("max", value)}
                   min={0}
+                  max={MAX_PRICE}
                   locale="en-US"
-                  format={{ useGrouping: false }}
+                  format={{ useGrouping: false, maximumFractionDigits: 0 }}
                 >
                   <NumberInputControl
                     inputMode="numeric"

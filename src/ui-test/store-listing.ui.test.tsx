@@ -208,3 +208,16 @@ test("an agent can find and drive the search and price controls", async () => {
   expect(screen.getByLabelText<HTMLInputElement>("Lowest price").value).toBe("250");
   await waitFor(() => expect(navigate).toHaveBeenCalled(), { timeout: 2000 });
 });
+
+test("a price over MAX_PRICE is clamped and never silently dropped while staying in the input", async () => {
+  const user = userEvent.setup();
+  await renderListing();
+  await openFilters(user);
+  const high = screen.getByLabelText("Highest price") as HTMLInputElement;
+
+  await user.type(high, "99999999");
+  await user.tab();
+  expect(navigate).toHaveBeenCalledTimes(1);
+  expect(lastSearch().max).toBe(10_000_000);
+  expect(high.value).toBe("10000000");
+});
