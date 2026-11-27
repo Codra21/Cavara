@@ -5,6 +5,7 @@ import { afterEach, beforeEach, expect, test, vi } from "vitest";
 
 const optimizeImage = vi.hoisted(() => vi.fn());
 const uploadImageFn = vi.hoisted(() => vi.fn());
+const saveProductFn = vi.hoisted(() => vi.fn());
 
 vi.mock("@tanstack/react-router", () => ({
   useNavigate: () => vi.fn(),
@@ -15,7 +16,7 @@ vi.mock("@/lib/optimize-image", () => ({ optimizeImage }));
 vi.mock("@/lib/query", () => ({ useCategories: () => ({ imageBase: "/media" }) }));
 vi.mock("@/server/functions/admin-media.functions", () => ({ uploadImageFn }));
 vi.mock("@/server/functions/admin-catalog.functions", () => ({
-  saveProductFn: vi.fn(),
+  saveProductFn,
   listAdminProductsFn: vi.fn(),
   countAdminProductsFn: vi.fn(),
   listAdminCategoriesFn: vi.fn(),
@@ -129,4 +130,24 @@ test("Sort order input can be cleared and accepts negative numbers", async () =>
   expect(sortInput.value).toBe("");
   await user.type(sortInput, "-5");
   expect(sortInput.value).toBe("-5");
+});
+
+test("a successful save with a cache warning renders a warning alert instead of 'Not saved'", async () => {
+  saveProductFn.mockReset().mockResolvedValue({
+    ok: true,
+    id: 1,
+    revision: "rev-2",
+    warning: "Saved, but the shop cache could not be refreshed.",
+  });
+  const user = userEvent.setup({ pointerEventsCheck: 0 });
+  render(<ProductEditor product={null} categories={[{ id: "tableware", name: "Tableware" }]} />, {
+    wrapper: Providers,
+  });
+
+  await user.type(screen.getByLabelText("Name"), "Test Mug");
+  await user.type(screen.getByLabelText(/^Price/i), "500");
+  await user.click(screen.getAllByRole("button", { name: "Create product" })[0]!);
+
+  expect(await screen.findByText(/shop cache could not be refreshed/i)).toBeTruthy();
+  expect(screen.queryByText("Not saved")).toBeNull();
 });

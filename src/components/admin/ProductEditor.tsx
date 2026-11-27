@@ -409,7 +409,22 @@ function stripClientKeys(variants: EditorVariant[]): FormVariant[] {
   return variants.map(({ clientKey: _clientKey, ...rest }) => rest);
 }
 
-export function ProductEditor({ product, categories }: { product: AdminProduct | null; categories: AdminCategory[] }) {
+export interface ProductSaveNotice {
+  text: string;
+  warning: boolean;
+}
+
+export function ProductEditor({
+  product,
+  categories,
+  savedNotice,
+  onSaved,
+}: {
+  product: AdminProduct | null;
+  categories: AdminCategory[];
+  savedNotice?: ProductSaveNotice | null;
+  onSaved?: (notice: ProductSaveNotice) => void;
+}) {
   const id = useId();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -430,7 +445,7 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
   const [slugTouched, setSlugTouched] = useState(Boolean(product));
   const [problems, setProblems] = useState<string[]>([]);
   const [conflict, setConflict] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const [localNotice, setLocalNotice] = useState<ProductSaveNotice | null>(savedNotice ?? null);
   const [copying, setCopying] = useState(false);
   const archiving = values.status === "archived" && product?.status !== "archived";
 
@@ -446,7 +461,7 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
   const margin = unitMargin(values.price ?? 0, values.costPrice ?? null);
 
   function set<K extends keyof EditorFormValues>(key: K, value: EditorFormValues[K]) {
-    setSaved(false);
+    setLocalNotice(null);
     setValues((previous) => ({ ...previous, [key]: value }));
   }
 
@@ -454,7 +469,7 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
 
   // Uploads finish later, so append to the latest state by clientKey rather than index.
   function addImages(clientKey: string, keys: string[]) {
-    setSaved(false);
+    setLocalNotice(null);
     setValues((previous) => ({
       ...previous,
       variants: (previous.variants ?? []).map((variant) =>
@@ -474,8 +489,13 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
         setProblems([result.error]);
         return;
       }
-      setProblems(result.warning ? [result.warning] : []);
-      setSaved(true);
+      const notice: ProductSaveNotice = {
+        text: result.warning ?? "Saved.",
+        warning: Boolean(result.warning),
+      };
+      setProblems([]);
+      setLocalNotice(notice);
+      onSaved?.(notice);
       // The product list, counts and this product refetch; the name list (one read per product) is patched instead.
       patchProductNames(queryClient, [
         { id: result.id, name: variables.name, slug: variables.slug, status: variables.status ?? "draft" },
@@ -565,7 +585,15 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
             </AlertDescription>
           </Alert>
         ) : null}
-        {saved && !dirty ? <p className="text-sm text-muted-foreground">Saved.</p> : null}
+        {localNotice ? (
+          localNotice.warning ? (
+            <Alert variant="warning" role="status">
+              <AlertDescription>{localNotice.text}</AlertDescription>
+            </Alert>
+          ) : (
+            <p className="text-sm text-muted-foreground">{localNotice.text}</p>
+          )
+        ) : null}
         {dirty && !save.isPending ? <p className="text-sm text-muted-foreground">You have unsaved changes.</p> : null}
       </div>
 
@@ -581,7 +609,7 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
               maxLength={120}
               onChange={(e) => {
                 const name = e.target.value;
-                setSaved(false);
+                setLocalNotice(null);
                 setValues((previous) => ({ ...previous, name, slug: slugTouched ? previous.slug : slugify(name) }));
               }}
             />
@@ -650,7 +678,7 @@ export function ProductEditor({ product, categories }: { product: AdminProduct |
                 value={detailsText}
                 rows={4}
                 onChange={(e) => {
-                  setSaved(false);
+                  setLocalNotice(null);
                   setDetailsText(e.target.value);
                 }}
               />
