@@ -12,6 +12,7 @@ import { copyText, singleOrderMessage, whatsappUrl } from "@/lib/order";
 import type { Category } from "@/lib/types";
 import { useStore } from "@/components/store/StoreProvider";
 import { useOpenProduct } from "@/components/store/useOpenProduct";
+import { ModalDialog } from "@/components/ui/ModalDialog";
 import { PriceTag } from "@/components/store/PriceTag";
 import { Icon, Quantity, Swatch, SwatchGroup } from "@/components/ui/primitives";
 
@@ -51,9 +52,15 @@ function Gallery({ product, variantIndex }: { product: PublicProduct; variantInd
   const variant = getVariant(product, variantIndex);
   const images = variant.images;
   const ref = useRef<HTMLDivElement>(null);
+  const [active, setActive] = useState(0);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [zoomed, setZoomed] = useState(false);
 
-  // Replay the gallery fade whenever the colour changes.
+  // Reset active photo and replay the gallery fade whenever the colour changes.
   useEffect(() => {
+    setActive(0);
+    setLightboxOpen(false);
+    setZoomed(false);
     const gallery = ref.current;
     if (!gallery) return;
     gallery.scrollLeft = 0;
@@ -62,42 +69,140 @@ function Gallery({ product, variantIndex }: { product: PublicProduct; variantInd
     gallery.classList.add("is-changing");
   }, [product.id, variantIndex]);
 
+  const currentIndex = active < images.length ? active : 0;
+  const currentImage = images[currentIndex] ?? images[0];
   const zoom = useFinePointer();
+
   return (
-    <div
-      className={`pdp-gallery${images.length === 1 ? " is-single" : ""}`}
-      ref={ref}
-      aria-label={`${product.name} photos`}
-    >
-      {images.map((image, index) => (
-        <figure
-          key={image}
-          className={`pdp-shot${index === 0 ? " is-lead" : ""}`}
-          onPointerMove={
-            zoom
-              ? (event) => {
-                  const shot = event.currentTarget;
-                  const rect = shot.getBoundingClientRect();
-                  shot.style.setProperty("--zx", `${((event.clientX - rect.left) / rect.width) * 100}%`);
-                  shot.style.setProperty("--zy", `${((event.clientY - rect.top) / rect.height) * 100}%`);
-                  shot.classList.add("is-zooming");
-                }
-              : undefined
-          }
-          onPointerLeave={zoom ? (event) => event.currentTarget.classList.remove("is-zooming") : undefined}
+    <div className="pdp-gallery is-single" ref={ref} aria-label={`${product.name} photos`}>
+      <figure
+        className="pdp-shot is-lead pdp-stage"
+        onPointerMove={
+          zoom
+            ? (event) => {
+                const shot = event.currentTarget;
+                const rect = shot.getBoundingClientRect();
+                shot.style.setProperty("--zx", `${((event.clientX - rect.left) / rect.width) * 100}%`);
+                shot.style.setProperty("--zy", `${((event.clientY - rect.top) / rect.height) * 100}%`);
+                shot.classList.add("is-zooming");
+              }
+            : undefined
+        }
+        onPointerLeave={zoom ? (event) => event.currentTarget.classList.remove("is-zooming") : undefined}
+      >
+        <button
+          type="button"
+          className="pdp-stage-trigger"
+          aria-label={`View photo ${currentIndex + 1} of ${images.length} full screen`}
+          onClick={() => {
+            setZoomed(false);
+            setLightboxOpen(true);
+          }}
         >
           <img
-            src={image}
-            alt={`${product.name}, ${variant.name}, photo ${index + 1} of ${images.length}`}
-            {...(index === 0 ? { fetchPriority: "high" as const } : { loading: "lazy" as const })}
+            src={currentImage}
+            alt={`${product.name}, ${variant.name}, photo ${currentIndex + 1} of ${images.length}`}
+            fetchPriority="high"
             width={800}
             height={800}
           />
-          <figcaption>
-            {String(index + 1).padStart(2, "0")} / {String(images.length).padStart(2, "0")}
-          </figcaption>
-        </figure>
-      ))}
+        </button>
+        <figcaption>
+          {String(currentIndex + 1).padStart(2, "0")} / {String(images.length).padStart(2, "0")}
+        </figcaption>
+      </figure>
+
+      {images.length > 1 ? (
+        <div className="pdp-thumbs" role="list" aria-label="Product thumbnails">
+          {images.map((image, index) => (
+            <button
+              key={image}
+              type="button"
+              role="listitem"
+              className={`pdp-thumb${index === currentIndex ? " is-active" : ""}`}
+              aria-label={`Photo ${index + 1} of ${images.length}`}
+              aria-current={index === currentIndex ? "true" : undefined}
+              onClick={() => setActive(index)}
+            >
+              <img src={image} alt="" loading="lazy" width={120} height={120} />
+            </button>
+          ))}
+        </div>
+      ) : null}
+
+      <ModalDialog
+        open={lightboxOpen}
+        onClose={() => {
+          setLightboxOpen(false);
+          setZoomed(false);
+        }}
+        className="pdp-lightbox"
+        labelledBy="pdp-lightbox-title"
+      >
+        <div className="pdp-lightbox-bar">
+          <span id="pdp-lightbox-title" className="sr-only">
+            {product.name} photo viewer
+          </span>
+          <span className="pdp-lightbox-count">
+            {currentIndex + 1} / {images.length}
+          </span>
+          <div className="pdp-lightbox-actions">
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={zoomed ? "Reset zoom" : "Zoom in"}
+              onClick={() => setZoomed((v) => !v)}
+            >
+              <Icon name={zoomed ? "fa-solid fa-magnifying-glass-minus" : "fa-solid fa-magnifying-glass-plus"} />
+            </button>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Close photo viewer"
+              onClick={() => {
+                setLightboxOpen(false);
+                setZoomed(false);
+              }}
+            >
+              <Icon name="fa-solid fa-xmark" />
+            </button>
+          </div>
+        </div>
+        <div className="pdp-lightbox-stage">
+          <img
+            src={currentImage}
+            alt={`${product.name}, ${variant.name}, photo ${currentIndex + 1} of ${images.length}`}
+            className={zoomed ? "is-zoomed" : undefined}
+            onClick={() => setZoomed((v) => !v)}
+          />
+        </div>
+        {images.length > 1 ? (
+          <div className="pdp-lightbox-nav">
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Previous photo"
+              onClick={() => {
+                setZoomed(false);
+                setActive((i) => (i - 1 + images.length) % images.length);
+              }}
+            >
+              <Icon name="fa-solid fa-chevron-left" />
+            </button>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label="Next photo"
+              onClick={() => {
+                setZoomed(false);
+                setActive((i) => (i + 1) % images.length);
+              }}
+            >
+              <Icon name="fa-solid fa-chevron-right" />
+            </button>
+          </div>
+        ) : null}
+      </ModalDialog>
     </div>
   );
 }

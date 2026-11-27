@@ -191,3 +191,39 @@ test("switching colours on ProductPage resets the mobile gallery scrollLeft to 0
   await user.click(screen.getByRole("radio", { name: "Crimson" }));
   expect(gallery.scrollLeft).toBe(0);
 });
+
+test("ProductPage gallery switches main photo via thumbnails and opens fullscreen lightbox", async () => {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }),
+  });
+  const multiPhoto: PublicProduct = {
+    ...product,
+    variants: [
+      {
+        name: "Off-white",
+        swatch: "#f5f5f0",
+        availability: "in_stock",
+        images: ["/media/a1.webp", "/media/a2.webp"],
+      },
+    ],
+  };
+  const queryClient = new QueryClient();
+  const user = userEvent.setup();
+  render(
+    <QueryClientProvider client={queryClient}>
+      <StoreProvider>
+        <ProductPage
+          product={multiPhoto}
+          category={{ id: "drinkware", name: "Drinkware", description: "", image: "" }}
+        />
+      </StoreProvider>
+    </QueryClientProvider>,
+  );
+
+  await user.click(screen.getByRole("listitem", { name: "Photo 2 of 2" }));
+  expect(screen.getByAltText("Polka Cup, Off-white, photo 2 of 2").getAttribute("src")).toBe("/media/a2.webp");
+
+  await user.click(screen.getByRole("button", { name: /View photo 2 of 2 full screen/i }));
+  expect(await screen.findByRole("dialog", { name: "Polka Cup photo viewer" })).toBeTruthy();
+});
