@@ -1,4 +1,4 @@
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { type CouponAnswer, normalizeCouponCode } from "@/domain/coupons";
 import type { BuyableLine } from "@/domain/bag";
 import { formatPrice } from "@/domain/catalog";
@@ -90,7 +90,23 @@ export function CheckoutForm({
   const deliveryCharge = serverCharge && serverCharge.zoneId === zoneId ? serverCharge.charge : (zone?.charge ?? 0);
   const subtotal = lines.reduce((sum, line) => sum + line.unitPrice * line.item.qty, 0);
   const couponDiscount = coupon?.discount ?? 0;
-  const total = subtotal - couponDiscount + deliveryCharge;
+  const total = Math.max(0, subtotal - couponDiscount) + deliveryCharge;
+
+  const bagSignature = lines
+    .map((line) => `${line.item.id}:${line.item.variant}:${line.item.qty}:${line.unitPrice}`)
+    .join(",");
+  const prevBagSignature = useRef(bagSignature);
+  useEffect(() => {
+    if (prevBagSignature.current === bagSignature) return;
+    prevBagSignature.current = bagSignature;
+    setCoupon((current) => {
+      if (!current) return null;
+      setCouponOpen(true);
+      setCouponText(current.code);
+      setCouponError("Your bag changed — apply your code again.");
+      return null;
+    });
+  }, [bagSignature]);
 
   const applyAnswer = (answer: CouponAnswer) => {
     if (answer.ok) {

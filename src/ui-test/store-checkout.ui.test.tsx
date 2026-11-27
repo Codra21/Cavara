@@ -1,4 +1,5 @@
-import { cleanup, fireEvent, render } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, expect, test, vi } from "vitest";
 import type { BuyableLine } from "@/domain/bag";
 import type { DeliveryZone } from "@/domain/orders";
@@ -65,4 +66,41 @@ test("two synchronous submits only trigger one Turnstile check and one order req
 
   expect(getTurnstileToken).toHaveBeenCalledTimes(1);
   resolveToken("tok-1");
+});
+
+test("changing buyable bag quantities clears a previously applied coupon instead of keeping a stale discount", async () => {
+  getTurnstileToken.mockReset().mockResolvedValue("tok-coupon");
+  checkCouponFn.mockReset().mockResolvedValue({ ok: true, code: "SAVE200", discount: 200 });
+  const user = userEvent.setup();
+  const draft = { name: "Ayesha", phone: "01711000001", zoneId: "inside-dhaka", address: "Dhaka", note: "" };
+  const twoQty: BuyableLine[] = [{ ...lines[0]!, item: { ...lines[0]!.item, qty: 2 } }];
+
+  const { rerender } = render(
+    <CheckoutForm
+      lines={twoQty}
+      zones={zones}
+      draft={draft}
+      onDraftChange={vi.fn()}
+      onBack={vi.fn()}
+      onPlaced={vi.fn()}
+    />,
+  );
+
+  await user.click(screen.getByText(/Have a code/i));
+  await user.type(screen.getByLabelText("Coupon code"), "SAVE200");
+  await user.click(screen.getByRole("button", { name: "Apply" }));
+  expect(await screen.findByRole("button", { name: /Remove/i })).toBeTruthy();
+
+  rerender(
+    <CheckoutForm
+      lines={lines}
+      zones={zones}
+      draft={draft}
+      onDraftChange={vi.fn()}
+      onBack={vi.fn()}
+      onPlaced={vi.fn()}
+    />,
+  );
+
+  expect(screen.queryByRole("button", { name: /Remove/i })).toBeNull();
 });
