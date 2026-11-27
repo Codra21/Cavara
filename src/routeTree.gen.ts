@@ -13,8 +13,11 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DeliveryReturnsRouteImport } from './routes/delivery-returns'
 import { Route as HealthzRouteImport } from './routes/healthz'
+import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as AdminIndexRouteImport } from './routes/admin.index'
 import { Route as AdminBlockedRouteImport } from './routes/admin.blocked'
 import { Route as AdminDiscountsRouteImport } from './routes/admin.discounts'
@@ -49,14 +52,29 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DeliveryReturnsRoute = DeliveryReturnsRouteImport.update({
+  id: '/delivery-returns',
+  path: '/delivery-returns',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const HealthzRoute = HealthzRouteImport.update({
   id: '/healthz',
   path: '/healthz',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
   id: '/sitemap.xml',
   path: '/sitemap.xml',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AdminIndexRoute = AdminIndexRouteImport.update({
@@ -130,8 +148,11 @@ export interface FileRoutesByFullPath {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
+  '/delivery-returns': typeof DeliveryReturnsRoute
   '/healthz': typeof HealthzRoute
+  '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/admin/blocked': typeof AdminBlockedRoute
   '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/zones': typeof AdminZonesRoute
@@ -150,8 +171,11 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/contact': typeof ContactRoute
+  '/delivery-returns': typeof DeliveryReturnsRoute
   '/healthz': typeof HealthzRoute
+  '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/admin/blocked': typeof AdminBlockedRoute
   '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/zones': typeof AdminZonesRoute
@@ -172,8 +196,11 @@ export interface FileRoutesById {
   '/about': typeof AboutRoute
   '/admin': typeof AdminRouteWithChildren
   '/contact': typeof ContactRoute
+  '/delivery-returns': typeof DeliveryReturnsRoute
   '/healthz': typeof HealthzRoute
+  '/privacy': typeof PrivacyRoute
   '/sitemap.xml': typeof SitemapDotxmlRoute
+  '/terms': typeof TermsRoute
   '/admin/blocked': typeof AdminBlockedRoute
   '/admin/discounts': typeof AdminDiscountsRoute
   '/admin/zones': typeof AdminZonesRoute
@@ -195,8 +222,11 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/contact'
+    | '/delivery-returns'
     | '/healthz'
+    | '/privacy'
     | '/sitemap.xml'
+    | '/terms'
     | '/admin/blocked'
     | '/admin/discounts'
     | '/admin/zones'
@@ -215,8 +245,11 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/contact'
+    | '/delivery-returns'
     | '/healthz'
+    | '/privacy'
     | '/sitemap.xml'
+    | '/terms'
     | '/admin/blocked'
     | '/admin/discounts'
     | '/admin/zones'
@@ -236,8 +269,11 @@ export interface FileRouteTypes {
     | '/about'
     | '/admin'
     | '/contact'
+    | '/delivery-returns'
     | '/healthz'
+    | '/privacy'
     | '/sitemap.xml'
+    | '/terms'
     | '/admin/blocked'
     | '/admin/discounts'
     | '/admin/zones'
@@ -258,8 +294,11 @@ export interface RootRouteChildren {
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRouteWithChildren
   ContactRoute: typeof ContactRoute
+  DeliveryReturnsRoute: typeof DeliveryReturnsRoute
   HealthzRoute: typeof HealthzRoute
+  PrivacyRoute: typeof PrivacyRoute
   SitemapDotxmlRoute: typeof SitemapDotxmlRoute
+  TermsRoute: typeof TermsRoute
   CollectionsCategoryRoute: typeof CollectionsCategoryRoute
   MediaSplatRoute: typeof MediaSplatRoute
   ProductsSlugRoute: typeof ProductsSlugRoute
@@ -297,6 +336,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/delivery-returns': {
+      id: '/delivery-returns'
+      path: '/delivery-returns'
+      fullPath: '/delivery-returns'
+      preLoaderRoute: typeof DeliveryReturnsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/healthz': {
       id: '/healthz'
       path: '/healthz'
@@ -304,11 +350,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof HealthzRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/sitemap.xml': {
       id: '/sitemap.xml'
       path: '/sitemap.xml'
       fullPath: '/sitemap.xml'
       preLoaderRoute: typeof SitemapDotxmlRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/admin/': {
@@ -434,8 +494,11 @@ const rootRouteChildren: RootRouteChildren = {
   AboutRoute: AboutRoute,
   AdminRoute: AdminRouteWithChildren,
   ContactRoute: ContactRoute,
+  DeliveryReturnsRoute: DeliveryReturnsRoute,
   HealthzRoute: HealthzRoute,
+  PrivacyRoute: PrivacyRoute,
   SitemapDotxmlRoute: SitemapDotxmlRoute,
+  TermsRoute: TermsRoute,
   CollectionsCategoryRoute: CollectionsCategoryRoute,
   MediaSplatRoute: MediaSplatRoute,
   ProductsSlugRoute: ProductsSlugRoute,
