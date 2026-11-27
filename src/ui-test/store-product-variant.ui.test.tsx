@@ -8,13 +8,15 @@ import type { PublicProduct } from "@/domain/catalog-snapshot";
 import { StoreProvider, useStore } from "@/components/store/StoreProvider";
 import { STORAGE_KEYS } from "@/lib/config";
 
+const navigateMock = vi.hoisted(() => vi.fn());
+
 vi.mock("@tanstack/react-router", () => ({
   Link: ({ children, search, ...rest }: { children: React.ReactNode; search?: Record<string, unknown> }) => (
     <a data-search={JSON.stringify(search ?? {})} {...rest}>
       {children}
     </a>
   ),
-  useNavigate: () => vi.fn(),
+  useNavigate: () => navigateMock,
 }));
 vi.mock("@/lib/query", () => ({
   lookupIds: (ids: number[]) => ids,
@@ -140,4 +142,31 @@ test("ProductCard links carry ?variant=N when a non-default colour swatch is sel
   await user.click(screen.getByRole("radio", { name: "Crimson" }));
   const nameLink = screen.getByText("Polka Cup").closest("a")!;
   expect(nameLink.getAttribute("data-search")).toBe(JSON.stringify({ variant: 1 }));
+});
+
+test("switching colours on ProductPage syncs ?variant= in the URL and Share link", async () => {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }),
+  });
+  navigateMock.mockReset();
+  const queryClient = new QueryClient();
+  const user = userEvent.setup();
+  render(
+    <QueryClientProvider client={queryClient}>
+      <StoreProvider>
+        <ProductPage product={product} category={{ id: "drinkware", name: "Drinkware", description: "", image: "" }} />
+      </StoreProvider>
+    </QueryClientProvider>,
+  );
+
+  await user.click(screen.getByRole("radio", { name: "Crimson" }));
+  expect(navigateMock).toHaveBeenCalledWith({
+    to: "/products/$slug",
+    params: { slug: "polka-cup" },
+    search: { variant: 1 },
+    replace: true,
+  });
+  const share = screen.getByRole("link", { name: /Share/i });
+  expect(share.getAttribute("href")).toContain(encodeURIComponent("?variant=1"));
 });

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Link } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { Tabs, TabsList, TabsPanel, TabsTab } from "@ui-sdk/react/tabs";
 import { useEffect, useRef, useState } from "react";
 import { availabilityTag, BAG_FULL_MESSAGE } from "@/domain/bag";
@@ -116,6 +116,7 @@ export function ProductPage({
   category: Category | null;
   initialVariant?: number | undefined;
 }) {
+  const navigate = useNavigate();
   const { pickedVariant, selectVariant, addToBag, showToast, openBag, recent, rememberViewed } = useStore();
   const [quantity, setQuantity] = useState(1);
   const [tab, setTab] = useState<TabId>("description");
@@ -130,7 +131,7 @@ export function ProductPage({
   const variantIndex = picked !== undefined && product.variants[picked] ? picked : (urlVariant ?? 0);
   const variant = getVariant(product, variantIndex);
   const stockTag = availabilityTag(variant.availability);
-  const pageUrl = `${SITE_URL}/products/${product.slug}`;
+  const pageUrl = `${SITE_URL}/products/${product.slug}${variantIndex > 0 ? `?variant=${variantIndex}` : ""}`;
   const colours = product.variants.map((item) => item.name).join(", ");
 
   // Related pieces come from the summary and are prefetched by the route loader, so they are in the server HTML.
@@ -168,9 +169,13 @@ export function ProductPage({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- runs per product
   }, [product.id]);
 
-  // Apply ?variant= on direct loads and same-product variant links (e.g. from the bag drawer).
+  // Apply ?variant= on direct loads, back/forward navigation, and same-product variant links (e.g. from the bag drawer).
   useEffect(() => {
-    if (initialVariant !== undefined && product.variants[initialVariant]) selectVariant(product.id, initialVariant);
+    if (initialVariant !== undefined && product.variants[initialVariant]) {
+      selectVariant(product.id, initialVariant);
+    } else if (initialVariant === undefined && picked !== undefined) {
+      selectVariant(product.id, 0);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- syncs URL variant param
   }, [product.id, initialVariant]);
 
@@ -261,12 +266,17 @@ export function ProductPage({
                   label="Choose a colour"
                   className="pdp-swatches"
                   value={variant.name}
-                  onValueChange={(name) =>
-                    selectVariant(
-                      product.id,
-                      product.variants.findIndex((item) => item.name === name),
-                    )
-                  }
+                  onValueChange={(name) => {
+                    const next = product.variants.findIndex((item) => item.name === name);
+                    if (next < 0) return;
+                    selectVariant(product.id, next);
+                    void navigate({
+                      to: "/products/$slug",
+                      params: { slug: product.slug },
+                      search: next > 0 ? { variant: next } : {},
+                      replace: true,
+                    });
+                  }}
                 >
                   {product.variants.map((item) => (
                     <Swatch key={item.name} variant={item} size="large" />
