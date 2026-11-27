@@ -135,7 +135,9 @@ function NameSearch({ term }: { term: string }) {
 export function ProductList() {
   const search = routeApi.useSearch();
   const navigate = useNavigate();
-  const query = withDefaultSort(search);
+  const [optimistic, setOptimistic] = useState<{ base: AdminProductSearch; value: AdminProductSearch } | null>(null);
+  const currentSearch = optimistic && optimistic.base === search ? optimistic.value : search;
+  const query = withDefaultSort(currentSearch);
   const products = useQuery(adminProductsQuery(query));
   const counts = useQuery(adminProductCountsQuery(query.category));
   const categories = useQuery(adminCategoriesQuery());
@@ -158,8 +160,14 @@ export function ProductList() {
   const filtered = Boolean(query.status || query.category || query.outOfStock || query.lowStock);
   const searching = term.trim() !== "";
 
-  const goTo = (next: AdminProductSearch) => navigate({ to: "/admin/products", search: next });
-  const changeFilter = (patch: Partial<AdminProductSearch>) => goTo(firstPage({ ...search, ...patch }));
+  const goTo = (next: AdminProductSearch) => {
+    setOptimistic({ base: search, value: next });
+    navigate({ to: "/admin/products", search: next });
+  };
+  const changeFilter = (patch: Partial<AdminProductSearch>) => {
+    setOptimistic({ base: search, value: firstPage({ ...currentSearch, ...patch }) });
+    navigate({ to: "/admin/products", search: firstPage({ ...search, ...patch }) });
+  };
 
   function toggleRow(id: number, on: boolean) {
     setSelected((current) => {

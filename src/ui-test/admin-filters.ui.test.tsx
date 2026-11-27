@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createAgent } from "@ui-sdk/react/agent";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
@@ -192,17 +192,14 @@ test("an agent can find and change every filter", async () => {
     expect(labels, `${label} is missing from the snapshot`).toContain(label);
   }
 
-  let result: Awaited<ReturnType<typeof agent.act>> | undefined;
-  await act(async () => {
-    result = await agent.act({
-      steps: [
-        { ref: "Period", action: "setValue", args: ["Months"] },
-        { ref: "Filter by status", action: "setValue", args: ["Draft 3"] },
-        { ref: "Out of stock", action: "toggle" },
-      ],
-    });
+  const result = await agent.act({
+    steps: [
+      { ref: "Period", action: "setValue", args: ["Months"] },
+      { ref: "Filter by status", action: "setValue", args: ["Draft 3"] },
+      { ref: "Out of stock", action: "toggle" },
+    ],
   });
-  expect(result!.ok, result!.error?.message).toBe(true);
+  expect(result.ok, result.error?.message).toBe(true);
   expect(screen.getByText("Last 12 months")).toBeTruthy();
   expect(navigate).toHaveBeenCalledWith({
     to: "/admin/products",
