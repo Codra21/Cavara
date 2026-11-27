@@ -443,6 +443,8 @@ export async function refreshProduct(sources: CatalogSources, productId: number)
         if (legacyPatch.status === "conflict") return await rebuildCatalog(sources);
         if (legacyPatch.status === "unusable") await store.remove(keys.legacy);
       }
+    } else {
+      await Promise.all([store.remove(keys.legacy), store.remove(keys.detail(productId))]);
     }
   } catch (error) {
     console.error("catalogue snapshot patch failed; rebuilding", error);
@@ -534,6 +536,11 @@ export async function refreshProducts(sources: CatalogSources, productIds: numbe
         });
         if (legacyPatch.status === "conflict") return await rebuildCatalog(sources);
         if (legacyPatch.status === "unusable") await store.remove(keys.legacy);
+      }
+    } else {
+      await store.remove(keys.legacy);
+      for (let start = 0; start < ids.length; start += DETAIL_WRITE_BATCH) {
+        await Promise.all(ids.slice(start, start + DETAIL_WRITE_BATCH).map((id) => store.remove(keys.detail(id))));
       }
     }
   } catch (error) {

@@ -14,6 +14,7 @@ import {
   getCatalogSummary,
   invalidateCatalogCache,
   refreshProduct,
+  refreshProducts,
   refreshZones,
   snapshotKeys,
 } from "@/server/catalog-cache.server";
@@ -404,5 +405,29 @@ describe("concurrent and failing saves", () => {
     expect((await getCatalogSummary(sources())).products.find((p) => p.id === RED_POLKA)?.name).toBe(
       "After corruption",
     );
+  });
+
+  test("when summary is absent, refreshProduct and refreshProducts remove stale legacy and detail objects", async () => {
+    await prime();
+    await refreshProduct(sources(), RED_POLKA);
+    await edit(RED_POLKA, () => ({ name: "Fresh without summary" }));
+    store.objects.delete(keys.summary);
+    expect(store.objects.has(keys.legacy)).toBe(true);
+    expect(store.objects.has(keys.detail(RED_POLKA))).toBe(true);
+
+    expect(await refreshProduct(sources(), RED_POLKA)).toBe(true);
+    expect(store.objects.has(keys.legacy)).toBe(false);
+    expect(store.objects.has(keys.detail(RED_POLKA))).toBe(false);
+
+    await prime();
+    await refreshProduct(sources(), RED_POLKA);
+    await edit(RED_POLKA, () => ({ name: "Bulk fresh without summary" }));
+    store.objects.delete(keys.summary);
+    expect(store.objects.has(keys.legacy)).toBe(true);
+    expect(store.objects.has(keys.detail(RED_POLKA))).toBe(true);
+
+    expect(await refreshProducts(sources(), [RED_POLKA])).toBe(true);
+    expect(store.objects.has(keys.legacy)).toBe(false);
+    expect(store.objects.has(keys.detail(RED_POLKA))).toBe(false);
   });
 });
