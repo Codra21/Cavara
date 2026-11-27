@@ -48,7 +48,7 @@ export function ActionDialog({
         else onOpenChange(false);
       }}
     >
-      <AlertDialogBackdrop className="fixed inset-0 z-50 bg-foreground/40" />
+      <AlertDialogBackdrop className="fixed inset-0 z-50 bg-[var(--scrim)]" />
       <AlertDialogContent className="fixed top-1/2 left-1/2 z-50 grid w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 gap-4 rounded-lg bg-popover p-5 text-popover-foreground shadow-lg ring-1 ring-foreground/10">
         <div className="grid gap-1.5">
           <AlertDialogTitle className="text-base font-semibold">{title}</AlertDialogTitle>
