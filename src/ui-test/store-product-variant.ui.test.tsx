@@ -9,7 +9,11 @@ import { StoreProvider, useStore } from "@/components/store/StoreProvider";
 import { STORAGE_KEYS } from "@/lib/config";
 
 vi.mock("@tanstack/react-router", () => ({
-  Link: ({ children, ...rest }: { children: React.ReactNode }) => <a {...rest}>{children}</a>,
+  Link: ({ children, search, ...rest }: { children: React.ReactNode; search?: Record<string, unknown> }) => (
+    <a data-search={JSON.stringify(search ?? {})} {...rest}>
+      {children}
+    </a>
+  ),
   useNavigate: () => vi.fn(),
 }));
 vi.mock("@/lib/query", () => ({
@@ -20,6 +24,7 @@ vi.mock("@/lib/query", () => ({
 
 const { ProductPage } = await import("@/components/product/ProductPage");
 const { Toast } = await import("@/components/layout/SiteChrome");
+const { ProductCard } = await import("@/components/home/ProductCard");
 
 afterEach(cleanup);
 
@@ -100,4 +105,39 @@ test("adding to bag when already at MAX_QTY shows a max-limit toast instead of c
   await user.click(screen.getAllByRole("button", { name: "Add to bag" })[0]!);
   expect(screen.getByText(/maximum 20 per colour/i)).toBeTruthy();
   expect(screen.queryByText(/1 item added/i)).toBeNull();
+});
+
+test("ProductCard links carry ?variant=N when a non-default colour swatch is selected", async () => {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }),
+  });
+  const user = userEvent.setup();
+  const card = {
+    id: 1,
+    slug: "polka-cup",
+    name: "Polka Cup",
+    category: "drinkware",
+    price: 950,
+    regularPrice: null,
+    sale: null,
+    featured: false,
+    createdAt: "2026-11-01T00:00:00.000Z",
+    images: ["/media/a.webp"],
+    variants: [
+      { name: "Off-white", swatch: "#f5f5f0", availability: "in_stock" as const, image: "/media/a.webp" },
+      { name: "Crimson", swatch: "#8b1e24", availability: "in_stock" as const, image: "/media/b.webp" },
+    ],
+  };
+  render(
+    <StoreProvider>
+      <ul>
+        <ProductCard product={card} categoryName="Drinkware" index={0} />
+      </ul>
+    </StoreProvider>,
+  );
+
+  await user.click(screen.getByRole("radio", { name: "Crimson" }));
+  const nameLink = screen.getByText("Polka Cup").closest("a")!;
+  expect(nameLink.getAttribute("data-search")).toBe(JSON.stringify({ variant: 1 }));
 });

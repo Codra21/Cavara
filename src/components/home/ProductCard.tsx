@@ -22,6 +22,7 @@ export function ProductCard({ product, categoryName, index }: { product: Card; c
   const image = cardImage(product, selected);
   const altImage = selected === 0 ? product.images[1] : undefined;
   const stockTag = availabilityTag(variant.availability);
+  const linkSearch = selected > 0 ? { variant: selected } : {};
 
   return (
     <li
@@ -35,6 +36,7 @@ export function ProductCard({ product, categoryName, index }: { product: Card; c
           className="product-media-button"
           to="/products/$slug"
           params={{ slug: product.slug }}
+          search={linkSearch}
           tabIndex={-1}
           aria-hidden="true"
         >
@@ -70,7 +72,7 @@ export function ProductCard({ product, categoryName, index }: { product: Card; c
       <div className="product-info">
         <p className="product-meta">{categoryName}</p>
         <h3 className="product-name">
-          <Link to="/products/$slug" params={{ slug: product.slug }}>
+          <Link to="/products/$slug" params={{ slug: product.slug }} search={linkSearch}>
             {product.name}
           </Link>
         </h3>
