@@ -1,8 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import type { AdminIdentity } from "@/domain/admin";
 import {
+  decodeDetail,
   decodeSummary,
+  detailIsCurrent,
   encodeSummary,
+  newGeneration,
   patchSummaryProduct,
   toProductSummary,
   toSummary,
@@ -429,5 +432,55 @@ describe("concurrent and failing saves", () => {
     expect(await refreshProducts(sources(), [RED_POLKA])).toBe(true);
     expect(store.objects.has(keys.legacy)).toBe(false);
     expect(store.objects.has(keys.detail(RED_POLKA))).toBe(false);
+  });
+
+  test("when a concurrent rebuild advances summary gen, refreshProduct and refreshProducts stamp details with the retried gen", async () => {
+    await prime();
+    await edit(RED_POLKA, () => ({ name: "Renamed During Rebuild" }));
+    const gen2 = newGeneration(new Date(Date.now() + 60_000));
+    store.afterRead = (key) => {
+      if (key !== keys.summary) return;
+      store.afterRead = undefined;
+      const current = decodeSummary(store.objects.get(keys.summary)!.json);
+      store.seed(keys.summary, encodeSummary({ ...current, gen: gen2 }));
+    };
+
+    expect(await refreshProduct(sources(), RED_POLKA)).toBe(true);
+    const summaryAfterSingle = decodeSummary(store.objects.get(keys.summary)!.json);
+    const detailAfterSingle = decodeDetail(store.objects.get(keys.detail(RED_POLKA))!.json);
+    expect(summaryAfterSingle.gen).toBe(gen2);
+    expect(detailAfterSingle.gen).toBe(gen2);
+    expect(detailIsCurrent(detailAfterSingle.gen, summaryAfterSingle.gen)).toBe(true);
+
+    d1.clear();
+    expect((await getProductBySlug(sources(), "red-polka-bow-cup-bread-plate")).product?.name).toBe(
+      "Renamed During Rebuild",
+    );
+    expect(d1.reads()).toBe(0);
+
+    await edit(RED_POLKA, () => ({ name: "Bulk Renamed During Rebuild" }));
+    await edit(3, () => ({ name: "Second Bulk Renamed" }));
+    const gen3 = newGeneration(new Date(Date.now() + 120_000));
+    store.afterRead = (key) => {
+      if (key !== keys.summary) return;
+      store.afterRead = undefined;
+      const current = decodeSummary(store.objects.get(keys.summary)!.json);
+      store.seed(keys.summary, encodeSummary({ ...current, gen: gen3 }));
+    };
+
+    expect(await refreshProducts(sources(), [RED_POLKA, 3])).toBe(true);
+    const summaryAfterBulk = decodeSummary(store.objects.get(keys.summary)!.json);
+    expect(summaryAfterBulk.gen).toBe(gen3);
+    for (const id of [RED_POLKA, 3]) {
+      const detail = decodeDetail(store.objects.get(keys.detail(id))!.json);
+      expect(detail.gen).toBe(gen3);
+      expect(detailIsCurrent(detail.gen, summaryAfterBulk.gen)).toBe(true);
+    }
+
+    d1.clear();
+    expect((await getProductBySlug(sources(), "red-polka-bow-cup-bread-plate")).product?.name).toBe(
+      "Bulk Renamed During Rebuild",
+    );
+    expect(d1.reads()).toBe(0);
   });
 });

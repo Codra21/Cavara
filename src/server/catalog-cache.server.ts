@@ -428,6 +428,9 @@ export async function refreshProduct(sources: CatalogSources, productId: number)
         await store.remove(keys.summary);
         await store.remove(keys.legacy);
       } else if (summaryPatch.status === "patched") {
+        if (product && summaryPatch.value.gen !== gen) {
+          await store.write(keys.detail(productId), encodeDetail({ gen: summaryPatch.value.gen, product }));
+        }
         const afterId = predecessorId(summaryPatch.value, productId);
         const legacyPatch = await patchObject(store, keys.legacy, {
           decode: (json) => parseLegacy(json, sources.imageBase),
@@ -510,6 +513,21 @@ export async function refreshProducts(sources: CatalogSources, productIds: numbe
         await store.remove(keys.legacy);
       } else if (summaryPatch.status === "patched") {
         const patched = summaryPatch.value;
+        if (patched.gen !== gen) {
+          const presentIds = ids.filter((id) => products.has(id));
+          for (let start = 0; start < presentIds.length; start += DETAIL_WRITE_BATCH) {
+            await Promise.all(
+              presentIds
+                .slice(start, start + DETAIL_WRITE_BATCH)
+                .map((id) =>
+                  store.write(
+                    keys.detail(id),
+                    encodeDetail({ gen: patched.gen, product: products.get(id) as ProductDetail }),
+                  ),
+                ),
+            );
+          }
+        }
         const legacyPatch = await patchObject(store, keys.legacy, {
           decode: (json) => parseLegacy(json, sources.imageBase),
           encode: (catalog) => JSON.stringify(catalog),
