@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import type { AdminIdentity } from "@/domain/admin";
 import {
   absoluteUrl,
   breadcrumbJsonLd,
@@ -11,8 +12,13 @@ import {
   sitemapXml,
 } from "@/domain/seo";
 import type { Category, Product } from "@/lib/types";
+import { invalidateCatalogCache } from "@/server/catalog-cache.server";
+import { getProductBySlug } from "@/server/catalog-queries.server";
+import { saveCategory } from "@/server/db/admin-categories.repository";
+import { createTestD1 } from "./helpers/d1";
 
 const SITE = "https://cavarabd.com";
+const owner: AdminIdentity = { id: "owner", username: "owner", role: "owner" };
 const category: Category = { id: "drinkware", name: "Drinkware", description: "", image: "" };
 const product: Product = {
   id: 7,
@@ -92,6 +98,143 @@ describe("product structured data", () => {
     ]);
   });
 
+  test("BreadcrumbList falls back to categorySlug when category.path is omitted on a renamed category", () => {
+    const renamed: Category = {
+      id: "drinkware",
+      slug: "cups-and-mugs",
+      name: "Cups & Mugs",
+      description: "",
+      image: "",
+    };
+    const ld = breadcrumbJsonLd(product, renamed, SITE);
+    expect(ld.itemListElement.map((item) => [item.position, item.name, item.item])).toEqual([
+      [1, "Home", "https://cavarabd.com/"],
+      [2, "Cups & Mugs", "https://cavarabd.com/collections/cups-and-mugs"],
+      [3, "Red Polka Cup & Plate", "https://cavarabd.com/products/red-polka-cup"],
+    ]);
+  });
+
+  test("BreadcrumbList emits Home › Parent › Subcategory › Product when parentCategory is present", () => {
+    const parent: Category = {
+      id: "drinkware",
+      slug: "cups-and-mugs",
+      name: "Cups & Mugs",
+      description: "",
+      image: "",
+      path: "/collections/cups-and-mugs",
+    };
+    const sub: Category = {
+      id: "ceramic-mugs",
+      slug: "handcrafted-mugs",
+      parentId: "drinkware",
+      name: "Handcrafted Mugs",
+      description: "",
+      image: "",
+      path: "/collections/cups-and-mugs/handcrafted-mugs",
+    };
+    const ld = breadcrumbJsonLd(product, sub, SITE, parent);
+    expect(ld.itemListElement.map((item) => [item.position, item.name, item.item])).toEqual([
+      [1, "Home", "https://cavarabd.com/"],
+      [2, "Cups & Mugs", "https://cavarabd.com/collections/cups-and-mugs"],
+      [3, "Handcrafted Mugs", "https://cavarabd.com/collections/cups-and-mugs/handcrafted-mugs"],
+      [4, "Red Polka Cup & Plate", "https://cavarabd.com/products/red-polka-cup"],
+    ]);
+
+    // Also works when .path is omitted on both parent and subcategory
+    const { path: _parentPath, ...parentNoPath } = parent;
+    const { path: _subPath, ...subNoPath } = sub;
+    const ldNoPath = breadcrumbJsonLd(product, subNoPath, SITE, parentNoPath);
+    expect(ldNoPath.itemListElement.map((item) => [item.position, item.name, item.item])).toEqual([
+      [1, "Home", "https://cavarabd.com/"],
+      [2, "Cups & Mugs", "https://cavarabd.com/collections/cups-and-mugs"],
+      [3, "Handcrafted Mugs", "https://cavarabd.com/collections/cups-and-mugs/handcrafted-mugs"],
+      [4, "Red Polka Cup & Plate", "https://cavarabd.com/products/red-polka-cup"],
+    ]);
+  });
+
+  test("getProductBySlug returns parentCategory for subcategory products and null for top-level products", async () => {
+    const db = createTestD1();
+    const renamedParent = await saveCategory(db, owner, {
+      id: "drinkware",
+      name: "Drinkware",
+      slug: "cups-and-mugs",
+      description: "Cups and mugs",
+      image: "",
+      parentId: null,
+      sort: 1,
+      active: true,
+    });
+    expect(renamedParent.ok).toBe(true);
+
+    const createdSub = await saveCategory(db, owner, {
+      id: null,
+      name: "Ceramic Mugs",
+      slug: "ceramic-mugs",
+      description: "Hand-painted mugs",
+      image: "",
+      parentId: "drinkware",
+      sort: 10,
+      active: true,
+    });
+    expect(createdSub.ok).toBe(true);
+    if (!createdSub.ok) return;
+
+    const renamedSub = await saveCategory(db, owner, {
+      id: createdSub.category.id,
+      name: "Handcrafted Mugs",
+      slug: "handcrafted-mugs",
+      description: "Hand-painted mugs",
+      image: "",
+      parentId: "drinkware",
+      sort: 10,
+      active: true,
+    });
+    expect(renamedSub.ok).toBe(true);
+
+    // Move one product into the subcategory while leaving another in the top-level category.
+    await db
+      .prepare("UPDATE products SET category_id = ? WHERE slug = ?")
+      .bind(createdSub.category.id, "red-polka-bow-cup-bread-plate")
+      .run();
+
+    await invalidateCatalogCache("");
+    const subPage = await getProductBySlug(
+      { imageBase: "https://images.cavarabd.com", db: () => db },
+      "red-polka-bow-cup-bread-plate",
+    );
+    expect(subPage.product).not.toBeNull();
+    expect(subPage.category?.id).toBe("ceramic-mugs");
+    expect(subPage.category?.path).toBe("/collections/cups-and-mugs/handcrafted-mugs");
+    expect(subPage.parentCategory?.id).toBe("drinkware");
+    expect(subPage.parentCategory?.path).toBe("/collections/cups-and-mugs");
+
+    const ld = breadcrumbJsonLd(
+      subPage.product!,
+      subPage.category ?? undefined,
+      SITE,
+      subPage.parentCategory ?? undefined,
+    );
+    expect(ld.itemListElement.map((item) => [item.position, item.name, item.item])).toEqual([
+      [1, "Home", "https://cavarabd.com/"],
+      [2, "Drinkware", "https://cavarabd.com/collections/cups-and-mugs"],
+      [3, "Handcrafted Mugs", "https://cavarabd.com/collections/cups-and-mugs/handcrafted-mugs"],
+      [4, subPage.product!.name, `https://cavarabd.com/products/${subPage.product!.slug}`],
+    ]);
+
+    // A product directly in a top-level category has parentCategory === null.
+    const topLevelRow = await db
+      .prepare("SELECT slug FROM products WHERE category_id = ? AND slug != ? LIMIT 1")
+      .bind("drinkware", "red-polka-bow-cup-bread-plate")
+      .first<{ slug: string }>();
+    expect(topLevelRow?.slug).toBeTruthy();
+    const topPage = await getProductBySlug(
+      { imageBase: "https://images.cavarabd.com", db: () => db },
+      topLevelRow!.slug,
+    );
+    expect(topPage.category?.id).toBe("drinkware");
+    expect(topPage.parentCategory).toBeNull();
+  });
+
   test("meta descriptions fall back and stay under ~160 characters", () => {
     expect(metaDescription({ ...product, summary: "" }, "Fallback")).toBe("Fallback");
     const long = metaDescription({ ...product, summary: "word ".repeat(60) }, "x");
@@ -141,6 +284,20 @@ describe("listing pages", () => {
       url: "https://cavarabd.com/collections/drinkware",
       image: "https://cavarabd.com/media/drink.webp",
     });
+  });
+  test("a renamed collection without path falls back to categorySlug instead of retired id", () => {
+    const seo = listingSeo(
+      SITE,
+      {
+        id: "drinkware",
+        slug: "cups-and-mugs",
+        name: "Cups & Mugs",
+        description: "Cups and mugs.",
+        image: "/media/drink.webp",
+      },
+      "Fallback",
+    );
+    expect(seo.url).toBe("https://cavarabd.com/collections/cups-and-mugs");
   });
   test("a collection without a description falls back", () => {
     expect(listingSeo(SITE, category, "Fallback").description).toBe("Fallback");

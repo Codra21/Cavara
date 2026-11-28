@@ -20,7 +20,7 @@ export const Route = createFileRoute("/products/$slug")({
   loader: async ({ context, params }) => {
     // A slug the editor could never have written is not found; the server function would reject it as bad input.
     if (!isProductSlug(params.slug)) throw notFound();
-    const [{ product, category }] = await safeLoad("product page", () =>
+    const [{ product, category, parentCategory }] = await safeLoad("product page", () =>
       Promise.all([
         context.queryClient.query(productQueryOptions(params.slug)),
         // Related pieces are below the fold; a failure leaves the row empty instead of failing the page.
@@ -29,12 +29,13 @@ export const Route = createFileRoute("/products/$slug")({
     );
     if (!product) throw notFound();
     // head() below needs the product too. The component reads the same data back from the query cache.
-    return { product, category };
+    return { product, category, parentCategory };
   },
   head: ({ loaderData }) => {
     const product = loaderData?.product;
     if (!product) return {};
     const category = loaderData?.category ?? undefined;
+    const parentCategory = loaderData?.parentCategory ?? undefined;
     const url = productUrl(SITE_URL, product);
     const variant = getVariant(product);
     const image = absoluteUrl(SITE_URL, variant.images[0] ?? "/og-image.jpg");
@@ -56,7 +57,7 @@ export const Route = createFileRoute("/products/$slug")({
         { name: "twitter:description", content: description },
         { name: "twitter:image", content: image },
         { "script:ld+json": productJsonLd(product, category, SITE_URL) },
-        { "script:ld+json": breadcrumbJsonLd(product, category, SITE_URL) },
+        { "script:ld+json": breadcrumbJsonLd(product, category, SITE_URL, parentCategory) },
       ],
       links: [{ rel: "canonical", href: url }],
     };

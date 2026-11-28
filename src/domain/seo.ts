@@ -1,7 +1,7 @@
 // Search and sharing metadata built from the catalogue. Pure: no React, no D1.
 // Schema.org types: https://schema.org/Product, /Offer, /BreadcrumbList. Google reads them from JSON-LD in the
 // server-rendered HTML, so these run in route head() and appear in the raw SSR response.
-import { collectionPath } from "@/domain/catalog";
+import { categorySlug, collectionPath } from "@/domain/catalog";
 import type { Availability, Category, Product } from "@/lib/types";
 
 /** What the product metadata reads. Both the legacy `Product` and the product page's detail object fit. */
@@ -53,7 +53,7 @@ export function listingSeo(siteUrl: string, category: Category | null, fallbackD
   return {
     title: `${category.name} — Cavara`,
     description,
-    url: category.path ? `${trimSlash(siteUrl)}${category.path}` : collectionUrl(siteUrl, category.id),
+    url: category.path ? `${trimSlash(siteUrl)}${category.path}` : collectionUrl(siteUrl, categorySlug(category)),
     ...(category.image ? { image: absoluteUrl(siteUrl, category.image) } : {}),
   };
 }
@@ -105,14 +105,32 @@ export function productJsonLd(product: SeoProduct, category: Category | undefine
   };
 }
 
-export function breadcrumbJsonLd(product: SeoProduct, category: Category | undefined, siteUrl: string) {
+export function breadcrumbJsonLd(
+  product: SeoProduct,
+  category: Category | undefined,
+  siteUrl: string,
+  parentCategory?: Category,
+) {
+  const parent = parentCategory && (!category || parentCategory.id !== category.id) ? parentCategory : undefined;
   const items = [
     { name: "Home", item: `${trimSlash(siteUrl)}/` },
+    ...(parent
+      ? [
+          {
+            name: parent.name,
+            item: parent.path ? `${trimSlash(siteUrl)}${parent.path}` : collectionUrl(siteUrl, categorySlug(parent)),
+          },
+        ]
+      : []),
     ...(category
       ? [
           {
             name: category.name,
-            item: category.path ? `${trimSlash(siteUrl)}${category.path}` : collectionUrl(siteUrl, category.id),
+            item: category.path
+              ? `${trimSlash(siteUrl)}${category.path}`
+              : parent
+                ? `${trimSlash(siteUrl)}${collectionPath(category, [parent, category])}`
+                : collectionUrl(siteUrl, categorySlug(category)),
           },
         ]
       : []),

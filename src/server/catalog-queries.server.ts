@@ -96,6 +96,7 @@ export interface ProductPageData {
   imageBase: string;
   product: PublicProduct | null;
   category: Category | null;
+  parentCategory: Category | null;
 }
 
 /** The product page's data: found by slug in the summary (no D1 for an unknown slug), then its detail snapshot. */
@@ -104,12 +105,15 @@ export async function getProductBySlug(sources: CatalogSources, slug: string): P
   const index = summaryIndex(summary);
   const found = index.bySlug.get(slug);
   const detail = found ? await getProductDetail(sources, summary, found.id) : undefined;
-  if (!detail) return { imageBase: sources.imageBase, product: null, category: null };
+  if (!detail) return { imageBase: sources.imageBase, product: null, category: null, parentCategory: null };
   const category = index.categoryById.get(detail.category);
+  const parentCategory =
+    category?.parentId && category.parentId !== category.id ? index.categoryById.get(category.parentId) : undefined;
   return {
     imageBase: sources.imageBase,
     product: resolveProduct(priceDetail(detail, found as ProductSummary), sources.imageBase),
     category: category ? resolveCategory(category, sources.imageBase, summary.categories) : null,
+    parentCategory: parentCategory ? resolveCategory(parentCategory, sources.imageBase, summary.categories) : null,
   };
 }
 
