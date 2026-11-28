@@ -25,7 +25,7 @@ export const bulkProductActionSchema = z.discriminatedUnion("action", [
   plain("unfeature"),
   plain("new_arrival"),
   plain("clear_new_arrival"),
-  z.object({ action: z.literal("set_category"), ids, categoryId: z.string().trim().min(1).max(40) }),
+  z.object({ action: z.literal("set_category"), ids, categoryId: z.string().trim().min(1).max(64) }),
 ]);
 
 export type BulkProductAction = z.output<typeof bulkProductActionSchema>;

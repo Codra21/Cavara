@@ -107,7 +107,7 @@ const tokenSchema = z
 
 const listFields = {
   status: z.enum(PRODUCT_STATUSES).optional(),
-  category: z.string().trim().min(1).max(40).optional(),
+  category: z.string().trim().min(1).max(64).optional(),
   outOfStock: z.boolean().optional(),
   lowStock: z.boolean().optional(),
   sort: sortSchema.default("updated"),

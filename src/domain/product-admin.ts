@@ -51,7 +51,7 @@ export const productInputSchema = z
       .min(1, "Add a URL name")
       .max(80)
       .regex(SLUG_PATTERN, "Use lowercase letters, numbers and single hyphens"),
-    categoryId: z.string().trim().min(1, "Pick a category").max(40),
+    categoryId: z.string().trim().min(1, "Pick a category").max(64),
     summary: z.string().trim().max(500),
     details: z.array(z.string().trim().min(1).max(300)).max(MAX_DETAILS),
     note: optionalText(300),

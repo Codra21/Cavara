@@ -167,7 +167,7 @@ export const discountInputSchema = z
       .transform((value) => value.replace(/\s+/g, " ").trim())
       .pipe(z.string().min(1, "Name the sale").max(80, "Keep the name under 80 characters")),
     scope: z.enum(DISCOUNT_SCOPES),
-    categoryId: z.string().min(1).max(40).nullable(),
+    categoryId: z.string().min(1).max(64).nullable(),
     productId: z.number().int().positive().max(2_147_483_647).nullable(),
     type: z.enum(DISCOUNT_TYPES),
     value: z.number("Enter the amount off").int("Whole numbers only").min(1, "Enter the amount off").max(MAX_VALUE),
