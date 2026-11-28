@@ -4617,6 +4617,11 @@
     scrollbar-width: thin;
   }
 
+  .pdp-thumbs > li {
+    flex: 0 0 72px;
+    display: flex;
+  }
+
   .pdp-thumb {
     flex: 0 0 72px;
     width: 72px;

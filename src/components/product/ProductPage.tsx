@@ -114,21 +114,21 @@ function Gallery({ product, variantIndex }: { product: PublicProduct; variantInd
       </figure>
 
       {images.length > 1 ? (
-        <div className="pdp-thumbs" role="list" aria-label="Product thumbnails">
+        <ul className="pdp-thumbs" aria-label="Product thumbnails">
           {images.map((image, index) => (
-            <button
-              key={image}
-              type="button"
-              role="listitem"
-              className={`pdp-thumb${index === currentIndex ? " is-active" : ""}`}
-              aria-label={`Photo ${index + 1} of ${images.length}`}
-              aria-current={index === currentIndex ? "true" : undefined}
-              onClick={() => setActive(index)}
-            >
-              <img src={image} alt="" loading="lazy" width={120} height={120} />
-            </button>
+            <li key={image}>
+              <button
+                type="button"
+                className={`pdp-thumb${index === currentIndex ? " is-active" : ""}`}
+                aria-label={`Photo ${index + 1} of ${images.length}`}
+                aria-current={index === currentIndex ? "true" : undefined}
+                onClick={() => setActive(index)}
+              >
+                <img src={image} alt="" loading="lazy" width={120} height={120} />
+              </button>
+            </li>
           ))}
-        </div>
+        </ul>
       ) : null}
 
       <ModalDialog

@@ -223,7 +223,7 @@ test("ProductPage gallery switches main photo via thumbnails and opens fullscree
     </QueryClientProvider>,
   );
 
-  await user.click(screen.getByRole("listitem", { name: "Photo 2 of 2" }));
+  await user.click(screen.getByRole("button", { name: "Photo 2 of 2" }));
   expect(screen.getByAltText("Polka Cup, Off-white, photo 2 of 2").getAttribute("src")).toBe("/media/a2.webp");
 
   await user.click(screen.getByRole("button", { name: /View photo 2 of 2 full screen/i }));
