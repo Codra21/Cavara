@@ -467,6 +467,40 @@ describe("partial payment (C3.2)", () => {
     expect(after?.paymentMethod).toBeNull();
     expect(after?.history.at(-1)?.note).toBe("Paid ৳0");
   });
+
+  test("preserves payment summary on 300-char note and records amountPaid/paymentMethod in admin_audit", async () => {
+    const db = createTestD1();
+    const { id } = await placeOrder(db);
+    const longNote = "x".repeat(300);
+    const updated = await updateOrderStatus(
+      db,
+      owner,
+      {
+        id,
+        version: 1,
+        status: "confirmed",
+        paymentStatus: "partially_paid",
+        amountPaid: 500,
+        paymentMethod: "bkash",
+        note: longNote,
+      },
+      T0,
+    );
+    expect(updated.ok).toBe(true);
+
+    const order = await getOrder(db, id);
+    const historyNote = order?.history.at(-1)?.note ?? "";
+    expect(historyNote.length).toBeLessThanOrEqual(300);
+    expect(historyNote).toContain("Paid ৳500 via bKash");
+
+    const audit = (await listAudit(db)).find((entry) => entry.action === "order.updated" && entry.targetId === id);
+    expect(audit?.details).toMatchObject({
+      status: "confirmed",
+      payment: "partially_paid",
+      amountPaid: 500,
+      paymentMethod: "bkash",
+    });
+  });
 });
 
 describe("balanceDue", () => {

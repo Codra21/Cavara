@@ -324,10 +324,10 @@ export async function updateOrderStatus(
         input.paymentStatus,
         actor.username,
         [
-          input.note,
           nextAmountPaid !== currentPaid || nextPaymentMethod !== currentMethod
             ? `Paid ৳${nextAmountPaid}${nextPaymentMethod ? ` via ${PAYMENT_METHOD_LABELS[nextPaymentMethod]}` : ""}`
             : "",
+          input.note,
         ]
           .filter(Boolean)
           .join(" · ")
@@ -409,6 +409,8 @@ export async function updateOrderStatus(
     reference: current.reference,
     status: input.status,
     payment: input.paymentStatus,
+    amountPaid: nextAmountPaid,
+    paymentMethod: nextPaymentMethod,
   };
   statements.push(
     auditStatement(db, actor, "order.updated", input.id, details, now, { sql: guardSql, params: guardParams }),
