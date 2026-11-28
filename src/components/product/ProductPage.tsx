@@ -342,6 +342,9 @@ export function ProductPage({
     );
   };
   const addLabel = stockTag ?? (effectiveQuantity > 1 ? `Add ${effectiveQuantity} to cart` : "Add to cart");
+  const preorderHref = whatsappUrl(
+    `Hi Cavara, I'd like to request a pre-order for ${product.name} (${variant.name}, ${formatPrice(product.price)}).`,
+  );
 
   return (
     <section className="pdp" aria-labelledby="pdp-title">
@@ -408,14 +411,7 @@ export function ProductPage({
 
               {variant.availability === "preorder" ? (
                 <div className="pdp-preorder" ref={buyRef}>
-                  <a
-                    className="button pdp-add"
-                    href={whatsappUrl(
-                      `Hi Cavara, I'd like to request a pre-order for ${product.name} (${variant.name}, ${formatPrice(product.price)}).`,
-                    )}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
+                  <a className="button pdp-add" href={preorderHref} target="_blank" rel="noopener noreferrer">
                     <Icon name="fa-brands fa-whatsapp" /> Request on WhatsApp
                   </a>
                   <p className="pdp-summary" style={{ marginTop: "0.5rem" }}>
@@ -640,9 +636,15 @@ export function ProductPage({
               <PriceTag price={product.price} regularPrice={product.regularPrice} sale={product.sale} />
             </p>
           </div>
-          <button className="button" type="button" onClick={add} disabled={stockTag !== null}>
-            {addLabel}
-          </button>
+          {variant.availability === "preorder" ? (
+            <a className="button" href={preorderHref} target="_blank" rel="noopener noreferrer">
+              <Icon name="fa-brands fa-whatsapp" /> Request on WhatsApp
+            </a>
+          ) : (
+            <button className="button" type="button" onClick={add} disabled={stockTag !== null}>
+              {addLabel}
+            </button>
+          )}
         </div>
       </div>
     </section>
