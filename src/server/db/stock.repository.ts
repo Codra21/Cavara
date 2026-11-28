@@ -347,3 +347,30 @@ export async function readCrossedProducts(db: D1Database, orderId: string, at: s
   // At most one row per colour in the order (30 lines), so de-duplicating here beats a temp B-tree for DISTINCT.
   return [...new Set(results.map((row) => row.product_id))];
 }
+
+/**
+ * Products whose counted stock changed in the movements one order action wrote, plus the subset whose count crossed 0.
+ * Reading from the written movements ensures concurrent stock changes between read and insert cannot leave R2 stale.
+ */
+export async function readOrderStockRefresh(
+  db: D1Database,
+  orderId: string,
+  at: string,
+): Promise<{ affectedProducts: number[]; crossedProducts: number[] }> {
+  const { results } = await db
+    .prepare(
+      `SELECT product_id, delta, balance_after FROM stock_movements
+       WHERE order_id = ? AND created_at = ?`,
+    )
+    .bind(orderId, at)
+    .all<{ product_id: number; delta: number; balance_after: number }>();
+  const affected = new Set<number>();
+  const crossed = new Set<number>();
+  for (const row of results) {
+    affected.add(row.product_id);
+    if (row.balance_after - row.delta > 0 !== row.balance_after > 0) {
+      crossed.add(row.product_id);
+    }
+  }
+  return { affectedProducts: [...affected], crossedProducts: [...crossed] };
+}

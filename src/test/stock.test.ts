@@ -26,7 +26,17 @@ import {
   REOPEN_FITS,
   stopCounting,
 } from "@/server/db/stock.repository";
+import { decodeDetail, decodeSummary } from "@/domain/catalog-snapshot";
+import {
+  type CatalogSources,
+  getCachedCatalog,
+  getCatalogSummary,
+  invalidateCatalogCache,
+  refreshProducts,
+  snapshotKeys,
+} from "@/server/catalog-cache.server";
 import { submitOrder } from "@/server/services/orders.service";
+import { FakeStore, installFakeCache, removeFakeCache } from "./helpers/catalog-doubles";
 import { createTestD1, migrationFiles, type TestD1 } from "./helpers/d1";
 
 const owner: AdminIdentity = { id: "owner", username: "owner", role: "owner" };
@@ -555,6 +565,51 @@ describe("placing an order", () => {
       code: "unavailable",
     });
     expect(rowsIn(db, "orders")).toBe(0);
+  });
+
+  test("returns affected counted product in productsToRefresh on non-zero deduction (5 -> 2) and updates R2 snapshots", async () => {
+    installFakeCache();
+    try {
+      const db = createTestD1();
+      const countedProduct = await makeProduct(db, ["Sage"]);
+      const uncountedProduct = await makeProduct(db, ["Plum"]);
+      const sage = countedProduct.variants[0]!;
+      await count(db, countedProduct.id, sage.id, 5);
+
+      const store = new FakeStore();
+      const keys = snapshotKeys("snapshots/catalog-v1.json");
+      const sources: CatalogSources = { imageBase: "", db: () => db, store, keys };
+      await invalidateCatalogCache("");
+      await getCachedCatalog(sources);
+      await getCatalogSummary(sources);
+      await refreshProducts(sources, [countedProduct.id]);
+
+      const beforeSummary = decodeSummary(store.objects.get(keys.summary)!.json);
+      const beforeDetail = decodeDetail(store.objects.get(keys.detail(countedProduct.id))!.json);
+      expect(beforeSummary.products.find((p) => p.id === countedProduct.id)?.variants[0]?.stock).toBe(5);
+      expect(beforeDetail.product.variants[0]?.stock).toBe(5);
+
+      const result = await order(db, [
+        { productId: countedProduct.id, variant: 0, qty: 3 },
+        { productId: uncountedProduct.id, variant: 0, qty: 1 },
+      ]);
+      expect(result).toMatchObject({
+        ok: true,
+        soldOutProducts: [],
+        productsToRefresh: [countedProduct.id],
+      });
+      expect(stockOf(db, sage.id)).toEqual({ stock: 2, availability: "in_stock" });
+
+      const toRefresh = result.ok && "productsToRefresh" in result ? (result.productsToRefresh ?? []) : [];
+      expect(await refreshProducts(sources, toRefresh)).toBe(true);
+
+      const afterSummary = decodeSummary(store.objects.get(keys.summary)!.json);
+      const afterDetail = decodeDetail(store.objects.get(keys.detail(countedProduct.id))!.json);
+      expect(afterSummary.products.find((p) => p.id === countedProduct.id)?.variants[0]?.stock).toBe(2);
+      expect(afterDetail.product.variants[0]?.stock).toBe(2);
+    } finally {
+      removeFakeCache();
+    }
   });
 });
 

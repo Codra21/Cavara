@@ -41,7 +41,7 @@ import { rateLimitSubject } from "@/domain/rate-limit-subject";
 import { isShort, shortageMessage } from "@/domain/stock";
 import type { D1Database } from "@/server/db/d1";
 import { readLiveSales } from "@/server/db/catalog.repository";
-import { readCrossedProducts } from "@/server/db/stock.repository";
+import { readOrderStockRefresh } from "@/server/db/stock.repository";
 import {
   consumeOrderLimits,
   findOrderByIdempotencyKey,
@@ -124,11 +124,15 @@ const isUnique = (error: unknown, column: string) =>
 
 /**
  * The public result plus, on success, what only the server needs: the order id for the alert and the products whose
- * colours sold out with this order, so the shop's copy of them can be patched after the reply.
+ * counted stock changed (plus the subset that sold out), so the shop's copy of them can be patched after the reply.
  */
 export type SubmitOutcome =
   | Exclude<SubmitOrderResult, { ok: true }>
-  | (Extract<SubmitOrderResult, { ok: true }> & { orderId: string; soldOutProducts?: number[] });
+  | (Extract<SubmitOrderResult, { ok: true }> & {
+      orderId: string;
+      soldOutProducts?: number[];
+      productsToRefresh?: number[];
+    });
 
 export async function submitOrder(db: D1Database, raw: unknown, context: SubmitContext): Promise<SubmitOutcome> {
   const parsed = checkoutSchema.safeParse(raw);
@@ -267,16 +271,18 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
     try {
       const placed = await insertOrder(db, { ...base, reference });
       if (!placed) return refusedAfterRead(db, input, { zone, itemsTotal, lines, now });
-      // Counted colours this order took to 0 or below stop being in stock; read from the written movements so
-      // concurrent stock changes between readSelections and insertOrder cannot leave R2 snapshots stale.
+      // Any counted colour this order deducted changes the stock cap (or availability) stored in R2 snapshots; read from
+      // the written movements so concurrent stock changes between readSelections and insertOrder cannot leave R2 stale.
       const nonPreorder = new Set(
         lines.filter((line) => line.availability !== "preorder").map((line) => line.productId),
       );
-      const soldOutProducts =
+      const { affectedProducts, crossedProducts } =
         nonPreorder.size > 0
-          ? (await readCrossedProducts(db, base.id, base.createdAt)).filter((id) => nonPreorder.has(id))
-          : [];
-      return { ok: true, reference, total, replayed: false, orderId: base.id, soldOutProducts };
+          ? await readOrderStockRefresh(db, base.id, base.createdAt)
+          : { affectedProducts: [], crossedProducts: [] };
+      const productsToRefresh = affectedProducts.filter((id) => nonPreorder.has(id));
+      const soldOutProducts = crossedProducts.filter((id) => nonPreorder.has(id));
+      return { ok: true, reference, total, replayed: false, orderId: base.id, soldOutProducts, productsToRefresh };
     } catch (error) {
       if (isUnique(error, "idempotency_key")) {
         const saved = await findOrderByIdempotencyKey(db, input.idempotencyKey);

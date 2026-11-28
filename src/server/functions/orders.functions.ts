@@ -55,14 +55,15 @@ export const submitOrderFn = createServerFn({ method: "POST" })
         runAfterResponse("order alert", () => deliverOrderAlerts(db, getAlertSettings(), { orderId }));
       }
       if (!result.ok) return result;
-      // A colour this order sold out shows "Out of stock" from the shop's copy of the catalogue. Patch it after the
-      // reply, so the shopper does not wait for it; a failed patch is logged and the 5-minute copies catch up.
-      if (result.soldOutProducts?.length) {
-        const ids = result.soldOutProducts;
-        runAfterResponse("sold-out catalogue refresh", () => refreshProducts(catalogSources(), ids));
+      // Any counted colour this order deducted changes the shop's copy of the catalogue (stock cap or "Out of stock").
+      // Patch it after the reply, so the shopper does not wait for it; a failed patch is logged and the 5-minute copies
+      // catch up.
+      if (result.productsToRefresh?.length) {
+        const ids = result.productsToRefresh;
+        runAfterResponse("stock catalogue refresh", () => refreshProducts(catalogSources(), ids));
       }
       // The order id and the product ids stay on the server.
-      const { orderId: _orderId, soldOutProducts: _soldOut, ...reply } = result;
+      const { orderId: _orderId, soldOutProducts: _soldOut, productsToRefresh: _toRefresh, ...reply } = result;
       return reply;
     } catch (error) {
       console.error("order submission failed", error);
