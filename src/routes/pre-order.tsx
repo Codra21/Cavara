@@ -62,13 +62,12 @@ function PreOrderPage() {
         {data.products.length > 0 ? (
           <ul className="product-grid">
             {data.products.map((product, index) => (
-              <li key={product.id}>
-                <ProductCard
-                  product={product}
-                  categoryName={data.categoryNames[product.category] ?? ""}
-                  index={index}
-                />
-              </li>
+              <ProductCard
+                key={product.id}
+                product={product}
+                categoryName={data.categoryNames[product.category] ?? ""}
+                index={index}
+              />
             ))}
           </ul>
         ) : (
