@@ -146,11 +146,12 @@ export async function getIdentity(
 }
 
 export async function signOut(db: D1Database, owner: OwnerCredentials, token: string | undefined, now = Date.now()) {
-  if (!token || !/^[0-9a-f]{64}$/i.test(token)) return;
+  if (!token) return;
   const identity = await getIdentity(db, owner, token, now);
+  if (!identity) return;
   await db.batch([
     db.prepare("DELETE FROM admin_sessions WHERE token_hash = ?").bind(tokenHash(token)),
-    ...(identity ? [auditStatement(db, identity, "session.signed_out", identity.id, {}, new Date(now))] : []),
+    auditStatement(db, identity, "session.signed_out", identity.id, {}, new Date(now)),
   ]);
 }
 
