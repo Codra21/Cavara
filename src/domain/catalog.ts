@@ -25,14 +25,14 @@ type CategoryRef = { id: string; slug?: string | undefined; parentId?: string | 
 /** A category's public URL name: its slug, or its id when it has none. */
 export const categorySlug = (category: Pick<CategoryRef, "id" | "slug">) => category.slug || category.id;
 
-/** Finds a category by id or current slug. */
+/** Finds a category by current slug, falling back to id. */
 export function findCategory<T extends CategoryRef>(categories: Iterable<T>, key: string): T | undefined {
-  let bySlug: T | undefined;
+  let byId: T | undefined;
   for (const category of categories) {
-    if (category.id === key) return category;
-    if (!bySlug && category.slug === key) bySlug = category;
+    if (categorySlug(category) === key) return category;
+    if (!byId && category.id === key) byId = category;
   }
-  return bySlug;
+  return byId;
 }
 
 /**
@@ -43,7 +43,15 @@ export function collectionSegments<T extends CategoryRef>(
   category: T,
   categories: Iterable<T>,
 ): { category: string; subcategory?: string } {
-  const parent = category.parentId ? findCategory(categories, category.parentId) : undefined;
+  let parent: T | undefined;
+  if (category.parentId) {
+    for (const candidate of categories) {
+      if (candidate.id === category.parentId) {
+        parent = candidate;
+        break;
+      }
+    }
+  }
   return parent
     ? { category: categorySlug(parent), subcategory: categorySlug(category) }
     : { category: categorySlug(category) };
