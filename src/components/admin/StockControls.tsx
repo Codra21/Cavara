@@ -85,7 +85,7 @@ export function StockControls({
         setError(result.error);
         return;
       }
-      setWarning(null);
+      setWarning(result.warning ?? null);
       close();
       await Promise.all([
         invalidateProductData(queryClient),

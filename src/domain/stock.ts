@@ -88,7 +88,7 @@ export const stopCountingSchema = z
 
 export type StopCountingInput = z.output<typeof stopCountingSchema>;
 
-export type StopCountingResult = { ok: true } | { ok: false; error: string };
+export type StopCountingResult = { ok: true; warning?: string } | { ok: false; error: string };
 
 export const stockMovementsSchema = z.object({
   productId: z.number().int().positive(),
