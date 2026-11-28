@@ -33,6 +33,7 @@ import { uploadImageFn } from "@/server/functions/admin-media.functions";
 import { ADMIN_QUERY_KEY } from "./queries";
 
 const NO_FILES: File[] = [];
+const MAX_PHILOSOPHY_IMAGES = 2;
 
 function move<T>(list: T[], from: number, to: number): T[] {
   if (to < 0 || to >= list.length) return list;
@@ -434,7 +435,9 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
             />
           </div>
           <div className="grid gap-2">
-            <Label>Philosophy images ({settings.philosophy.images.length}/4)</Label>
+            <Label>
+              Philosophy images ({settings.philosophy.images.length}/{MAX_PHILOSOPHY_IMAGES})
+            </Label>
             <div className="flex flex-wrap gap-2">
               {settings.philosophy.images.map((key, idx) => (
                 <div
@@ -462,13 +465,16 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
                 </div>
               ))}
             </div>
-            {settings.philosophy.images.length < 4 ? (
+            {settings.philosophy.images.length < MAX_PHILOSOPHY_IMAGES ? (
               <ImageUploadButton
                 label="Upload philosophy image"
                 onUploaded={(key) =>
                   setSettings((prev) => ({
                     ...prev,
-                    philosophy: { ...prev.philosophy, images: [...prev.philosophy.images, key] },
+                    philosophy: {
+                      ...prev.philosophy,
+                      images: [...prev.philosophy.images, key].slice(0, MAX_PHILOSOPHY_IMAGES),
+                    },
                   }))
                 }
               />
