@@ -402,21 +402,38 @@ export interface AdminOrderDetail extends AdminOrderSummary {
 
 /**
  * Sales effect of one order on its day's totals. Revenue is the item subtotal after the coupon. Profit is the margin
- * on lines that have a cost price, less the coupon discount (the coupon comes out of the shop's margin).
+ * on lines that have a cost price, less their revenue-weighted share of the coupon discount (zero when no lines have
+ * a cost price, so unknown-cost lines never create phantom negative profit).
  */
 export function orderSales(
   lines: Pick<AdminOrderLine, "unitPrice" | "costPrice" | "qty">[],
   subtotal: number,
   couponDiscount = 0,
 ) {
+  let grossProfit = 0;
+  let totalLineRevenue = 0;
+  let knownCostRevenue = 0;
+  let linesWithoutCost = 0;
+  for (const line of lines) {
+    const lineRevenue = line.unitPrice * line.qty;
+    totalLineRevenue += lineRevenue;
+    if (line.costPrice === null) {
+      linesWithoutCost += 1;
+    } else {
+      grossProfit += (line.unitPrice - line.costPrice) * line.qty;
+      knownCostRevenue += lineRevenue;
+    }
+  }
+  const allocatedCoupon =
+    linesWithoutCost === 0
+      ? couponDiscount
+      : knownCostRevenue > 0 && totalLineRevenue > 0
+        ? Math.round((couponDiscount * knownCostRevenue) / totalLineRevenue)
+        : 0;
   return {
     revenue: subtotal,
-    profit:
-      lines.reduce(
-        (sum, line) => sum + (line.costPrice === null ? 0 : (line.unitPrice - line.costPrice) * line.qty),
-        0,
-      ) - couponDiscount,
-    linesWithoutCost: lines.filter((line) => line.costPrice === null).length,
+    profit: lines.length === linesWithoutCost ? 0 : grossProfit - allocatedCoupon,
+    linesWithoutCost,
   };
 }
 

@@ -4,6 +4,7 @@ import {
   balanceDue,
   canChangeStatus,
   ORDER_PAGE_SIZE,
+  orderSales,
   parseOrderSearch,
   type UpdateOrderInput,
   saveZonesSchema,
@@ -17,7 +18,10 @@ import { createTestD1, type TestD1 } from "./helpers/d1";
 const owner: AdminIdentity = { id: "owner", username: "owner", role: "owner" };
 const T0 = new Date("2026-11-07T04:00:00.000Z");
 
-async function placeOrder(db: TestD1, over: { phone?: string; at?: Date; client?: string } = {}) {
+async function placeOrder(
+  db: TestD1,
+  over: { phone?: string; at?: Date; client?: string; couponCode?: string; couponDiscount?: number } = {},
+) {
   const [product] = db.sqlite
     .query(
       `SELECT p.id, p.price, v.position FROM products p JOIN product_variants v ON v.product_id = p.id
@@ -35,6 +39,7 @@ async function placeOrder(db: TestD1, over: { phone?: string; at?: Date; client?
       note: "",
       deliveryCharge: 100,
       items: [{ productId: product!.id, variant: product!.position, qty: 2, unitPrice: product!.price }],
+      ...(over.couponCode ? { couponCode: over.couponCode, couponDiscount: over.couponDiscount ?? 0 } : {}),
       website: "",
     },
     { client: over.client ?? crypto.randomUUID(), limitSecret: "x".repeat(40), now: over.at ?? T0 },
@@ -417,5 +422,73 @@ describe("balanceDue", () => {
     expect(balanceDue("refunded", 980, 400, "delivered")).toBe(0);
     expect(balanceDue("unpaid", 980, 0, "cancelled")).toBe(0);
     expect(balanceDue("partially_paid", 980, 400, "cancelled")).toBe(0);
+  });
+});
+
+describe("orderSales profit with coupons (M1B-6)", () => {
+  test("returns 0 profit (not -couponDiscount) when no lines have costPrice", () => {
+    expect(orderSales([{ unitPrice: 1000, costPrice: null, qty: 1 }], 800, 200)).toEqual({
+      revenue: 800,
+      profit: 0,
+      linesWithoutCost: 1,
+    });
+  });
+
+  test("allocates couponDiscount proportionally when only some lines have costPrice", () => {
+    expect(
+      orderSales(
+        [
+          { unitPrice: 1000, costPrice: 700, qty: 1 },
+          { unitPrice: 3000, costPrice: null, qty: 1 },
+        ],
+        3600,
+        400,
+      ),
+    ).toEqual({
+      revenue: 3600,
+      profit: 200,
+      linesWithoutCost: 1,
+    });
+  });
+
+  test("subtracts full couponDiscount when all lines have costPrice", () => {
+    expect(orderSales([{ unitPrice: 1000, costPrice: 700, qty: 1 }], 800, 200)).toEqual({
+      revenue: 800,
+      profit: 100,
+      linesWithoutCost: 0,
+    });
+  });
+
+  test("confirming an order with a ৳200 coupon and no costPrice records profit 0 in daily_totals", async () => {
+    const db = createTestD1();
+    db.sqlite.run("UPDATE products SET cost_price = NULL");
+    db.sqlite
+      .query(
+        `INSERT INTO discounts (name, kind, scope, type, value, starts_at, ends_at, active, created_at, updated_at, revision, code)
+         VALUES ('Flat 200', 'coupon', 'all', 'amount', 200, ?, NULL, 1, ?, ?, ?, 'SAVE200')`,
+      )
+      .run(new Date(T0.getTime() - 3_600_000).toISOString(), T0.toISOString(), T0.toISOString(), crypto.randomUUID());
+
+    const { id, price } = await placeOrder(db, { couponCode: "SAVE200", couponDiscount: 200 });
+    expect(await updateOrderStatus(db, owner, change(id, 1), T0)).toEqual({ ok: true, version: 2 });
+    expect(totals(db)).toEqual({
+      orders_received: 1,
+      orders_sold: 1,
+      revenue: price * 2 - 200,
+      profit: 0,
+      lines_without_cost: 1,
+    });
+
+    expect(await updateOrderStatus(db, owner, change(id, 2, { status: "cancelled" }), T0)).toEqual({
+      ok: true,
+      version: 3,
+    });
+    expect(totals(db)).toEqual({
+      orders_received: 1,
+      orders_sold: 0,
+      revenue: 0,
+      profit: 0,
+      lines_without_cost: 0,
+    });
   });
 });

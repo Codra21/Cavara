@@ -19,6 +19,7 @@ import {
   settledAmount,
   type AdminOrderDetail,
   formatPhone,
+  orderSales,
   type OrderStatus,
   PAYMENT_LABELS,
   PAYMENT_METHOD_LABELS,
@@ -155,13 +156,9 @@ export function OrderDetail({
     (settled.ok && settled.amount !== (order.amountPaid ?? 0)) ||
     resolvedMethod !== (order.paymentMethod ?? null) ||
     note.trim() !== "";
-  const knownCost = order.lines.every((line) => line.costPrice !== null);
-  // The coupon comes out of the margin, the same figure the dashboard's profit uses (orderSales).
-  const margin =
-    order.lines.reduce(
-      (sum, line) => sum + (line.costPrice === null ? 0 : (line.unitPrice - line.costPrice) * line.qty),
-      0,
-    ) - order.couponDiscount;
+  const sales = orderSales(order.lines, order.subtotal, order.couponDiscount);
+  const knownCost = sales.linesWithoutCost === 0;
+  const margin = sales.profit;
 
   const save = useMutation({
     mutationFn: () =>
