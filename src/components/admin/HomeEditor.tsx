@@ -45,10 +45,17 @@ function createBannerUid(): string {
   return `banner-${nextBannerUid}`;
 }
 
-function withBannerUids(settings: HomeSettings): EditableHomeSettings {
+/**
+ * Gives each banner a uid for keys and label ids. The first render uses `initial-<index>` so server and client agree on
+ * hydration; after a save, banners keep the uid at their position so rows (and uploads in flight) don't remount.
+ */
+function withBannerUids(settings: HomeSettings, previous?: EditableHomeSettings): EditableHomeSettings {
   return {
     ...settings,
-    banners: settings.banners.map((banner) => ({ ...banner, uid: createBannerUid() })),
+    banners: settings.banners.map((banner, index) => ({
+      ...banner,
+      uid: previous ? (previous.banners[index]?.uid ?? createBannerUid()) : `initial-${index}`,
+    })),
   };
 }
 
@@ -140,7 +147,7 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
     mutationFn: (input: HomeSettings) => saveHomeSettingsFn({ data: input }),
     onSuccess: async (result) => {
       setProblems([]);
-      setSettings(withBannerUids(result.settings));
+      setSettings((prev) => withBannerUids(result.settings, prev));
       setNotice({
         text: result.warning ?? "Home page settings saved.",
         warning: Boolean(result.warning),

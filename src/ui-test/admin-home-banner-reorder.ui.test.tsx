@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { act, cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { renderToString } from "react-dom/server";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { DEFAULT_HOME_SETTINGS, type HomeSettings } from "@/domain/home-settings";
 
@@ -146,4 +147,16 @@ test("in-flight banner upload does not overwrite another banner after its banner
   const desktopInputs = screen.getAllByLabelText("Desktop image key / URL") as HTMLInputElement[];
   expect(desktopInputs).toHaveLength(1);
   expect(desktopInputs[0]!.value).toBe("product-images/banner-b-old.webp");
+});
+
+test("banner label ids are the same on every server render, so hydration matches", () => {
+  const html = () =>
+    renderToString(
+      <Providers>
+        <HomeEditor initial={makeInitialSettings()} imageBase="" />
+      </Providers>,
+    );
+  const first = html();
+  expect(first).toContain("banner-active-initial-0");
+  expect(html()).toBe(first);
 });
