@@ -2,7 +2,7 @@ import { invalidateCatalogCache } from "@/server/catalog-cache.server";
 import { describe, expect, test } from "bun:test";
 import type { AdminIdentity } from "@/domain/admin";
 import { collectionPath, findCategory } from "@/domain/catalog";
-import { validateCategoryParent } from "@/domain/categories-admin";
+import { categoryInputSchema, validateCategoryParent } from "@/domain/categories-admin";
 import { selectRelated } from "@/domain/related-products";
 import { listProductsPage } from "@/server/catalog-queries.server";
 import { listManagedCategories, saveCategory } from "@/server/db/admin-categories.repository";
@@ -49,6 +49,42 @@ describe("category manager, two-level hierarchy, and 301 slug redirects (C2.6)",
     expect(
       validateCategoryParent("drinkware", "serveware", [...existing, { id: "serveware", parentId: null }]),
     ).toContain("subcategories");
+  });
+
+  test("categoryInputSchema accepts R2 image keys and empty string, rejects external and protocol-relative URLs (S5)", () => {
+    const base = {
+      id: null,
+      name: "Ceramic Mugs",
+      slug: "ceramic-mugs",
+      description: "Hand-painted mugs",
+      parentId: null,
+      sort: 0,
+      active: true,
+    };
+
+    for (const validImage of [
+      "",
+      "   ",
+      "product-images/storage-jar/storage-jar.webp",
+      "products/12/0f8fad5b-d9cb-469f-a165-70867728950e.webp",
+      "products/home/0f8fad5b-d9cb-469f-a165-70867728950e.jpg",
+    ]) {
+      const parsed = categoryInputSchema.safeParse({ ...base, image: validImage });
+      expect(parsed.success, `expected valid image: ${JSON.stringify(validImage)}`).toBe(true);
+    }
+
+    for (const badImage of [
+      "https://evil.com/tracker.png",
+      "http://evil.com/tracker.png",
+      "//evil.com/x.png",
+      "/\\evil.com/x.png",
+      "javascript:alert(1)",
+      "/product-images/storage-jar/storage-jar.webp",
+      "product-images/../secrets/a.webp",
+    ]) {
+      const parsed = categoryInputSchema.safeParse({ ...base, image: badImage });
+      expect(parsed.success, `expected rejected image: ${JSON.stringify(badImage)}`).toBe(false);
+    }
   });
 
   test("creating a subcategory and renaming a slug records a 301 redirect in category_slugs", async () => {

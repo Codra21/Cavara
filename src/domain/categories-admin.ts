@@ -1,5 +1,6 @@
 // Category & subcategory manager rules (two-level hierarchy, changeable slugs with 301 redirects). Pure: no React, no D1.
 import { z } from "zod";
+import { isImageKey } from "./media";
 import { SLUG_PATTERN } from "./product-admin";
 
 export const MAX_CATEGORIES = 60;
@@ -15,7 +16,12 @@ export const categoryInputSchema = z.object({
     .max(64)
     .regex(SLUG_PATTERN, "Use lowercase letters, numbers and single hyphens"),
   description: z.string().trim().max(300).default(""),
-  image: z.string().trim().max(200).default(""),
+  image: z
+    .string()
+    .trim()
+    .max(200)
+    .refine((value) => value === "" || isImageKey(value), "Use an uploaded image key")
+    .default(""),
   /** null for top-level category; parent's id for a level-2 subcategory. */
   parentId: z.string().trim().min(1).max(64).nullable().default(null),
   sort: z.number().int().min(-100_000).max(100_000).default(0),

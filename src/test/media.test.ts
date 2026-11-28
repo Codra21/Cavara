@@ -34,6 +34,21 @@ describe("mediaUrl", () => {
     );
     expect(mediaUrl("https://images.cavarabd.com", "/favicon.svg")).toBe("/favicon.svg");
   });
+
+  test("rejects protocol-relative URLs so they never escape imageBase (S5)", () => {
+    for (const bad of ["//evil.com/x.png", "/\\evil.com/x.png"]) {
+      for (const base of ["", "https://images.cavarabd.com"]) {
+        const result = mediaUrl(base, bad);
+        expect(result.startsWith("//"), `mediaUrl(${JSON.stringify(base)}, ${JSON.stringify(bad)}) -> ${result}`).toBe(
+          false,
+        );
+        expect(result.startsWith("/\\"), `mediaUrl(${JSON.stringify(base)}, ${JSON.stringify(bad)}) -> ${result}`).toBe(
+          false,
+        );
+        expect(result).toBe("");
+      }
+    }
+  });
 });
 
 describe("sniffImageType", () => {

@@ -2,7 +2,7 @@
 //
 // D1 stores R2 object keys ("product-images/…" for the original catalogue, "products/<id>/<uuid>.webp" for uploads).
 // mediaUrl() turns a key into a URL: the bucket's custom domain when IMAGE_BASE_URL is set, else the Worker's
-// /media/<key> route. A value that starts with "/" is an old static path and is returned unchanged.
+// /media/<key> route. A single-slash static path ("/...") is returned unchanged; protocol-relative "//..." is rejected.
 
 /** Keys the app writes or migrated: no "..", no leading slash, a known prefix and an image extension. */
 export const IMAGE_KEY_PATTERN =
@@ -15,6 +15,7 @@ export function isImageKey(value: string): boolean {
 }
 
 export function mediaUrl(base: string, key: string): string {
+  if (/^\/[/\\]/.test(key)) return "";
   if (key.startsWith("/")) return key;
   const path = key.split("/").map(encodeURIComponent).join("/");
   return base ? `${base}/${path}` : `${MEDIA_ROUTE}${path}`;
