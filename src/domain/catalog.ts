@@ -35,6 +35,12 @@ export function findCategory<T extends CategoryRef>(categories: Iterable<T>, key
   return byId;
 }
 
+/** Finds a category by id only. Use it for keys that are ids (tiles, facets, breadcrumbs), never for URL segments. */
+export function findCategoryById<T extends CategoryRef>(categories: Iterable<T>, id: string): T | undefined {
+  for (const category of categories) if (category.id === id) return category;
+  return undefined;
+}
+
 /**
  * Categories shown at the top level (`/collections` and home tiles): those with no parent, plus any category whose
  * parent is absent from `categories` (matching `collectionSegments`, which promotes orphans to `/collections/<slug>`).
@@ -52,15 +58,7 @@ export function collectionSegments<T extends CategoryRef>(
   category: T,
   categories: Iterable<T>,
 ): { category: string; subcategory?: string } {
-  let parent: T | undefined;
-  if (category.parentId) {
-    for (const candidate of categories) {
-      if (candidate.id === category.parentId) {
-        parent = candidate;
-        break;
-      }
-    }
-  }
+  const parent = category.parentId ? findCategoryById(categories, category.parentId) : undefined;
   return parent
     ? { category: categorySlug(parent), subcategory: categorySlug(category) }
     : { category: categorySlug(category) };

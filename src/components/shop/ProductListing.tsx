@@ -4,7 +4,7 @@ import { Input } from "@ui-sdk/react/input";
 import { Label } from "@ui-sdk/react/label";
 import { NumberInput, NumberInputControl } from "@ui-sdk/react/number-input";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { pluralize } from "@/domain/catalog";
+import { findCategory, pluralize } from "@/domain/catalog";
 import {
   AVAILABILITY_LABELS,
   cleanSearchText,
@@ -19,7 +19,7 @@ import {
   type ListSearch,
   type SortKey,
 } from "@/domain/product-listing";
-import { listingQueryOptions } from "@/lib/query";
+import { listingQueryOptions, useCategories } from "@/lib/query";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 import { Icon } from "@/components/ui/primitives";
 import { ProductCard } from "@/components/home/ProductCard";
@@ -85,10 +85,13 @@ export function ProductListing({ category, search }: { category?: string; search
   const current = isRunValid ? expandedRun : { signature, start: page, end: page };
 
   const latestSearch = useRef(search);
-  const latestCategory = useRef(category);
+  // `category` is the URL segment (a slug); links and navigation below take the category's id.
+  const { categories } = useCategories();
+  const categoryId = category ? (findCategory(categories, category)?.id ?? category) : undefined;
+  const latestCategory = useRef(categoryId);
   useEffect(() => {
     latestSearch.current = search;
-    latestCategory.current = category;
+    latestCategory.current = categoryId;
   });
 
   const baseQuery = { ...withoutPage(search), ...(category ? { category } : {}) };
@@ -269,7 +272,7 @@ export function ProductListing({ category, search }: { category?: string; search
                   className="filter-chip"
                   category={item.id}
                   search={withoutPage(search)}
-                  {...(item.id === category ? { "aria-current": "page" as const } : {})}
+                  {...(item.id === categoryId ? { "aria-current": "page" as const } : {})}
                 >
                   {item.name} <span className="filter-chip-count">{item.count}</span>
                 </ListingLink>
@@ -460,7 +463,7 @@ export function ProductListing({ category, search }: { category?: string; search
                 ) : (
                   <li key={number}>
                     <ListingLink
-                      category={category}
+                      category={categoryId}
                       search={{ ...search, page: number > 1 ? number : undefined }}
                       aria-label={`Page ${number}`}
                       onClick={() => setExpandedRun(null)}

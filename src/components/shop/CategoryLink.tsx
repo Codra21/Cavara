@@ -1,18 +1,18 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
-import { collectionSegments, findCategory } from "@/domain/catalog";
+import { collectionSegments, findCategoryById } from "@/domain/catalog";
 import type { ListSearch } from "@/domain/product-listing";
 import { useCategories } from "@/lib/query";
 
 /**
- * The route and params for a category's page, by id or slug: `/collections/<slug>` or, for a subcategory,
+ * The route and params for a category's page, by category id: `/collections/<slug>` or, for a subcategory,
  * `/collections/<parent>/<slug>`. Linking by the current slugs avoids a 301 on every click after a rename.
  */
 export function useCollectionTarget() {
   const { categories } = useCategories();
-  return (key: string) => {
-    const category = findCategory(categories, key);
-    return category ? collectionSegments(category, categories) : { category: key };
+  return (id: string) => {
+    const category = findCategoryById(categories, id);
+    return category ? collectionSegments(category, categories) : { category: id };
   };
 }
 
@@ -22,7 +22,7 @@ export function CategoryLink({
   children,
   ...rest
 }: {
-  /** A category id or slug. */
+  /** A category id, not a URL slug: a slug can equal another category's id. */
   category: string;
   search?: ListSearch;
   children: ReactNode;

@@ -1,7 +1,13 @@
 import { invalidateCatalogCache } from "@/server/catalog-cache.server";
 import { describe, expect, test } from "bun:test";
 import type { AdminIdentity } from "@/domain/admin";
-import { collectionPath, findCategory, topLevelCategories } from "@/domain/catalog";
+import {
+  collectionPath,
+  collectionSegments,
+  findCategory,
+  findCategoryById,
+  topLevelCategories,
+} from "@/domain/catalog";
 import { categoryInputSchema, validateCategoryParent } from "@/domain/categories-admin";
 import { selectRelated } from "@/domain/related-products";
 import { sitemapXml } from "@/domain/seo";
@@ -138,6 +144,10 @@ describe("category manager, two-level hierarchy, and 301 slug redirects (C2.6)",
     expect(findCategory(categories, "herbal-tea")?.id).toBe("tea");
     expect(findCategory([categories[0]!], "tea")?.id).toBe("tea");
     expect(collectionPath(categories[2]!, categories)).toBe("/collections/herbal-tea/chamomile");
+    // Tiles, facets and breadcrumbs link by id: the id "tea" is the herbal tea category, not the one whose slug is "tea".
+    const byId = findCategoryById(categories, "tea")!;
+    expect(byId.slug).toBe("herbal-tea");
+    expect(collectionSegments(byId, categories)).toEqual({ category: "herbal-tea" });
 
     const db = createTestD1();
     const catA = await saveCategory(db, owner, {
