@@ -1,5 +1,5 @@
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 import { HomeEditor } from "@/components/admin/HomeEditor";
 import { ADMIN_QUERY_KEY } from "@/components/admin/queries";
 import { getAdminHomeSettingsFn } from "@/server/functions/admin-home.functions";
@@ -11,6 +11,11 @@ const adminHomeQueryOptions = () =>
   });
 
 export const Route = createFileRoute("/admin/home")({
+  beforeLoad: ({ context }) => {
+    if (context.adminSession.admin?.role !== "owner") {
+      throw redirect({ to: "/admin" });
+    }
+  },
   loader: ({ context }) => context.queryClient.query(adminHomeQueryOptions()),
   head: () => ({ meta: [{ title: "Home page · Cavara Admin" }] }),
   component: AdminHomePage,
