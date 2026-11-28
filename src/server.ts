@@ -11,6 +11,7 @@ import { canonicalRedirect } from "@/domain/seo";
 import { SITE_URL } from "@/lib/config";
 import { getImageBase } from "@/server/env";
 import { applySecurityHeaders, imageOrigin } from "@/server/security-headers";
+import { withServerTiming } from "@/server/timing.server";
 
 /** Must match the crons in wrangler.jsonc env.production. */
 const ORDER_ALERT_CRON = "*/5 * * * *";
@@ -20,7 +21,9 @@ const entry = createServerEntry({
     // www.cavarabd.com → cavarabd.com (301), so search engines index one copy of each page. Static files on www are
     // served before the Worker runs and are not redirected; pages, which are what gets indexed, always are.
     const redirect = canonicalRedirect(new URL(request.url), new URL(SITE_URL).hostname);
-    const response = redirect ? Response.redirect(redirect, 301) : await handler.fetch(request, opts);
+    const response = redirect
+      ? Response.redirect(redirect, 301)
+      : await withServerTiming(request, () => handler.fetch(request, opts));
     // Static assets bypass this Worker; public/_headers covers them.
     return applySecurityHeaders(response, request, { imagesOrigin: imageOrigin(getImageBase()) });
   },
