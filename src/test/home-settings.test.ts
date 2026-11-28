@@ -257,3 +257,84 @@ describe("home settings validation (review fixes)", () => {
     expect(resolved.banners.map((b) => b.linkHref)).toEqual(["", "", "", "/products", "https://facebook.com/cavarabd"]);
   });
 });
+
+describe("refreshHomeSettings cache consistency (C4B-7)", () => {
+  const keys = {
+    legacy: "snapshots/catalog-v1.json",
+    summary: "snapshots/catalog-v4.json",
+    detail: (id: number) => `snapshots/products/v2/${id}.json`,
+  };
+
+  test("returns false, removes stale key, and clears memory when store.write() returns false", async () => {
+    clearHomeMemoryCache();
+    const db = createTestD1();
+    const store = new FakeStore();
+    const persisted = homeSettingsSchema.parse({
+      ...DEFAULT_HOME_SETTINGS,
+      philosophy: { ...DEFAULT_HOME_SETTINGS.philosophy, heading: "Persisted Heading" },
+    });
+    store.seed("snapshots/home-v1.json", JSON.stringify(persisted));
+
+    const unpersisted = homeSettingsSchema.parse({
+      ...DEFAULT_HOME_SETTINGS,
+      philosophy: { ...DEFAULT_HOME_SETTINGS.philosophy, heading: "Unpersisted False Heading" },
+    });
+
+    const removed: string[] = [];
+    const rejectingStore = {
+      read: (key: string) => store.read(key),
+      write: async () => false,
+      remove: async (key: string) => {
+        removed.push(key);
+        await store.remove(key);
+      },
+    };
+    const sources = { imageBase: "", db: () => db, store: rejectingStore, keys };
+
+    const ok = await refreshHomeSettings(sources, unpersisted);
+    expect(ok).toBe(false);
+    expect(removed).toEqual(["snapshots/home-v1.json"]);
+    expect(store.objects.has("snapshots/home-v1.json")).toBe(false);
+
+    const cached = await getCachedHomeSettings(sources);
+    expect(cached.philosophy.heading).not.toBe("Unpersisted False Heading");
+  });
+
+  test("does not poison homeMemory when store.write() and store.remove() throw", async () => {
+    clearHomeMemoryCache();
+    const db = createTestD1();
+    const store = new FakeStore();
+    const persisted = homeSettingsSchema.parse({
+      ...DEFAULT_HOME_SETTINGS,
+      philosophy: { ...DEFAULT_HOME_SETTINGS.philosophy, heading: "Persisted R2 Heading" },
+    });
+    store.seed("snapshots/home-v1.json", JSON.stringify(persisted));
+
+    const unpersisted = homeSettingsSchema.parse({
+      ...DEFAULT_HOME_SETTINGS,
+      philosophy: { ...DEFAULT_HOME_SETTINGS.philosophy, heading: "Unpersisted Throw Heading" },
+    });
+
+    const throwingStore = {
+      read: (key: string) => store.read(key),
+      write: async () => {
+        throw new Error("R2 write failed");
+      },
+      remove: async () => {
+        throw new Error("R2 remove failed");
+      },
+    };
+    const sources = { imageBase: "", db: () => db, store: throwingStore, keys };
+
+    const ok = await refreshHomeSettings(sources, unpersisted);
+    expect(ok).toBe(false);
+
+    const cached = await getCachedHomeSettings({
+      ...sources,
+      db: () => {
+        throw new Error("D1 should not be called");
+      },
+    });
+    expect(cached.philosophy.heading).toBe("Persisted R2 Heading");
+  });
+});

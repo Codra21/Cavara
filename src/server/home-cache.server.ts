@@ -101,13 +101,16 @@ export async function getCachedHomeSettings(sources: CatalogSources): Promise<Ho
 
 export async function refreshHomeSettings(sources: CatalogSources, settings: HomeSettings): Promise<boolean> {
   const publicSettings = publicHomeSettings(settings);
-  homeMemory = { expires: Date.now() + MEMORY_TTL_MS, value: publicSettings };
   const json = JSON.stringify(publicSettings);
   let ok = true;
   const key = homeObjectKey(sources);
   if (sources.store && key) {
     try {
-      await sources.store.write(key, json);
+      const wrote = await sources.store.write(key, json);
+      if (!wrote) {
+        ok = false;
+        await sources.store.remove(key).catch(() => {});
+      }
     } catch {
       ok = false;
       await sources.store.remove(key).catch(() => {});
@@ -118,6 +121,7 @@ export async function refreshHomeSettings(sources: CatalogSources, settings: Hom
     const edgeKey = new URL(EDGE_HOME_PATH, SITE_URL).toString();
     await cache.delete(edgeKey).catch(() => {});
   }
+  homeMemory = ok ? { expires: Date.now() + MEMORY_TTL_MS, value: publicSettings } : undefined;
   return ok;
 }
 
