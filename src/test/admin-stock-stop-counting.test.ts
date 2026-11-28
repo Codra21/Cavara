@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { afterAll, afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { AdminIdentity } from "@/domain/admin";
 import { decodeDetail, decodeSummary } from "@/domain/catalog-snapshot";
 import {
@@ -20,7 +20,10 @@ mock.module("cloudflare:workers", () => ({
   waitUntil() {},
 }));
 
+// Bun keeps module mocks for the rest of the run: keep the real exports here and put them back in afterAll.
+const realStart = { ...(await import("@tanstack/react-start")) };
 mock.module("@tanstack/react-start", () => ({
+  ...realStart,
   createMiddleware: () => ({ server: (fn: unknown) => fn }),
   createServerFn: () => {
     let validate: ((input: unknown) => unknown) | undefined;
@@ -38,6 +41,9 @@ mock.module("@tanstack/react-start", () => ({
     return builder;
   },
 }));
+afterAll(() => {
+  mock.module("@tanstack/react-start", () => realStart);
+});
 
 const { env: workerEnv } = (await import("cloudflare:workers")) as unknown as { env: Record<string, unknown> };
 const { adjustStockFn, stopCountingFn } = await import("@/server/functions/admin-stock.functions");

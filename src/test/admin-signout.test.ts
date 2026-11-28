@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, mock, test } from "bun:test";
+import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
 import { ADMIN_SESSION_COOKIE, ADMIN_SESSION_SECONDS } from "@/domain/admin";
 import { signIn, signOut } from "@/server/admin/auth.server";
 import { createTestD1, type TestD1 } from "./helpers/d1";
@@ -17,7 +17,10 @@ mock.module("cloudflare:workers", () => ({
   waitUntil() {},
 }));
 
+// Bun keeps module mocks for the rest of the run: keep the real exports here and put them back in afterAll.
+const realStartServer = { ...(await import("@tanstack/react-start/server")) };
 mock.module("@tanstack/react-start/server", () => ({
+  ...realStartServer,
   getCookie: (name: string) => (name === ADMIN_SESSION_COOKIE ? mockCookieValue : undefined),
   setCookie: () => {},
   deleteCookie: (name: string, options: Record<string, unknown>) => {
@@ -29,6 +32,9 @@ mock.module("@tanstack/react-start/server", () => ({
     responseHeaders.push([name, value]);
   },
 }));
+afterAll(() => {
+  mock.module("@tanstack/react-start/server", () => realStartServer);
+});
 
 const { signOutWithCookie } = await import("@/server/admin/session.server");
 
