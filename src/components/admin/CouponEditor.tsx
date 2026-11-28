@@ -12,7 +12,7 @@ import {
   Ticket,
   XCircle,
 } from "lucide-react";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   type AdminCoupon,
   COUPON_STATE_LABELS,
@@ -123,6 +123,7 @@ const STATE_META = {
 export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [formKey, setFormKey] = useState(0);
   const [notice, setNotice] = useState<string | null>(null);
   const [problems, setProblems] = useState<string[]>([]);
   const [toggleError, setToggleError] = useState<string | null>(null);
@@ -148,6 +149,11 @@ export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
       }
       if (variables.source === "toggle") {
         setToggleError(null);
+        setDraft((current) =>
+          current && current.id === result.coupon.id
+            ? { ...current, revision: result.coupon.revision, active: result.coupon.active }
+            : current,
+        );
       } else {
         setProblems([]);
         setDraft(null);
@@ -182,6 +188,7 @@ export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
             setNotice(null);
             setProblems([]);
             setDraft(newDraft());
+            setFormKey((n) => n + 1);
           }}
           disabled={draft !== null && draft.id === null}
         >
@@ -212,7 +219,7 @@ export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
 
       {draft ? (
         <CouponForm
-          key={`${draft.id ?? "new"}:${draft.revision}`}
+          key={`${draft.id ?? "new"}:${formKey}`}
           initial={draft}
           pending={save.isPending}
           problems={problems}
@@ -290,6 +297,7 @@ export function CouponEditor({ coupons }: { coupons: AdminCoupon[] }) {
                             setNotice(null);
                             setProblems([]);
                             setDraft(toDraft(coupon));
+                            setFormKey((n) => n + 1);
                           }}
                         >
                           <Pencil /> Edit<span className="sr-only"> {coupon.code}</span>
@@ -343,6 +351,13 @@ function CouponForm({
 }) {
   const id = useId();
   const [draft, setDraft] = useState<Draft>(initial);
+  useEffect(() => {
+    setDraft((current) =>
+      current.revision === initial.revision
+        ? current
+        : { ...current, revision: initial.revision, active: initial.active },
+    );
+  }, [initial.revision, initial.active]);
   const set = (patch: Partial<Draft>) => setDraft((current) => ({ ...current, ...patch }));
   const editing = draft.id !== null;
 
@@ -355,7 +370,7 @@ function CouponForm({
       return;
     }
     onProblems([]);
-    onSubmit({ id: draft.id, revision: draft.revision, input: parsed.data });
+    onSubmit({ id: draft.id, revision: initial.revision, input: parsed.data });
   }
 
   return (

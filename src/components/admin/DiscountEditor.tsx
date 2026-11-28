@@ -12,7 +12,7 @@ import {
   Save,
   XCircle,
 } from "lucide-react";
-import { useId, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   type AdminDiscount,
   type DiscountInput,
@@ -123,6 +123,7 @@ const STATE_META = {
 export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
   const queryClient = useQueryClient();
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [formKey, setFormKey] = useState(0);
   // A save can succeed with a warning from the server; it gets the warning style, not the success one.
   const [notice, setNotice] = useState<{ text: string; warning: boolean } | null>(null);
   const [problems, setProblems] = useState<string[]>([]);
@@ -149,6 +150,11 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
       }
       if (variables.source === "toggle") {
         setToggleError(null);
+        setDraft((current) =>
+          current && current.id === result.discount.id
+            ? { ...current, revision: result.discount.revision, active: result.discount.active }
+            : current,
+        );
       } else {
         setProblems([]);
         setDraft(null);
@@ -185,6 +191,7 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
             setNotice(null);
             setProblems([]);
             setDraft(newDraft());
+            setFormKey((n) => n + 1);
           }}
           disabled={draft !== null && draft.id === null}
         >
@@ -215,7 +222,7 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
 
       {draft ? (
         <DiscountForm
-          key={`${draft.id ?? "new"}:${draft.revision}`}
+          key={`${draft.id ?? "new"}:${formKey}`}
           initial={draft}
           pending={save.isPending}
           problems={problems}
@@ -291,6 +298,7 @@ export function DiscountEditor({ discounts }: { discounts: AdminDiscount[] }) {
                             setNotice(null);
                             setProblems([]);
                             setDraft(toDraft(discount));
+                            setFormKey((n) => n + 1);
                           }}
                         >
                           <Pencil /> Edit<span className="sr-only"> {discount.name}</span>
@@ -345,6 +353,13 @@ function DiscountForm({
   const id = useId();
   const [draft, setDraft] = useState<Draft>(initial);
   const [productSearch, setProductSearch] = useState("");
+  useEffect(() => {
+    setDraft((current) =>
+      current.revision === initial.revision
+        ? current
+        : { ...current, revision: initial.revision, active: initial.active },
+    );
+  }, [initial.revision, initial.active]);
   const categories = useQuery({ ...adminCategoriesQuery(), enabled: draft.scope === "category" });
   const names = useQuery({ ...adminProductNamesQuery(), enabled: draft.scope === "product" });
 
@@ -369,7 +384,7 @@ function DiscountForm({
       return;
     }
     onProblems([]);
-    onSubmit({ id: draft.id, revision: draft.revision, input: parsed.data });
+    onSubmit({ id: draft.id, revision: initial.revision, input: parsed.data });
   }
 
   return (
