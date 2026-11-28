@@ -175,6 +175,69 @@ describe("submitOrder", () => {
     expect(await submitOrder(db, missing, context())).toMatchObject({ ok: false, code: "unavailable" });
   });
 
+  test("does not leak draft or archived product names, variants, or pre-order status in refusal messages", async () => {
+    const db = createTestD1();
+    const [a, b] = seedProduct(db);
+    const base = request(db);
+    db.sqlite.run("UPDATE products SET name = 'Secret Draft Vessel', status = 'draft' WHERE id = ?", [a!.id]);
+    db.sqlite.run(
+      "UPDATE product_variants SET name = 'Secret Cobalt', availability = 'preorder' WHERE product_id = ? AND position = ?",
+      [a!.id, a!.position],
+    );
+    db.sqlite.run("UPDATE products SET name = 'Hidden Archived Bowl', status = 'archived' WHERE id = ?", [b!.id]);
+    db.sqlite.run(
+      "UPDATE product_variants SET name = 'Hidden Ochre', availability = 'out_of_stock' WHERE product_id = ? AND position = ?",
+      [b!.id, b!.position],
+    );
+
+    const missingResult = await submitOrder(
+      db,
+      {
+        ...base,
+        idempotencyKey: crypto.randomUUID(),
+        phone: "01711111111",
+        items: [{ productId: 99999, variant: 0, qty: 1, unitPrice: 100 }],
+      },
+      context({ client: "203.0.113.10" }),
+    );
+    const draftPreorderResult = await submitOrder(
+      db,
+      {
+        ...base,
+        idempotencyKey: crypto.randomUUID(),
+        phone: "01722222222",
+        items: [{ productId: a!.id, variant: a!.position, qty: 1, unitPrice: a!.price }],
+      },
+      context({ client: "203.0.113.11" }),
+    );
+    const archivedOutOfStockResult = await submitOrder(
+      db,
+      {
+        ...base,
+        idempotencyKey: crypto.randomUUID(),
+        phone: "01733333333",
+        items: [{ productId: b!.id, variant: b!.position, qty: 1, unitPrice: b!.price }],
+      },
+      context({ client: "203.0.113.12" }),
+    );
+
+    expect(missingResult).toEqual({
+      ok: false,
+      code: "unavailable",
+      message: "A piece in your cart is no longer available. Remove it from your cart and send the order again.",
+    });
+    expect(draftPreorderResult).toEqual(missingResult);
+    expect(archivedOutOfStockResult).toEqual(missingResult);
+    for (const res of [draftPreorderResult, archivedOutOfStockResult]) {
+      if (res.ok) throw new Error("expected refusal");
+      expect(res.message).not.toContain("Secret Draft Vessel");
+      expect(res.message).not.toContain("Secret Cobalt");
+      expect(res.message).not.toContain("Hidden Archived Bowl");
+      expect(res.message).not.toContain("Hidden Ochre");
+      expect(res.message.toLowerCase()).not.toContain("pre-order");
+    }
+  });
+
   test("validation errors are reported per field", async () => {
     const db = createTestD1();
     const result = await submitOrder(db, request(db, { name: "A", phone: "12345", address: "short" }), context());

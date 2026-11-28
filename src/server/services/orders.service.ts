@@ -193,10 +193,17 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
   const lines: OrderLine[] = [];
   for (const item of input.items) {
     const selection = selections.get(`${item.productId}:${item.variant}`);
-    if (!selection || selection.status !== "published" || selection.availability !== "in_stock") {
-      const name = selection ? `${selection.productName} (${selection.variantName})` : "A piece in your cart";
+    if (!selection || selection.status !== "published") {
+      return {
+        ok: false,
+        code: "unavailable",
+        message: "A piece in your cart is no longer available. Remove it from your cart and send the order again.",
+      };
+    }
+    if (selection.availability !== "in_stock") {
+      const name = `${selection.productName} (${selection.variantName})`;
       const message =
-        selection?.availability === "preorder"
+        selection.availability === "preorder"
           ? `${name} is pre-order only. Request it on WhatsApp, and remove it from your cart to place this order.`
           : `${name} is no longer available. Remove it from your cart and send the order again.`;
       return { ok: false, code: "unavailable", message };
