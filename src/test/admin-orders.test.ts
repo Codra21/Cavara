@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { AdminIdentity } from "@/domain/admin";
 import {
+  balanceDue,
   canChangeStatus,
   ORDER_PAGE_SIZE,
   parseOrderSearch,
@@ -299,5 +300,16 @@ describe("partial payment (C3.2)", () => {
     expect(await save(3, "partially_paid", 300)).toMatchObject({ ok: true });
     expect(await save(4, "refunded")).toMatchObject({ ok: true });
     expect((await getOrder(db, id))!).toMatchObject({ paymentStatus: "refunded", amountPaid: 300 });
+  });
+});
+
+describe("balanceDue", () => {
+  test("returns 0 for cancelled and refunded orders, and remaining balance otherwise", () => {
+    expect(balanceDue("unpaid", 980, 0, "new")).toBe(980);
+    expect(balanceDue("partially_paid", 980, 400, "confirmed")).toBe(580);
+    expect(balanceDue("paid", 980, 980, "delivered")).toBe(0);
+    expect(balanceDue("refunded", 980, 400, "delivered")).toBe(0);
+    expect(balanceDue("unpaid", 980, 0, "cancelled")).toBe(0);
+    expect(balanceDue("partially_paid", 980, 400, "cancelled")).toBe(0);
   });
 });

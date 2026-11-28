@@ -144,7 +144,8 @@ export function OrderDetail({
   const settled = settledAmount(payment, order.total, parsedAmountPaid, order.amountPaid ?? 0);
   // Only a partial payment takes a typed amount; the other statuses fix it (unpaid 0, paid the total).
   const shownAmount = payment === "partially_paid" ? amountPaid : String(settled.ok ? settled.amount : 0);
-  const due = balanceDue(order.paymentStatus, order.total, order.amountPaid ?? 0);
+  const paid = order.amountPaid ?? 0;
+  const due = balanceDue(order.paymentStatus, order.total, paid, order.status);
 
   const next = STATUS_TRANSITIONS[order.status];
   const dirty =
@@ -357,7 +358,7 @@ export function OrderDetail({
                   <p id={`${id}-amount-help`} className="text-xs text-muted-foreground">
                     {payment === "partially_paid"
                       ? settled.ok
-                        ? `Balance after this: ${formatPrice(order.total - settled.amount)}`
+                        ? `Balance after this: ${formatPrice(balanceDue(payment, order.total, settled.amount, status))}`
                         : settled.error
                       : "Set by the payment status. Choose Partially paid to enter an amount."}
                   </p>
@@ -523,14 +524,32 @@ export function OrderDetail({
                 <TableCell className="pr-4 text-right tabular-nums">{formatPrice(order.deliveryCharge)}</TableCell>
               </TableRow>
               <TableRow>
-                <TableCell className="pl-4 whitespace-normal font-semibold" colSpan={2}>
-                  Total to collect
+                <TableCell className="pl-4 whitespace-normal font-medium" colSpan={2}>
+                  Order total
                 </TableCell>
                 <TableCell className="hidden sm:table-cell" />
                 {isOwner ? <TableCell className="hidden sm:table-cell" /> : null}
-                <TableCell className="pr-4 text-right text-base font-bold tabular-nums">
-                  {formatPrice(order.total)}
+                <TableCell className="pr-4 text-right font-medium tabular-nums">{formatPrice(order.total)}</TableCell>
+              </TableRow>
+              {paid > 0 ? (
+                <TableRow>
+                  <TableCell className="pl-4 whitespace-normal" colSpan={2}>
+                    Paid{order.paymentMethod ? ` (${PAYMENT_METHOD_LABELS[order.paymentMethod]})` : ""}
+                  </TableCell>
+                  <TableCell className="hidden sm:table-cell" />
+                  {isOwner ? <TableCell className="hidden sm:table-cell" /> : null}
+                  <TableCell className="pr-4 text-right font-medium text-success tabular-nums">
+                    −{formatPrice(paid)}
+                  </TableCell>
+                </TableRow>
+              ) : null}
+              <TableRow>
+                <TableCell className="pl-4 whitespace-normal font-semibold" colSpan={2}>
+                  Balance to collect
                 </TableCell>
+                <TableCell className="hidden sm:table-cell" />
+                {isOwner ? <TableCell className="hidden sm:table-cell" /> : null}
+                <TableCell className="pr-4 text-right text-base font-bold tabular-nums">{formatPrice(due)}</TableCell>
               </TableRow>
               {isOwner ? (
                 <TableRow>

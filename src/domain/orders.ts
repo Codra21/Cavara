@@ -271,9 +271,13 @@ export function settledAmount(
   };
 }
 
-/** What is still owed. Nothing for a refunded order. */
-export const balanceDue = (status: PaymentStatus, total: number, amountPaid: number) =>
-  status === "refunded" ? 0 : Math.max(0, total - amountPaid);
+/** What is still owed. Nothing for a cancelled or refunded order. */
+export const balanceDue = (
+  paymentStatus: PaymentStatus,
+  total: number,
+  amountPaid: number,
+  orderStatus?: OrderStatus,
+) => (orderStatus === "cancelled" || paymentStatus === "refunded" ? 0 : Math.max(0, total - amountPaid));
 
 export const PAYMENT_LABELS: Record<PaymentStatus, string> = {
   unpaid: "Unpaid",
