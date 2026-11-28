@@ -18,6 +18,7 @@ const page = vi.hoisted(() => ({
   pageSize: 12,
   facets: {
     categories: [{ id: "tableware", name: "Tableware", count: 1 }],
+    total: 1,
     price: { min: 150, max: 900 },
     availability: { all: 4, inStock: 3, preorder: 1 },
   },
@@ -222,4 +223,29 @@ test("a price over MAX_PRICE is clamped and never silently dropped while staying
   expect(navigate).toHaveBeenCalledTimes(1);
   expect(lastSearch().max).toBe(10_000_000);
   expect(high.value).toBe("10000000");
+});
+
+test("All pieces chip uses unique facets.total and does not double-count subcategory products (C6)", async () => {
+  const prevFacets = page.facets;
+  page.facets = {
+    categories: [
+      { id: "drinkware", name: "Drinkware", count: 3 },
+      { id: "mugs", name: "Mugs", count: 2 },
+      { id: "tumblers", name: "Tumblers", count: 1 },
+      { id: "plates", name: "Plates", count: 1 },
+    ],
+    total: 4,
+    price: { min: 450, max: 950 },
+    availability: { all: 4, inStock: 4, preorder: 0 },
+  } as typeof page.facets;
+
+  try {
+    await renderListing();
+    const nav = screen.getByRole("navigation", { name: "Collections" });
+    expect(within(nav).getByText("All pieces").querySelector(".filter-chip-count")?.textContent).toBe("4");
+    expect(within(nav).getByText("Drinkware").querySelector(".filter-chip-count")?.textContent).toBe("3");
+    expect(within(nav).getByText("Mugs").querySelector(".filter-chip-count")?.textContent).toBe("2");
+  } finally {
+    page.facets = prevFacets;
+  }
 });

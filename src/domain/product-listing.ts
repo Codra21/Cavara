@@ -55,6 +55,8 @@ export interface CategoryFacet {
 export interface ListFacets {
   /** Categories that hold at least one published product, in display order. */
   categories: CategoryFacet[];
+  /** Unique products matching every filter except category (avoids double-counting subcategories). */
+  total: number;
   /** Cheapest and dearest price among products matching every filter but price; null when there are none. */
   price: { min: number; max: number } | null;
   /** Matches for each availability choice, ignoring the availability filter itself. */
@@ -145,10 +147,12 @@ const SORTERS: Record<SortKey, (a: ProductSummary, b: ProductSummary) => number>
  */
 export function listProducts(summary: CatalogSummary, query: ListQuery): ListPage {
   const categoryNames = new Map(summary.categories.map((category) => [category.id, category.name]));
+  const parentById = new Map(summary.categories.map((category) => [category.id, category.parentId ?? null]));
   const terms = (query.q ?? "").toLowerCase().split(/\s+/).filter(Boolean);
   const { min, max } = query;
 
   const categoryCounts = new Map<string, number>();
+  let allCategoryCount = 0;
   const present = new Set<string>();
   const matches: ProductSummary[] = [];
   let priceLow = Infinity;
@@ -168,7 +172,13 @@ export function listProducts(summary: CatalogSummary, query: ListQuery): ListPag
       : null;
 
   for (const product of summary.products) {
-    present.add(product.category);
+    const productCategoryIds: string[] = [];
+    let currentCat: string | null | undefined = product.category;
+    while (currentCat && !productCategoryIds.includes(currentCat)) {
+      productCategoryIds.push(currentCat);
+      present.add(currentCat);
+      currentCat = parentById.get(currentCat);
+    }
     const text = `${product.name} ${categoryNames.get(product.category) ?? ""}`.toLowerCase();
     if (!terms.every((term) => text.includes(term))) continue;
     const inCategory = !allowedCategoryIds || allowedCategoryIds.has(product.category);
@@ -181,8 +191,12 @@ export function listProducts(summary: CatalogSummary, query: ListQuery): ListPag
       query.availability === undefined ||
       (query.availability === "in-stock" ? stocked : query.availability === "preorder" ? preorder : soldOut);
 
-    if (inPrice && inAvailability)
-      categoryCounts.set(product.category, (categoryCounts.get(product.category) ?? 0) + 1);
+    if (inPrice && inAvailability) {
+      allCategoryCount += 1;
+      for (const catId of productCategoryIds) {
+        categoryCounts.set(catId, (categoryCounts.get(catId) ?? 0) + 1);
+      }
+    }
     if (inCategory && inAvailability) {
       priceLow = Math.min(priceLow, product.price);
       priceHigh = Math.max(priceHigh, product.price);
@@ -211,6 +225,7 @@ export function listProducts(summary: CatalogSummary, query: ListQuery): ListPag
       categories: summary.categories
         .filter((category) => present.has(category.id))
         .map((category) => ({ id: category.id, name: category.name, count: categoryCounts.get(category.id) ?? 0 })),
+      total: allCategoryCount,
       price: priceLow <= priceHigh ? { min: priceLow, max: priceHigh } : null,
       availability,
     },

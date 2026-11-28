@@ -285,3 +285,59 @@ describe("sold-out filter (C2.8)", () => {
     expect(page.facets.availability.soldOut).toBe(1);
   });
 });
+
+describe("parent category facets and unique total (C6)", () => {
+  const hierarchical: CatalogSummary = {
+    gen: "g",
+    zones: [],
+    sales: [],
+    categories: [
+      { id: "drinkware", name: "Drinkware", description: "", image: "", parentId: null },
+      { id: "mugs", name: "Mugs", description: "", image: "", parentId: "drinkware" },
+      { id: "tumblers", name: "Tumblers", description: "", image: "", parentId: "drinkware" },
+      { id: "plates", name: "Plates", description: "", image: "", parentId: null },
+      { id: "empty-parent", name: "Empty Parent", description: "", image: "", parentId: null },
+    ],
+    products: [
+      product({ id: 101, name: "Clay Mug", category: "mugs", price: 450 }),
+      product({ id: 102, name: "Tall Mug", category: "mugs", price: 950 }),
+      product({ id: 103, name: "Glazed Tumbler", category: "tumblers", price: 600 }),
+      product({ id: 104, name: "Dinner Plate", category: "plates", price: 500 }),
+    ],
+  };
+
+  test("parent category appears in facets.categories with rolled-up subcategory counts and facets.total does not double-count", () => {
+    const all = listProducts(hierarchical, {});
+    expect(all.facets.categories).toEqual([
+      { id: "drinkware", name: "Drinkware", count: 3 },
+      { id: "mugs", name: "Mugs", count: 2 },
+      { id: "tumblers", name: "Tumblers", count: 1 },
+      { id: "plates", name: "Plates", count: 1 },
+    ]);
+    expect(all.facets.total).toBe(4);
+    expect(listProducts(hierarchical, { category: "drinkware" }).total).toBe(3);
+  });
+
+  test("parent category counts and facets.total respect other filters and ignore active category filter", () => {
+    const filtered = listProducts(hierarchical, { category: "mugs", max: 600 });
+    expect(filtered.total).toBe(1);
+    expect(filtered.facets.categories).toEqual([
+      { id: "drinkware", name: "Drinkware", count: 2 },
+      { id: "mugs", name: "Mugs", count: 1 },
+      { id: "tumblers", name: "Tumblers", count: 1 },
+      { id: "plates", name: "Plates", count: 1 },
+    ]);
+    expect(filtered.facets.total).toBe(3);
+  });
+
+  test("parent category with both direct and subcategory products sums both without double-counting facets.total", () => {
+    const mixed: CatalogSummary = {
+      ...hierarchical,
+      products: [...hierarchical.products, product({ id: 105, name: "Carafe", category: "drinkware", price: 1100 })],
+    };
+    const all = listProducts(mixed, {});
+    expect(all.facets.categories.find((c) => c.id === "drinkware")?.count).toBe(4);
+    expect(all.facets.categories.find((c) => c.id === "mugs")?.count).toBe(2);
+    expect(all.facets.total).toBe(5);
+  });
+});

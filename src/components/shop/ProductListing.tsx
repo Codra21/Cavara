@@ -261,10 +261,7 @@ export function ProductListing({ category, search }: { category?: string; search
                 search={withoutPage(search)}
                 {...(category ? {} : { "aria-current": "page" as const })}
               >
-                All pieces{" "}
-                <span className="filter-chip-count">
-                  {facets.categories.reduce((sum, item) => sum + item.count, 0)}
-                </span>
+                All pieces <span className="filter-chip-count">{facets.total}</span>
               </ListingLink>
               {facets.categories.map((item) => (
                 <ListingLink
