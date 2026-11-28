@@ -56,7 +56,7 @@ export const saveZonesFn = createServerFn({ method: "POST" })
   .middleware([ownerAuthMiddleware])
   .validator(saveZonesSchema)
   .handler(async ({ data, context }) => {
-    const result = await saveZones(getDb(), context.admin, data.zones);
+    const result = await saveZones(getDb(), context.admin, data.zones, { expectedRevision: data.expectedRevision });
     if (!result.ok) return result;
     // Checkout reads zones from the cached catalogue: patch the zones in the snapshots (reads only the zones).
     const refreshed = await refreshZones(catalogSources());

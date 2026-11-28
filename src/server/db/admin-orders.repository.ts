@@ -27,7 +27,9 @@ import {
   STATUS_LABELS,
   type UpdateOrderInput,
   type UpdateOrderResult,
+  canonicalZonesSnapshot,
   type ZoneInput,
+  zonesRevision,
 } from "@/domain/orders";
 import { auditStatement } from "@/server/admin/auth.server";
 import type { D1Database, D1PreparedStatement } from "./d1";
@@ -427,8 +429,18 @@ export async function updateOrderStatus(
 
 export async function listZones(db: D1Database): Promise<AdminZone[]> {
   const { results } = await db
-    .prepare("SELECT id, name, charge, per_kg_charge AS perKgCharge, active, sort FROM delivery_zones")
-    .all<{ id: string; name: string; charge: number; perKgCharge: number; active: number; sort: number }>();
+    .prepare(
+      "SELECT id, name, charge, per_kg_charge AS perKgCharge, active, sort, updated_at AS updatedAt FROM delivery_zones",
+    )
+    .all<{
+      id: string;
+      name: string;
+      charge: number;
+      perKgCharge: number;
+      active: number;
+      sort: number;
+      updatedAt: string;
+    }>();
   return results
     .map((row) => ({ ...row, active: row.active === 1 }))
     .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id));
@@ -447,22 +459,45 @@ function zoneId(name: string, taken: Set<string>): string {
   return id;
 }
 
-export type SaveZonesResult = { ok: true; zones: AdminZone[] } | { ok: false; error: string };
+export type SaveZonesResult =
+  | { ok: true; zones: AdminZone[]; revision: string }
+  | { ok: false; error: string; conflict?: boolean };
+
+const ZONES_CONFLICT: SaveZonesResult = {
+  ok: false,
+  conflict: true,
+  error: "Delivery areas changed in another tab. Reload and try again.",
+};
+
+const ZONES_SNAPSHOT_SQL = `(SELECT group_concat(
+  id || char(31) || name || char(31) || charge || char(31) || per_kg_charge || char(31) || active || char(31) || sort || char(31) || updated_at,
+  char(30)
+) FROM (SELECT id, name, charge, per_kg_charge, active, sort, updated_at FROM delivery_zones ORDER BY id))`;
 
 /**
  * Saves the whole list in its new order. Zones are never deleted, because orders keep their zone id; switching
  * `active` off hides one from checkout. Existing orders keep the charge they were placed with.
+ *
+ * When `expectedRevision` is provided, checks it against the current table snapshot both before and atomically
+ * inside the D1 batch so concurrent edits return a conflict instead of silently overwriting each other.
  */
 export async function saveZones(
   db: D1Database,
   actor: AdminIdentity,
   zones: (Omit<ZoneInput, "perKgCharge"> & { perKgCharge?: number })[],
-  now = new Date(),
+  optionsOrNow: Date | { now?: Date; expectedRevision?: string } = {},
 ): Promise<SaveZonesResult> {
+  const now = optionsOrNow instanceof Date ? optionsOrNow : (optionsOrNow.now ?? new Date());
+  const expectedRevision = optionsOrNow instanceof Date ? undefined : optionsOrNow.expectedRevision;
+
   const existing = await listZones(db);
+  if (expectedRevision !== undefined && expectedRevision !== zonesRevision(existing)) {
+    return ZONES_CONFLICT;
+  }
+
   const known = new Set(existing.map((zone) => zone.id));
   if (zones.some((zone) => zone.id !== null && !known.has(zone.id))) {
-    return { ok: false, error: "A delivery area changed in another tab. Reload and try again." };
+    return { ok: false, conflict: true, error: "A delivery area changed in another tab. Reload and try again." };
   }
   const missing = existing.filter((zone) => !zones.some((input) => input.id === zone.id));
   if (missing.length) return { ok: false, error: "Delivery areas cannot be removed; switch one off instead." };
@@ -470,25 +505,97 @@ export async function saveZones(
   const taken = new Set(known);
   const at = now.toISOString();
   const rows = zones.map((zone, sort) => ({ ...zone, id: zone.id ?? zoneId(zone.name, taken), sort }));
-  await db.batch([
-    ...rows.map((zone) =>
+  const auditDetails = {
+    areas: rows.map((zone) => `${zone.name} ${zone.charge}${zone.active ? "" : " (off)"}`).join(", "),
+  };
+
+  if (expectedRevision !== undefined && existing.length > 0) {
+    const expectedSnapshot = canonicalZonesSnapshot(existing);
+    const claimToken = crypto.randomUUID();
+    const firstId = existing[0]!.id;
+    const firstRow = rows.find((row) => row.id === firstId)!;
+    const guard = {
+      sql: "EXISTS (SELECT 1 FROM delivery_zones WHERE id = ? AND updated_at = ?)",
+      params: [firstId, claimToken],
+    };
+
+    const statements: D1PreparedStatement[] = [
       db
         .prepare(
-          `INSERT INTO delivery_zones (id, name, charge, per_kg_charge, active, sort, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)
-           ON CONFLICT (id) DO UPDATE SET name = excluded.name, charge = excluded.charge,
-             per_kg_charge = excluded.per_kg_charge, active = excluded.active,
-             sort = excluded.sort, updated_at = excluded.updated_at`,
+          `UPDATE delivery_zones
+             SET name = ?, charge = ?, per_kg_charge = ?, active = ?, sort = ?, updated_at = ?
+           WHERE id = ? AND ${ZONES_SNAPSHOT_SQL} = ?`,
         )
-        .bind(zone.id, zone.name, zone.charge, zone.perKgCharge ?? 20, zone.active ? 1 : 0, zone.sort, at),
-    ),
-    auditStatement(
-      db,
-      actor,
-      "zones.updated",
-      "delivery_zones",
-      { areas: rows.map((zone) => `${zone.name} ${zone.charge}${zone.active ? "" : " (off)"}`).join(", ") },
-      now,
-    ),
-  ]);
-  return { ok: true, zones: await listZones(db) };
+        .bind(
+          firstRow.name,
+          firstRow.charge,
+          firstRow.perKgCharge ?? 20,
+          firstRow.active ? 1 : 0,
+          firstRow.sort,
+          claimToken,
+          firstId,
+          expectedSnapshot,
+        ),
+      ...rows
+        .filter((zone) => zone.id !== firstId)
+        .map((zone) =>
+          known.has(zone.id)
+            ? db
+                .prepare(
+                  `UPDATE delivery_zones
+                     SET name = ?, charge = ?, per_kg_charge = ?, active = ?, sort = ?, updated_at = ?
+                   WHERE id = ? AND ${guard.sql}`,
+                )
+                .bind(
+                  zone.name,
+                  zone.charge,
+                  zone.perKgCharge ?? 20,
+                  zone.active ? 1 : 0,
+                  zone.sort,
+                  at,
+                  zone.id,
+                  ...guard.params,
+                )
+            : db
+                .prepare(
+                  `INSERT INTO delivery_zones (id, name, charge, per_kg_charge, active, sort, updated_at)
+                   SELECT ?, ?, ?, ?, ?, ?, ? WHERE ${guard.sql}`,
+                )
+                .bind(
+                  zone.id,
+                  zone.name,
+                  zone.charge,
+                  zone.perKgCharge ?? 20,
+                  zone.active ? 1 : 0,
+                  zone.sort,
+                  at,
+                  ...guard.params,
+                ),
+        ),
+      auditStatement(db, actor, "zones.updated", "delivery_zones", auditDetails, now, guard),
+      db
+        .prepare("UPDATE delivery_zones SET updated_at = ? WHERE id = ? AND updated_at = ?")
+        .bind(at, firstId, claimToken),
+    ];
+
+    const [claim] = await db.batch(statements);
+    if (claim?.meta.changes !== 1) return ZONES_CONFLICT;
+  } else {
+    await db.batch([
+      ...rows.map((zone) =>
+        db
+          .prepare(
+            `INSERT INTO delivery_zones (id, name, charge, per_kg_charge, active, sort, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)
+             ON CONFLICT (id) DO UPDATE SET name = excluded.name, charge = excluded.charge,
+               per_kg_charge = excluded.per_kg_charge, active = excluded.active,
+               sort = excluded.sort, updated_at = excluded.updated_at`,
+          )
+          .bind(zone.id, zone.name, zone.charge, zone.perKgCharge ?? 20, zone.active ? 1 : 0, zone.sort, at),
+      ),
+      auditStatement(db, actor, "zones.updated", "delivery_zones", auditDetails, now),
+    ]);
+  }
+
+  const updated = await listZones(db);
+  return { ok: true, zones: updated, revision: zonesRevision(updated) };
 }

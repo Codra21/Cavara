@@ -8,6 +8,7 @@ import {
   parseOrderSearch,
   type UpdateOrderInput,
   saveZonesSchema,
+  zonesRevision,
 } from "@/domain/orders";
 import { listAudit } from "@/server/admin/auth.server";
 import { getPublishedCatalog } from "@/server/db/catalog.repository";
@@ -298,6 +299,60 @@ describe("saveZones", () => {
       { id: "outside-dhaka", name: "Outside Dhaka", charge: 150, active: true },
     ]);
     expect((await getOrder(db, id))!.deliveryCharge).toBe(100);
+  });
+
+  test("rejects stale concurrent edits with a conflict and preserves the first save (M1B-7)", async () => {
+    const db = createTestD1();
+    const firstRead = await listZones(db);
+    const secondRead = await listZones(db);
+    const rev1 = zonesRevision(firstRead);
+    const rev2 = zonesRevision(secondRead);
+    expect(rev1).toBe(rev2);
+
+    const saved = await saveZones(
+      db,
+      owner,
+      [
+        { id: "inside-dhaka", name: "Inside Dhaka", charge: 95, active: true },
+        { id: "outside-dhaka", name: "Outside Dhaka", charge: 160, active: true },
+      ],
+      { now: new Date("2026-11-08T10:00:00.000Z"), expectedRevision: rev1 },
+    );
+    expect(saved.ok).toBe(true);
+    if (!saved.ok) throw new Error(saved.error);
+    expect(saved.revision).not.toBe(rev1);
+
+    const stale = await saveZones(
+      db,
+      owner,
+      [
+        { id: "inside-dhaka", name: "Inside Dhaka", charge: 70, active: true },
+        { id: "outside-dhaka", name: "Outside Dhaka", charge: 120, active: true },
+      ],
+      { now: new Date("2026-11-08T10:01:00.000Z"), expectedRevision: rev2 },
+    );
+    expect(stale).toMatchObject({ ok: false, conflict: true });
+
+    const after = await listZones(db);
+    expect(after.find((zone) => zone.id === "inside-dhaka")?.charge).toBe(95);
+    expect(after.find((zone) => zone.id === "outside-dhaka")?.charge).toBe(160);
+    expect(zonesRevision(after)).toBe(saved.revision);
+    expect(await listAudit(db)).toHaveLength(1);
+
+    const added = await saveZones(
+      db,
+      owner,
+      [
+        { id: "inside-dhaka", name: "Inside Dhaka", charge: 95, active: true },
+        { id: "outside-dhaka", name: "Outside Dhaka", charge: 160, active: true },
+        { id: null, name: "Dhaka Suburbs", charge: 120, active: true },
+      ],
+      { now: new Date("2026-11-08T10:02:00.000Z"), expectedRevision: saved.revision },
+    );
+    expect(added.ok).toBe(true);
+    if (!added.ok) throw new Error(added.error);
+    expect(added.zones.some((zone) => zone.id === "dhaka-suburbs")).toBe(true);
+    expect(added.revision).not.toBe(saved.revision);
   });
 });
 

@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { AlertCircle, ArrowDown, ArrowUp, CheckCircle2, MapPin, Plus, Save, Trash2 } from "lucide-react";
 import { useEffect, useId, useState } from "react";
-import { type AdminZone, DEFAULT_PER_KG_CHARGE, saveZonesSchema, type ZoneInput } from "@/domain/orders";
+import { type AdminZone, DEFAULT_PER_KG_CHARGE, saveZonesSchema, type ZoneInput, zonesRevision } from "@/domain/orders";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -32,6 +32,7 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
   const queryClient = useQueryClient();
   const [baseline, setBaseline] = useState<Row[]>(() => toRows(zones));
   const [rows, setRows] = useState<Row[]>(() => toRows(zones));
+  const [revision, setRevision] = useState<string>(() => zonesRevision(zones));
   const [problems, setProblems] = useState<string[]>([]);
   const [notice, setNotice] = useState<{ text: string; warning: boolean } | null>(null);
   const dirty = serializeRows(rows) !== serializeRows(baseline);
@@ -39,10 +40,12 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
   useEffect(() => {
     if (dirty) return;
     const next = toRows(zones);
-    if (serializeRows(next) === serializeRows(baseline)) return;
+    const nextRevision = zonesRevision(zones);
+    if (serializeRows(next) === serializeRows(baseline) && nextRevision === revision) return;
     setRows(next);
     setBaseline(next);
-  }, [zones, dirty, baseline]);
+    setRevision(nextRevision);
+  }, [zones, dirty, baseline, revision]);
   const firstActiveIndex = rows.findIndex((row) => row.active);
 
   const update = (index: number, patch: Partial<Row>) => {
@@ -59,10 +62,13 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
     });
 
   const save = useMutation({
-    mutationFn: (input: ZoneInput[]) => saveZonesFn({ data: { zones: input } }),
+    mutationFn: (input: { zones: ZoneInput[]; expectedRevision: string }) => saveZonesFn({ data: input }),
     onSuccess: async (result) => {
       if (!result.ok) {
         setProblems([result.error]);
+        if (result.conflict) {
+          await queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "zones"] });
+        }
         return;
       }
       setProblems([]);
@@ -74,6 +80,7 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
       const saved = toRows(result.zones);
       setRows(saved);
       setBaseline(saved);
+      setRevision(result.revision ?? zonesRevision(result.zones));
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "zones"] }),
         queryClient.invalidateQueries({ queryKey: [...ADMIN_QUERY_KEY, "audit"] }),
@@ -92,13 +99,13 @@ export function ZoneEditor({ zones }: { zones: AdminZone[] }) {
       perKgCharge: row.perKgCharge.trim() === "" ? Number.NaN : Number(row.perKgCharge),
       active: row.active,
     }));
-    const parsed = saveZonesSchema.safeParse({ zones: input });
+    const parsed = saveZonesSchema.safeParse({ zones: input, expectedRevision: revision });
     if (!parsed.success) {
       setProblems([...new Set(parsed.error.issues.map((issue) => issue.message))]);
       return;
     }
     setProblems([]);
-    save.mutate(parsed.data.zones);
+    save.mutate({ zones: parsed.data.zones, expectedRevision: revision });
   }
 
   return (

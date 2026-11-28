@@ -465,6 +465,7 @@ export const zoneInputSchema = z.object({
 });
 
 export const saveZonesSchema = z.object({
+  expectedRevision: z.string().min(1).max(64).optional(),
   zones: z
     .array(zoneInputSchema)
     .min(1)
@@ -492,4 +493,35 @@ export type ZoneInput = z.output<typeof zoneInputSchema>;
 export interface AdminZone extends DeliveryZone {
   active: boolean;
   sort: number;
+  updatedAt?: string;
+}
+
+/**
+ * Canonical serialization of delivery_zones rows (ordered by id) used to build both the client/server revision
+ * token and the atomic SQLite snapshot guard inside saveZones.
+ */
+export function canonicalZonesSnapshot(zones: readonly AdminZone[]): string {
+  return [...zones]
+    .sort((a, b) => a.id.localeCompare(b.id))
+    .map(
+      (z) =>
+        `${z.id}${z.name}${z.charge}${z.perKgCharge ?? DEFAULT_PER_KG_CHARGE}${z.active ? 1 : 0}${z.sort}${z.updatedAt ?? ""}`,
+    )
+    .join("");
+}
+
+/**
+ * Deterministic revision token derived from the current delivery_zones rows for optimistic concurrency control.
+ * Uses two independent 32-bit FNV-1a passes so it stays synchronous, compact, and schema-free.
+ */
+export function zonesRevision(zones: readonly AdminZone[]): string {
+  const canonical = canonicalZonesSnapshot(zones);
+  let h1 = 0x811c9dc5;
+  let h2 = 0x050c5d1f;
+  for (let i = 0; i < canonical.length; i++) {
+    const c = canonical.charCodeAt(i);
+    h1 = Math.imul(h1 ^ c, 0x01000193);
+    h2 = Math.imul(h2 ^ (c + i), 0x85ebca6b);
+  }
+  return `${(h1 >>> 0).toString(16).padStart(8, "0")}${(h2 >>> 0).toString(16).padStart(8, "0")}`;
 }
