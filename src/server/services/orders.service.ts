@@ -270,7 +270,7 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
     const reference = makeReference();
     try {
       const placed = await insertOrder(db, { ...base, reference });
-      if (!placed) return refusedAfterRead(db, input, { zone, itemsTotal, lines, now });
+      if (!placed) return refusedAfterRead(db, input, { deliveryCharge, itemsTotal, lines, now });
       // Any counted colour this order deducted changes the stock cap (or availability) stored in R2 snapshots; read from
       // the written movements so concurrent stock changes between readSelections and insertOrder cannot leave R2 stale.
       const nonPreorder = new Set(
@@ -305,7 +305,7 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
 async function refusedAfterRead(
   db: D1Database,
   input: CheckoutInput,
-  read: { zone: { charge: number }; itemsTotal: number; lines: OrderLine[]; now: Date },
+  read: { deliveryCharge: number; itemsTotal: number; lines: OrderLine[]; now: Date },
 ): Promise<SubmitOutcome> {
   // The insert also refuses a phone that was blocked or reached the cap after the first read.
   const standing = await readPhoneStanding(db, input.phone);
@@ -341,7 +341,7 @@ async function refusedAfterRead(
     code: "price_changed",
     message: couponChangedMessage(coupon),
     prices: read.lines.map((line) => ({ productId: line.productId, variant: line.variant, unitPrice: line.unitPrice })),
-    deliveryCharge: read.zone.charge,
+    deliveryCharge: read.deliveryCharge,
     coupon,
   };
 }

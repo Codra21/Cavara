@@ -355,6 +355,35 @@ describe("checkout with a coupon", () => {
     expect(row(db, "SELECT orders_received FROM daily_totals")).toEqual({ orders_received: 1 });
   });
 
+  test("usage limit race on a heavy cart (> 1 kg) returns weight-based deliveryCharge, not flat 1 kg zone.charge", async () => {
+    const coupon = addCoupon(db, { usage_limit: 1 });
+    db.sqlite.run("UPDATE products SET weight_g = 1000 WHERE id = ?", [product.id]);
+    db.sqlite.run("UPDATE product_variants SET stock = 10 WHERE product_id = ? AND position = 0", [product.id]);
+    // 3 x 1,000 g = 3,000 g -> inside-dhaka base 80 + 2 extra kg * 20 = 120.
+    const items = [{ productId: product.id, variant: 0, qty: 3, unitPrice: product.price }];
+    const discount = Math.floor((product.price * 3) / 10);
+    const body = request(items, { deliveryCharge: 120, couponCode: "SAVE10", couponDiscount: discount });
+
+    const realPrepare = db.prepare.bind(db);
+    let raced = false;
+    db.prepare = (sql: string) => {
+      if (!raced && sql.startsWith("INSERT INTO orders")) {
+        raced = true;
+        db.sqlite.run("UPDATE discounts SET used_count = 1 WHERE id = ?", [coupon]);
+      }
+      return realPrepare(sql);
+    };
+    const lost = await submit(db, body);
+    db.prepare = realPrepare;
+
+    expect(lost).toMatchObject({
+      ok: false,
+      code: "price_changed",
+      deliveryCharge: 120,
+      coupon: { ok: false, reason: "unknown" },
+    });
+  });
+
   test("with a limit of 1, a second order after the first is refused before it reaches the batch", async () => {
     const coupon = addCoupon(db, { usage_limit: 1 });
     const items = [{ productId: product.id, variant: 0, qty: 1, unitPrice: product.price }];
