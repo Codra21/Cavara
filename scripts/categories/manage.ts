@@ -22,12 +22,10 @@ const dryRun = args.includes("--dry-run");
 const dbPath = flag("db");
 
 /**
- * After a write: an audit row (action `category.created` / `category.updated`, actor "cli"), then the catalogue
- * snapshots are deleted so the next read rebuilds them with the new names, slugs and parents. Without that the shop
- * keeps serving the old slugs until something else rebuilds the summary. `--bucket` names the R2 bucket (default
- * cavara-images-dev), `--remote` targets the real bucket instead of the local one, `--no-invalidate` skips it.
+ * Audit row (action `category.created` / `category.updated`, actor "cli"), written inside the same SQLite
+ * transaction as the category mutation so partial writes roll back atomically.
  */
-function afterWrite(
+function recordAudit(
   action: "category.created" | "category.updated",
   targetId: string,
   details: Record<string, unknown>,
@@ -42,6 +40,15 @@ function afterWrite(
       new Date().toISOString(),
     ],
   );
+}
+
+/**
+ * After a committed write, delete the catalogue snapshots so the next read rebuilds them with the new names, slugs
+ * and parents. Without that the shop keeps serving the old slugs until something else rebuilds the summary.
+ * `--bucket` names the R2 bucket (default cavara-images-dev), `--remote` targets the real bucket instead of the local
+ * one, `--no-invalidate` skips it.
+ */
+function invalidateSnapshots() {
   if (args.includes("--no-invalidate")) {
     console.log(
       "Snapshots not invalidated (--no-invalidate). Delete snapshots/catalog-v4.json and catalog-v1.json before relying on the shop.",
@@ -125,24 +132,30 @@ if (command === "create") {
   const plan = { action: "create", dryRun, ...parsed.data, id };
   console.log(JSON.stringify(plan, null, 2));
   if (!dryRun) {
-    sqlite.run(
-      "INSERT INTO categories (id, name, slug, description, image, parent_id, sort, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-      [
-        id,
-        parsed.data.name,
-        parsed.data.slug,
-        parsed.data.description,
-        parsed.data.image,
-        parsed.data.parentId,
-        parsed.data.sort,
-        1,
-      ],
-    );
-    afterWrite("category.created", id, {
-      name: parsed.data.name,
-      slug: parsed.data.slug,
-      parentId: parsed.data.parentId,
-    });
+    sqlite
+      .transaction(() => {
+        sqlite.run(
+          "INSERT INTO categories (id, name, slug, description, image, parent_id, sort, active) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+          [
+            id,
+            parsed.data.name,
+            parsed.data.slug,
+            parsed.data.description,
+            parsed.data.image,
+            parsed.data.parentId,
+            parsed.data.sort,
+            1,
+          ],
+        );
+        sqlite.run("DELETE FROM category_slugs WHERE old_slug = ?", [parsed.data.slug]);
+        recordAudit("category.created", id, {
+          name: parsed.data.name,
+          slug: parsed.data.slug,
+          parentId: parsed.data.parentId,
+        });
+      })
+      .immediate();
+    invalidateSnapshots();
     console.log(`Created category "${id}".`);
   }
   process.exit(0);
@@ -198,15 +211,20 @@ if (command === "rename") {
   );
   if (!dryRun) {
     const now = new Date().toISOString();
-    sqlite.run("UPDATE categories SET name = ?, slug = ? WHERE id = ?", [nextName, nextSlug, current.id]);
-    if (willRedirect) {
-      sqlite.run(
-        "INSERT INTO category_slugs (old_slug, category_id, created_at) VALUES (?, ?, ?) ON CONFLICT (old_slug) DO UPDATE SET category_id = excluded.category_id, created_at = excluded.created_at",
-        [current.slug, current.id, now],
-      );
-    }
-    sqlite.run("DELETE FROM category_slugs WHERE old_slug = ?", [nextSlug]);
-    afterWrite("category.updated", current.id, { name: nextName, slug: nextSlug, oldSlug: current.slug });
+    sqlite
+      .transaction(() => {
+        sqlite.run("UPDATE categories SET name = ?, slug = ? WHERE id = ?", [nextName, nextSlug, current.id]);
+        if (willRedirect) {
+          sqlite.run(
+            "INSERT INTO category_slugs (old_slug, category_id, created_at) VALUES (?, ?, ?) ON CONFLICT (old_slug) DO UPDATE SET category_id = excluded.category_id, created_at = excluded.created_at",
+            [current.slug, current.id, now],
+          );
+        }
+        sqlite.run("DELETE FROM category_slugs WHERE old_slug = ?", [nextSlug]);
+        recordAudit("category.updated", current.id, { name: nextName, slug: nextSlug, oldSlug: current.slug });
+      })
+      .immediate();
+    invalidateSnapshots();
     console.log(`Renamed category "${current.id}" to slug "${nextSlug}".`);
   }
   process.exit(0);
@@ -232,8 +250,13 @@ if (command === "move") {
     ),
   );
   if (!dryRun) {
-    sqlite.run("UPDATE categories SET parent_id = ? WHERE id = ?", [nextParent, current.id]);
-    afterWrite("category.updated", current.id, { fromParent: current.parentId, parentId: nextParent });
+    sqlite
+      .transaction(() => {
+        sqlite.run("UPDATE categories SET parent_id = ? WHERE id = ?", [nextParent, current.id]);
+        recordAudit("category.updated", current.id, { fromParent: current.parentId, parentId: nextParent });
+      })
+      .immediate();
+    invalidateSnapshots();
     console.log(`Moved category "${current.id}" under ${nextParent ?? "top-level"}.`);
   }
   process.exit(0);
