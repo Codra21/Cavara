@@ -57,17 +57,26 @@ export function formatCategoryLabel(
   return parent ? `${parent.name} › ${category.name}` : category.name;
 }
 
-/** Validates two-level hierarchy constraints: a category cannot be its own parent or nest 3 levels deep. */
+const isCategoryActive = (flag?: boolean | number) => flag !== false && flag !== 0;
+
+/** Validates two-level hierarchy constraints: a category cannot be its own parent, nest 3 levels deep, or orphan active subcategories. */
 export function validateCategoryParent(
   id: string | null,
   parentId: string | null,
-  existing: readonly { id: string; parentId: string | null }[],
+  existing: readonly { id: string; parentId: string | null; active?: boolean | number }[],
+  active = true,
 ): string | null {
+  if (!active && id !== null && existing.some((item) => item.parentId === id && isCategoryActive(item.active))) {
+    return "This category has active subcategories; deactivate or move them before hiding it.";
+  }
   if (parentId === null) return null;
   if (id !== null && id === parentId) return "A category cannot be its own parent.";
   const parent = existing.find((item) => item.id === parentId);
   if (!parent) return "The chosen parent category does not exist.";
   if (parent.parentId !== null) return "Categories support two levels only (category › subcategory).";
+  if (active && !isCategoryActive(parent.active)) {
+    return "The chosen parent category is inactive; activate it first or choose another parent.";
+  }
   if (id !== null && existing.some((item) => item.parentId === id)) {
     return "This category has subcategories; move them out before making it a subcategory.";
   }

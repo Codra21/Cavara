@@ -69,7 +69,7 @@ export async function saveCategory(
     return { ok: false, error: "That category no longer exists. Reload and try again." };
   }
 
-  const hierarchyError = validateCategoryParent(input.id, input.parentId, existing);
+  const hierarchyError = validateCategoryParent(input.id, input.parentId, existing, input.active);
   if (hierarchyError) return { ok: false, error: hierarchyError };
 
   const id = input.id ?? input.slug;

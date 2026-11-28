@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { pluralize } from "@/domain/catalog";
+import { pluralize, topLevelCategories } from "@/domain/catalog";
 import { SITE_URL } from "@/lib/config";
 import { CategoryLink } from "@/components/shop/CategoryLink";
 import { useCategories } from "@/lib/query";
@@ -29,21 +29,19 @@ function CollectionsIndexPage() {
           <h1 id="collections-page-title">Our collections</h1>
         </div>
         <ul className="studio-category-row" aria-label="Collections">
-          {categories
-            .filter((category) => !category.parentId)
-            .map((category) => (
-              <li key={category.id}>
-                <CategoryLink className="studio-category" category={category.id}>
-                  <span className="studio-category-media">
-                    <img src={category.image} alt="" loading="lazy" width={800} height={1000} />
-                  </span>
-                  <span className="studio-category-label">
-                    <span className="studio-category-name">{category.name}</span>
-                    <span className="studio-category-count">{pluralize(category.count, "piece")}</span>
-                  </span>
-                </CategoryLink>
-              </li>
-            ))}
+          {topLevelCategories(categories).map((category) => (
+            <li key={category.id}>
+              <CategoryLink className="studio-category" category={category.id}>
+                <span className="studio-category-media">
+                  <img src={category.image} alt="" loading="lazy" width={800} height={1000} />
+                </span>
+                <span className="studio-category-label">
+                  <span className="studio-category-name">{category.name}</span>
+                  <span className="studio-category-count">{pluralize(category.count, "piece")}</span>
+                </span>
+              </CategoryLink>
+            </li>
+          ))}
         </ul>
       </div>
     </section>

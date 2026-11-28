@@ -1,6 +1,6 @@
 import { PHILOSOPHY_BODY, PHILOSOPHY_HEADING, type PhilosophyConfig } from "@/domain/home-settings";
 import { useEffect, useRef } from "react";
-import { pluralize } from "@/domain/catalog";
+import { pluralize, topLevelCategories } from "@/domain/catalog";
 import { mediaUrl } from "@/domain/media";
 import { CategoryLink } from "@/components/shop/CategoryLink";
 import { useCategories } from "@/lib/query";
@@ -17,21 +17,19 @@ export function CollectionsSection({ heading }: { heading?: string } = {}) {
           <h2 id="collections-title">{heading || "Our collections"}</h2>
         </div>
         <ul className="studio-category-row" aria-label="Collections">
-          {categories
-            .filter((category) => !category.parentId)
-            .map((category, index) => (
-              <li key={category.id} data-reveal="" style={delay(index * 90)}>
-                <CategoryLink className="studio-category" category={category.id}>
-                  <span className="studio-category-media">
-                    <img src={category.image} alt="" loading="lazy" width={800} height={1000} />
-                  </span>
-                  <span className="studio-category-label">
-                    <span className="studio-category-name">{category.name}</span>
-                    <span className="studio-category-count">{pluralize(category.count, "piece")}</span>
-                  </span>
-                </CategoryLink>
-              </li>
-            ))}
+          {topLevelCategories(categories).map((category, index) => (
+            <li key={category.id} data-reveal="" style={delay(index * 90)}>
+              <CategoryLink className="studio-category" category={category.id}>
+                <span className="studio-category-media">
+                  <img src={category.image} alt="" loading="lazy" width={800} height={1000} />
+                </span>
+                <span className="studio-category-label">
+                  <span className="studio-category-name">{category.name}</span>
+                  <span className="studio-category-count">{pluralize(category.count, "piece")}</span>
+                </span>
+              </CategoryLink>
+            </li>
+          ))}
         </ul>
       </div>
     </section>

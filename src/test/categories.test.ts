@@ -1,10 +1,11 @@
 import { invalidateCatalogCache } from "@/server/catalog-cache.server";
 import { describe, expect, test } from "bun:test";
 import type { AdminIdentity } from "@/domain/admin";
-import { collectionPath, findCategory } from "@/domain/catalog";
+import { collectionPath, findCategory, topLevelCategories } from "@/domain/catalog";
 import { categoryInputSchema, validateCategoryParent } from "@/domain/categories-admin";
 import { selectRelated } from "@/domain/related-products";
-import { listProductsPage } from "@/server/catalog-queries.server";
+import { sitemapXml } from "@/domain/seo";
+import { getCategories, listProductsPage } from "@/server/catalog-queries.server";
 import { listManagedCategories, saveCategory } from "@/server/db/admin-categories.repository";
 import { createTestD1 } from "./helpers/d1";
 
@@ -192,5 +193,115 @@ describe("category manager, two-level hierarchy, and 301 slug redirects (C2.6)",
     expect(listing.category?.id).toBe("new-tea");
     expect(listing.category?.slug).toBe("tea");
     expect(listing.canonicalPath).toBe("/collections/tea");
+  });
+
+  test("blocks deactivating a parent category while it still has active subcategories (C7)", async () => {
+    const db = createTestD1();
+    const created = await saveCategory(db, owner, {
+      id: null,
+      name: "Mugs",
+      slug: "mugs",
+      description: "Ceramic mugs",
+      image: "",
+      parentId: "drinkware",
+      sort: 10,
+      active: true,
+    });
+    expect(created.ok).toBe(true);
+
+    const deactivated = await saveCategory(db, owner, {
+      id: "drinkware",
+      name: "Drinkware",
+      slug: "drinkware",
+      description: "Drinkware",
+      image: "",
+      parentId: null,
+      sort: 1,
+      active: false,
+    });
+    expect(deactivated.ok).toBe(false);
+    if (!deactivated.ok) {
+      expect(deactivated.error).toContain("active subcategories");
+    }
+
+    // Deactivating the subcategory first allows deactivating the parent, and blocks re-attaching an active child.
+    const hiddenChild = await saveCategory(db, owner, {
+      id: "mugs",
+      name: "Mugs",
+      slug: "mugs",
+      description: "Ceramic mugs",
+      image: "",
+      parentId: "drinkware",
+      sort: 10,
+      active: false,
+    });
+    expect(hiddenChild.ok).toBe(true);
+
+    const hiddenParent = await saveCategory(db, owner, {
+      id: "drinkware",
+      name: "Drinkware",
+      slug: "drinkware",
+      description: "Drinkware",
+      image: "",
+      parentId: null,
+      sort: 1,
+      active: false,
+    });
+    expect(hiddenParent.ok).toBe(true);
+
+    const reactivatedChild = await saveCategory(db, owner, {
+      id: "mugs",
+      name: "Mugs",
+      slug: "mugs",
+      description: "Ceramic mugs",
+      image: "",
+      parentId: "drinkware",
+      sort: 10,
+      active: true,
+    });
+    expect(reactivatedChild.ok).toBe(false);
+    if (!reactivatedChild.ok) {
+      expect(reactivatedChild.error).toContain("inactive");
+    }
+  });
+
+  test("promotes active subcategories with an inactive parent in D1 so tiles, canonical path, and sitemap agree (C7)", async () => {
+    const db = createTestD1();
+    const created = await saveCategory(db, owner, {
+      id: null,
+      name: "Mugs",
+      slug: "mugs",
+      description: "Ceramic mugs",
+      image: "",
+      parentId: "drinkware",
+      sort: 10,
+      active: true,
+    });
+    expect(created.ok).toBe(true);
+
+    // Simulate pre-existing D1 state where a parent was deactivated while its subcategory remained active.
+    await db.prepare("UPDATE categories SET active = 0 WHERE id = ?").bind("drinkware").run();
+    await invalidateCatalogCache("");
+
+    const { categories } = await getCategories({ imageBase: "", db: () => db });
+    const mugs = categories.find((c) => c.id === "mugs");
+    expect(mugs).toBeDefined();
+    expect(mugs!.path).toBe("/collections/mugs");
+    expect(collectionPath(mugs!, categories)).toBe("/collections/mugs");
+
+    const topLevelIds = topLevelCategories(categories).map((c) => c.id);
+    expect(topLevelIds).toContain("mugs");
+    expect(categories.filter((c) => !c.parentId).map((c) => c.id)).toContain("mugs");
+
+    // topLevelCategories also promotes orphans directly even if passed an un-normalized list.
+    expect(
+      topLevelCategories([
+        { id: "serveware", parentId: null },
+        { id: "mugs", parentId: "drinkware" },
+      ]).map((c) => c.id),
+    ).toEqual(["serveware", "mugs"]);
+
+    const xml = sitemapXml("https://cavara.shop", [], categories);
+    expect(xml).toContain("<loc>https://cavara.shop/collections/mugs</loc>");
   });
 });

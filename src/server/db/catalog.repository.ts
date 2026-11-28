@@ -196,16 +196,18 @@ export async function readPublishedCatalog(db: D1Database, now = new Date()): Pr
     db.prepare(LIVE_SALES_SQL).bind(now.toISOString()),
     db.prepare(CATEGORY_SLUGS_SQL),
   ]);
-  const categories: Category[] = ((categoryResult?.results ?? []) as CategoryRow[])
-    .sort((a, b) => a.sort - b.sort || a.id.localeCompare(b.id))
-    .map(({ id, name, description, image, parent_id, slug }) => ({
-      id,
-      name,
-      description,
-      image,
-      parentId: parent_id ?? null,
-      slug: slug || id,
-    }));
+  const activeCategories = ((categoryResult?.results ?? []) as CategoryRow[]).sort(
+    (a, b) => a.sort - b.sort || a.id.localeCompare(b.id),
+  );
+  const activeCategoryIds = new Set(activeCategories.map((row) => row.id));
+  const categories: Category[] = activeCategories.map(({ id, name, description, image, parent_id, slug }) => ({
+    id,
+    name,
+    description,
+    image,
+    parentId: parent_id && activeCategoryIds.has(parent_id) ? parent_id : null,
+    slug: slug || id,
+  }));
   const categorySlugs: Record<string, string> = {};
   for (const row of (slugResult?.results ?? []) as CategorySlugRow[]) {
     categorySlugs[row.old_slug] = row.category_id;

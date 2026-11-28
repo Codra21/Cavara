@@ -36,6 +36,15 @@ export function findCategory<T extends CategoryRef>(categories: Iterable<T>, key
 }
 
 /**
+ * Categories shown at the top level (`/collections` and home tiles): those with no parent, plus any category whose
+ * parent is absent from `categories` (matching `collectionSegments`, which promotes orphans to `/collections/<slug>`).
+ */
+export function topLevelCategories<T extends CategoryRef>(categories: readonly T[]): T[] {
+  const ids = new Set(categories.map((category) => category.id));
+  return categories.filter((category) => !category.parentId || !ids.has(category.parentId));
+}
+
+/**
  * The path segments of a category's page: `{ category }` for a top-level one, `{ category, subcategory }` (the
  * parent's slug, then its own) for a subcategory. A subcategory whose parent is missing is served at the top level.
  */
