@@ -20,8 +20,15 @@ function homeObjectKey(sources: CatalogSources): string | undefined {
   return `${dir}home-v1.json`;
 }
 
+function publicHomeSettings(settings: HomeSettings): HomeSettings {
+  return {
+    ...settings,
+    banners: settings.banners.filter((b) => b.active),
+  };
+}
+
 function decodeHome(json: string): HomeSettings {
-  return homeSettingsSchema.parse(JSON.parse(json));
+  return publicHomeSettings(homeSettingsSchema.parse(JSON.parse(json)));
 }
 
 export async function getCachedHomeSettings(sources: CatalogSources): Promise<HomeSettings> {
@@ -52,7 +59,7 @@ export async function getCachedHomeSettings(sources: CatalogSources): Promise<Ho
           await cache
             .put(
               edgeKey,
-              new Response(stored.json, {
+              new Response(JSON.stringify(value), {
                 headers: { "Content-Type": "application/json", "Cache-Control": `public, max-age=${EDGE_TTL_SECONDS}` },
               }),
             )
@@ -68,7 +75,7 @@ export async function getCachedHomeSettings(sources: CatalogSources): Promise<Ho
 
   let value: HomeSettings = DEFAULT_HOME_SETTINGS;
   try {
-    value = await readHomeSettings(sources.db());
+    value = publicHomeSettings(await readHomeSettings(sources.db()));
   } catch (error) {
     // D1 unavailable, or the table not migrated yet: serve the defaults and keep them for the memory TTL, so a failing
     // D1 is asked at most once per isolate per TTL instead of on every home view (the read budget).
@@ -93,8 +100,9 @@ export async function getCachedHomeSettings(sources: CatalogSources): Promise<Ho
 }
 
 export async function refreshHomeSettings(sources: CatalogSources, settings: HomeSettings): Promise<boolean> {
-  homeMemory = { expires: Date.now() + MEMORY_TTL_MS, value: settings };
-  const json = JSON.stringify(settings);
+  const publicSettings = publicHomeSettings(settings);
+  homeMemory = { expires: Date.now() + MEMORY_TTL_MS, value: publicSettings };
+  const json = JSON.stringify(publicSettings);
   let ok = true;
   const key = homeObjectKey(sources);
   if (sources.store && key) {

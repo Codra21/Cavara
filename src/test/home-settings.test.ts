@@ -86,6 +86,92 @@ describe("home banners and editor settings (C3.3)", () => {
     });
     expect(cached.banners[0]?.heading).toBe("Autumn Glazes");
   });
+
+  test("S2B-1: excludes inactive/draft banners from public snapshots and cached reads while preserving admin D1 reads", async () => {
+    clearHomeMemoryCache();
+    const db = createTestD1();
+    const mixed = homeSettingsSchema.parse({
+      ...DEFAULT_HOME_SETTINGS,
+      banners: [
+        {
+          desktopImage: "product-images/live-desktop.webp",
+          mobileImage: "product-images/live-mobile.webp",
+          heading: "Live Campaign",
+          buttonText: "Shop",
+          linkHref: "/collections/drinkware",
+          active: true,
+          sort: 0,
+        },
+        {
+          desktopImage: "product-images/draft-desktop.webp",
+          mobileImage: "product-images/draft-mobile.webp",
+          heading: "Secret Unreleased Sale",
+          buttonText: "Preview",
+          linkHref: "/products",
+          active: false,
+          sort: 1,
+        },
+      ],
+    });
+
+    const saved = await saveHomeSettings(db, owner, mixed);
+    expect(saved.settings.banners).toHaveLength(2);
+
+    // Admin D1 reads must still see both active and inactive banners.
+    const adminRead = await readHomeSettings(db);
+    expect(adminRead.banners.map((b) => b.heading)).toEqual(["Live Campaign", "Secret Unreleased Sale"]);
+
+    const store = new FakeStore();
+    const sources = {
+      imageBase: "",
+      db: () => db,
+      store,
+      keys: {
+        legacy: "snapshots/catalog-v1.json",
+        summary: "snapshots/catalog-v4.json",
+        detail: (id: number) => `snapshots/products/v2/${id}.json`,
+      },
+    };
+
+    // 1. refreshHomeSettings writes only active banners to snapshots/home-v1.json and memory cache.
+    await refreshHomeSettings(sources, saved.settings);
+    const refreshedRaw = store.objects.get("snapshots/home-v1.json")?.json;
+    expect(refreshedRaw).toBeDefined();
+    const refreshedSnapshot = homeSettingsSchema.parse(JSON.parse(refreshedRaw!));
+    expect(refreshedSnapshot.banners.map((b) => b.heading)).toEqual(["Live Campaign"]);
+    expect(refreshedRaw).not.toContain("Secret Unreleased Sale");
+
+    const fromMemory = await getCachedHomeSettings({
+      ...sources,
+      db: () => {
+        throw new Error("D1 should not be called on memory hit");
+      },
+    });
+    expect(fromMemory.banners.map((b) => b.heading)).toEqual(["Live Campaign"]);
+
+    // 2. getCachedHomeSettings reading from D1 fallback filters inactive banners before writing R2 and returning.
+    clearHomeMemoryCache();
+    store.objects.clear();
+    const fromD1 = await getCachedHomeSettings(sources);
+    expect(fromD1.banners.map((b) => b.heading)).toEqual(["Live Campaign"]);
+
+    const d1SnapshotRaw = store.objects.get("snapshots/home-v1.json")?.json;
+    expect(d1SnapshotRaw).toBeDefined();
+    const d1Snapshot = homeSettingsSchema.parse(JSON.parse(d1SnapshotRaw!));
+    expect(d1Snapshot.banners.map((b) => b.heading)).toEqual(["Live Campaign"]);
+    expect(d1SnapshotRaw).not.toContain("Secret Unreleased Sale");
+
+    // 3. Stale R2 snapshot containing inactive banners is also filtered on public read.
+    clearHomeMemoryCache();
+    store.seed("snapshots/home-v1.json", JSON.stringify(saved.settings));
+    const fromStaleR2 = await getCachedHomeSettings({
+      ...sources,
+      db: () => {
+        throw new Error("D1 should not be called on R2 hit");
+      },
+    });
+    expect(fromStaleR2.banners.map((b) => b.heading)).toEqual(["Live Campaign"]);
+  });
 });
 
 describe("home settings validation (review fixes)", () => {
