@@ -108,7 +108,11 @@ function ImageUploadButton({ label, onUploaded }: { label: string; onUploaded: (
         accept={UPLOAD_ACCEPT}
         maxSize={MAX_SOURCE_BYTES}
         value={NO_FILES}
-        onValueChange={upload}
+        onValueChange={(files, details) => {
+          // The picker stays empty: the upload owns the file, so refuse the change rather than ignore it.
+          details.cancel();
+          void upload(files);
+        }}
         onReject={(rejected) => {
           const first = rejected[0];
           if (!first) return;

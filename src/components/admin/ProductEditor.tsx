@@ -165,7 +165,11 @@ function PictureUpload({
           multiple
           accept={UPLOAD_ACCEPT}
           value={NO_FILES}
-          onValueChange={(files) => upload(files)}
+          onValueChange={(files, details) => {
+            // The picker stays empty: the upload owns the files, so refuse the change rather than ignore it.
+            details.cancel();
+            void upload(files);
+          }}
           onReject={(rejected) => {
             setSummary([]);
             setErrors(rejected.map((item) => `${item.file.name} is not a supported image type.`));
