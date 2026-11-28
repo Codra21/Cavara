@@ -64,7 +64,16 @@ afterEach(cleanup);
 
 const checked = (name: string) =>
   screen.getByRole("radio", { name: new RegExp(`^${name}`) }).getAttribute("aria-checked");
-const lastSearch = () => (navigate.mock.calls.at(-1)![0] as { search: Record<string, unknown> }).search;
+type SearchArg = Record<string, unknown> | ((prev: Record<string, unknown>) => Record<string, unknown>);
+const resolveSearch = (search: SearchArg, prev: Record<string, unknown>) =>
+  typeof search === "function" ? search(prev) : search;
+const lastSearch = (prev = route.search) =>
+  resolveSearch((navigate.mock.calls.at(-1)![0] as { search: SearchArg }).search, prev);
+const appliedSearch = () =>
+  (navigate.mock.calls as [{ search?: SearchArg }][]).reduce(
+    (state, [call]) => (call.search !== undefined ? resolveSearch(call.search, state) : state),
+    route.search,
+  );
 
 test("the dashboard period control switches between days and months", async () => {
   const user = userEvent.setup();
@@ -137,8 +146,9 @@ test("the product status filter keeps its counts and navigates with the chosen s
   await user.click(screen.getByRole("radio", { name: /^Published/ }));
   expect(navigate).toHaveBeenLastCalledWith({
     to: "/admin/products",
-    search: expect.objectContaining({ status: "published" }),
+    search: expect.any(Function),
   });
+  expect(lastSearch()).toEqual(expect.objectContaining({ status: "published" }));
 
   await user.click(screen.getByRole("radio", { name: /^All/ }));
   expect(lastSearch().status).toBeUndefined();
@@ -163,8 +173,9 @@ test("the stock toggles follow the search params and flip them on press", async 
   await user.click(low);
   expect(navigate).toHaveBeenLastCalledWith({
     to: "/admin/products",
-    search: expect.objectContaining({ lowStock: true, outOfStock: true }),
+    search: expect.any(Function),
   });
+  expect(lastSearch()).toEqual(expect.objectContaining({ lowStock: true, outOfStock: true }));
 
   low.focus();
   await user.keyboard("{Enter}");
@@ -201,12 +212,27 @@ test("an agent can find and change every filter", async () => {
   });
   expect(result.ok, result.error?.message).toBe(true);
   expect(screen.getByText("Last 12 months")).toBeTruthy();
-  expect(navigate).toHaveBeenCalledWith({
+  const resolvedSearches = (navigate.mock.calls as [{ to?: string; search?: SearchArg }][]).map(([call]) => ({
+    to: call.to,
+    search: call.search !== undefined ? resolveSearch(call.search, route.search) : undefined,
+  }));
+  expect(resolvedSearches).toContainEqual({
     to: "/admin/products",
     search: expect.objectContaining({ status: "draft" }),
   });
-  expect(navigate).toHaveBeenCalledWith({
+  expect(resolvedSearches).toContainEqual({
     to: "/admin/products",
     search: expect.objectContaining({ outOfStock: true }),
   });
+});
+
+test("rapid filter clicks before navigation settles compose both filters", async () => {
+  const user = userEvent.setup();
+  render(<ProductList />, { wrapper: Providers });
+
+  await screen.findByRole("radio", { name: /^Published\s*5$/ });
+  await user.click(screen.getByRole("radio", { name: /^Published/ }));
+  await user.click(screen.getByRole("button", { name: "Out of stock" }));
+
+  expect(appliedSearch()).toEqual(expect.objectContaining({ status: "published", outOfStock: true }));
 });

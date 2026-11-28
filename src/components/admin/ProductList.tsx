@@ -138,7 +138,7 @@ function NameSearch({ term }: { term: string }) {
 
 export function ProductList() {
   const search = routeApi.useSearch();
-  const navigate = useNavigate();
+  const navigate = useNavigate({ from: "/admin/products/" });
   const [optimistic, setOptimistic] = useState<{ base: AdminProductSearch; value: AdminProductSearch } | null>(null);
   const currentSearch = optimistic && optimistic.base === search ? optimistic.value : search;
   const query = withDefaultSort(currentSearch);
@@ -169,8 +169,11 @@ export function ProductList() {
     navigate({ to: "/admin/products", search: next });
   };
   const changeFilter = (patch: Partial<AdminProductSearch>) => {
-    setOptimistic({ base: search, value: firstPage({ ...currentSearch, ...patch }) });
-    navigate({ to: "/admin/products", search: firstPage({ ...search, ...patch }) });
+    setOptimistic((prev) => ({
+      base: search,
+      value: firstPage({ ...(prev && prev.base === search ? prev.value : search), ...patch }),
+    }));
+    navigate({ to: "/admin/products", search: (prev) => firstPage({ ...prev, ...patch }) });
   };
 
   function toggleRow(id: number, on: boolean) {
