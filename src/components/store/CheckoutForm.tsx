@@ -22,6 +22,13 @@ export interface PlacedOrder {
   phone: string;
 }
 
+export interface AppliedCoupon {
+  code: string;
+  discount: number;
+  /** Cart signature the discount was verified for, so cart edits away from checkout invalidate it. */
+  bagSignature: string;
+}
+
 export interface CheckoutDraft {
   name: string;
   phone: string;
@@ -50,6 +57,10 @@ export function CheckoutForm({
   zones,
   draft,
   onDraftChange: setDraft,
+  coupon: controlledCoupon,
+  onCouponChange,
+  couponText: controlledCouponText,
+  onCouponTextChange,
   onBack,
   onPlaced,
 }: {
@@ -57,6 +68,10 @@ export function CheckoutForm({
   zones: DeliveryZone[];
   draft: CheckoutDraft;
   onDraftChange: React.Dispatch<React.SetStateAction<CheckoutDraft>>;
+  coupon?: AppliedCoupon | null;
+  onCouponChange?: React.Dispatch<React.SetStateAction<AppliedCoupon | null>>;
+  couponText?: string;
+  onCouponTextChange?: React.Dispatch<React.SetStateAction<string>>;
   onBack: () => void;
   onPlaced: (order: PlacedOrder) => void;
 }) {
@@ -72,9 +87,13 @@ export function CheckoutForm({
   // quantity or colour change moves the weight, so the form works the charge out again instead of sending a stale one.
   const [serverCharge, setServerCharge] = useState<{ zoneId: string; charge: number; weightG: number } | null>(null);
   /** The applied coupon and the discount the server last confirmed; the server checks both again on send. */
-  const [coupon, setCoupon] = useState<{ code: string; discount: number } | null>(null);
-  const [couponOpen, setCouponOpen] = useState(false);
-  const [couponText, setCouponText] = useState("");
+  const [localCoupon, setLocalCoupon] = useState<AppliedCoupon | null>(null);
+  const coupon = controlledCoupon !== undefined ? controlledCoupon : localCoupon;
+  const setCoupon = onCouponChange ?? setLocalCoupon;
+  const [localCouponText, setLocalCouponText] = useState("");
+  const couponText = controlledCouponText !== undefined ? controlledCouponText : localCouponText;
+  const setCouponText = onCouponTextChange ?? setLocalCouponText;
+  const [couponOpen, setCouponOpen] = useState(() => Boolean(couponText));
   const [couponError, setCouponError] = useState<string | null>(null);
   const [couponPending, setCouponPending] = useState(false);
   const couponPendingRef = useRef(false);
@@ -102,28 +121,25 @@ export function CheckoutForm({
   const zoneId = zone?.id ?? "";
   const deliveryCharge = zone ? chargeForZone(zone) : 0;
   const subtotal = lines.reduce((sum, line) => sum + line.unitPrice * line.item.qty, 0);
-  const couponDiscount = coupon?.discount ?? 0;
-  const total = Math.max(0, subtotal - couponDiscount) + deliveryCharge;
-
   const signatureOf = (items: typeof lines) =>
     items.map((line) => `${line.item.id}:${line.item.variant}:${line.item.qty}:${line.unitPrice}`).join(",");
   const bagSignature = signatureOf(lines);
-  const prevBagSignature = useRef(bagSignature);
+  const activeCoupon = coupon && coupon.bagSignature === bagSignature ? coupon : null;
+  const couponDiscount = activeCoupon?.discount ?? 0;
+  const total = Math.max(0, subtotal - couponDiscount) + deliveryCharge;
+
   useEffect(() => {
-    if (prevBagSignature.current === bagSignature) return;
-    prevBagSignature.current = bagSignature;
-    if (!coupon) return;
+    if (!coupon || coupon.bagSignature === bagSignature) return;
     // The discount was worked out for the old bag, so the shopper applies the code again.
     setCoupon(null);
     setCouponOpen(true);
     setCouponText(coupon.code);
     setCouponError("Your cart changed. Apply your code again.");
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- runs only when the bag changes
-  }, [bagSignature]);
+  }, [bagSignature, coupon, setCoupon, setCouponText]);
 
-  const applyAnswer = (answer: CouponAnswer) => {
+  const applyAnswer = (answer: CouponAnswer, signature = bagSignature) => {
     if (answer.ok) {
-      setCoupon({ code: answer.code, discount: answer.discount });
+      setCoupon({ code: answer.code, discount: answer.discount, bagSignature: signature });
       setCouponError(null);
       setCouponText("");
     } else {
@@ -183,7 +199,7 @@ export function CheckoutForm({
       ...draft,
       zoneId,
       deliveryCharge,
-      couponCode: coupon?.code ?? "",
+      couponCode: activeCoupon?.code ?? "",
       couponDiscount,
       items: lines.map((line) => ({
         productId: line.item.id,
@@ -239,12 +255,12 @@ export function CheckoutForm({
         result.prices.map((price) => [priceKey(price.productId, price.variant), price.unitPrice]),
       );
       // Syncing server-confirmed prices must not trip the bag-change effect and wipe result.coupon.
-      prevBagSignature.current = signatureOf(withPrices(nextPrices));
+      const nextSignature = signatureOf(withPrices(nextPrices));
       setServerPrices(nextPrices);
       setServerCharge({ zoneId, charge: result.deliveryCharge, weightG: totalWeightG });
       // A coupon that changed or stopped applying: show its new discount, or drop it and say why next to the field.
       if (result.coupon) {
-        applyAnswer(result.coupon);
+        applyAnswer(result.coupon, nextSignature);
         if (!result.coupon.ok) setCouponOpen(true);
       }
     }
@@ -383,10 +399,10 @@ export function CheckoutForm({
       </div>
 
       <div className="checkout-coupon">
-        {coupon ? (
+        {activeCoupon ? (
           <div className="checkout-coupon-applied">
             <span>
-              Code <strong>{coupon.code}</strong> applied
+              Code <strong>{activeCoupon.code}</strong> applied
             </span>
             <button
               className="text-button"
@@ -396,7 +412,7 @@ export function CheckoutForm({
                 setCouponError(null);
               }}
             >
-              Remove<span className="sr-only"> code {coupon.code}</span>
+              Remove<span className="sr-only"> code {activeCoupon.code}</span>
             </button>
           </div>
         ) : (
@@ -458,10 +474,10 @@ export function CheckoutForm({
           <dt>Subtotal</dt>
           <dd>{formatPrice(subtotal)}</dd>
         </div>
-        {coupon ? (
+        {activeCoupon ? (
           <div className="checkout-discount">
-            <dt>Code {coupon.code}</dt>
-            <dd>−{formatPrice(coupon.discount)}</dd>
+            <dt>Code {activeCoupon.code}</dt>
+            <dd>−{formatPrice(activeCoupon.discount)}</dd>
           </div>
         ) : null}
         <div>

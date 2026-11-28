@@ -9,7 +9,7 @@ import { Toast } from "@/components/layout/SiteChrome";
 import { useShopNavigation } from "@/components/layout/useShopNavigation";
 import { ModalDialog } from "@/components/ui/ModalDialog";
 import { Icon, Quantity, SrOnly } from "@/components/ui/primitives";
-import { CheckoutForm, type CheckoutDraft, EMPTY_DRAFT, type PlacedOrder } from "./CheckoutForm";
+import { type AppliedCoupon, CheckoutForm, type CheckoutDraft, EMPTY_DRAFT, type PlacedOrder } from "./CheckoutForm";
 import { calculateDeliveryCharge, calculateTotalWeightG, formatPhone } from "@/domain/orders";
 import { useBagLines } from "./useBagLines";
 import { useStore } from "./StoreProvider";
@@ -49,6 +49,8 @@ export function BagDrawer() {
   const ready = canCheckout(lines);
   const [view, setView] = useState<"bag" | "checkout" | "placed">("bag");
   const [draft, setDraft] = useState<CheckoutDraft>(EMPTY_DRAFT);
+  const [coupon, setCoupon] = useState<AppliedCoupon | null>(null);
+  const [couponText, setCouponText] = useState("");
   const [placed, setPlaced] = useState<PlacedOrder | null>(null);
   const placedRef = useRef<HTMLHeadingElement>(null);
 
@@ -62,10 +64,19 @@ export function BagDrawer() {
     if (view === "checkout" && !ready) setView("bag");
   }, [ready, view]);
 
+  useEffect(() => {
+    if (bagCount === 0) {
+      setCoupon(null);
+      setCouponText("");
+    }
+  }, [bagCount]);
+
   function onPlaced(order: PlacedOrder) {
     setPlaced(order);
     setView("placed");
     setDraft(EMPTY_DRAFT);
+    setCoupon(null);
+    setCouponText("");
     clearBag();
   }
 
@@ -107,6 +118,10 @@ export function BagDrawer() {
               zones={zones}
               draft={draft}
               onDraftChange={setDraft}
+              coupon={coupon}
+              onCouponChange={setCoupon}
+              couponText={couponText}
+              onCouponTextChange={setCouponText}
               onBack={() => setView("bag")}
               onPlaced={onPlaced}
             />
