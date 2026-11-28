@@ -10,7 +10,7 @@ import { useShopNavigation } from "@/components/layout/useShopNavigation";
 import { ModalDialog } from "@/components/ui/ModalDialog";
 import { Icon, Quantity, SrOnly } from "@/components/ui/primitives";
 import { CheckoutForm, type CheckoutDraft, EMPTY_DRAFT, type PlacedOrder } from "./CheckoutForm";
-import { formatPhone } from "@/domain/orders";
+import { calculateDeliveryCharge, calculateTotalWeightG, formatPhone } from "@/domain/orders";
 import { useBagLines } from "./useBagLines";
 import { useStore } from "./StoreProvider";
 import { PriceTag } from "./PriceTag";
@@ -39,12 +39,13 @@ export function BagDrawer() {
   const browseRef = useRef<HTMLButtonElement>(null);
   const subtotal = bagSubtotal(lines);
   const settled = lines.every((line) => line.status !== "pending");
-  // Pieces the shop no longer sells are not counted once the lookup has said so.
-  const itemCount = settled
-    ? lines.reduce((sum, line) => (line.status === "unavailable" ? sum : sum + line.item.qty), 0)
-    : bagCount;
   const blocked = blockedLines(lines);
   const buyable = lines.filter(isBuyable);
+  // Pieces that cannot be ordered (unavailable or sold out) are not counted once the lookup has settled.
+  const itemCount = settled ? buyable.reduce((sum, line) => sum + line.item.qty, 0) : bagCount;
+  const totalWeightG = calculateTotalWeightG(
+    buyable.map((line) => ({ weightG: line.product.weightG, qty: line.item.qty })),
+  );
   const ready = canCheckout(lines);
   const [view, setView] = useState<"bag" | "checkout" | "placed">("bag");
   const [draft, setDraft] = useState<CheckoutDraft>(EMPTY_DRAFT);
@@ -283,7 +284,9 @@ export function BagDrawer() {
           ) : null}
           <p>
             {zones.length
-              ? `Delivery ${zones.map((zone) => `${zone.name} ${formatPrice(zone.charge)}`).join(" · ")}. `
+              ? `Delivery ${zones
+                  .map((zone) => `${zone.name} ${formatPrice(calculateDeliveryCharge(zone, totalWeightG))}`)
+                  .join(" · ")}. `
               : ""}
             We call to confirm every order before it ships.
           </p>
