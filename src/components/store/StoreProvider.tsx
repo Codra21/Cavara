@@ -125,10 +125,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       if (!result.added) return { added: false, addedQty: 0 };
       const after = result.bag.find((item) => item.id === productId && item.variant === variant)?.qty ?? 0;
       const addedQty = Math.max(0, after - before);
-      if (addedQty > 0) {
-        setBag(result.bag);
-        setBagBump((value) => value + 1);
-      }
+      if (after !== before) setBag(result.bag);
+      if (addedQty > 0) setBagBump((value) => value + 1);
       return { added: true, addedQty };
     },
     [setBag],

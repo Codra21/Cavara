@@ -229,3 +229,45 @@ test("ProductPage gallery switches main photo via thumbnails and opens fullscree
   await user.click(screen.getByRole("button", { name: /View photo 2 of 2 full screen/i }));
   expect(await screen.findByRole("dialog", { name: "Polka Cup photo viewer" })).toBeTruthy();
 });
+
+test("addToBag persists stock cap-down when saved bag quantity exceeds current stock", async () => {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }),
+  });
+  localStorage.setItem(STORAGE_KEYS.bag, JSON.stringify([{ id: 1, variant: 0, qty: 8 }]));
+  let lastResult: { added: boolean; addedQty: number } | undefined;
+  function Probe() {
+    const { bag, bagCount, bagBump, addToBag } = useStore();
+    return (
+      <div>
+        <output data-testid="bag">{JSON.stringify(bag)}</output>
+        <output data-testid="count">{bagCount}</output>
+        <output data-testid="bump">{bagBump}</output>
+        <button
+          type="button"
+          onClick={() => {
+            lastResult = addToBag(1, 0, 1, 2);
+          }}
+        >
+          Add capped
+        </button>
+      </div>
+    );
+  }
+  const user = userEvent.setup();
+  render(
+    <StoreProvider>
+      <Probe />
+    </StoreProvider>,
+  );
+
+  expect(screen.getByTestId("count").textContent).toBe("8");
+  await user.click(screen.getByRole("button", { name: "Add capped" }));
+
+  expect(lastResult).toEqual({ added: true, addedQty: 0 });
+  expect(screen.getByTestId("count").textContent).toBe("2");
+  expect(screen.getByTestId("bump").textContent).toBe("0");
+  expect(JSON.parse(screen.getByTestId("bag").textContent ?? "[]")).toEqual([{ id: 1, variant: 0, qty: 2 }]);
+  expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.bag) ?? "[]")).toEqual([{ id: 1, variant: 0, qty: 2 }]);
+});
