@@ -1,5 +1,6 @@
 import { Radio, RadioGroup } from "@ui-sdk/react/radio";
 import type { ReactNode } from "react";
+import { safeSwatch } from "@/domain/swatch";
 import type { Availability } from "@/lib/types";
 
 /** Font Awesome icon. `name` is the full class list, e.g. "fa-solid fa-bag-shopping". */
@@ -57,6 +58,7 @@ export function Swatch({
   size?: "small" | "large";
 }) {
   const soldOut = variant.availability === "out_of_stock";
+  const background = safeSwatch(variant.swatch);
   return (
     <Radio
       className="swatch"
@@ -66,7 +68,7 @@ export function Swatch({
       aria-label={`${variant.name}${soldOut ? ", out of stock" : ""}`}
       title={soldOut ? `${variant.name} (out of stock)` : variant.name}
     >
-      <span style={{ background: variant.swatch }} />
+      <span style={background ? { background } : undefined} />
     </Radio>
   );
 }

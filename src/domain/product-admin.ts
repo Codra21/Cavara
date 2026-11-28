@@ -2,6 +2,9 @@
 import { z } from "zod";
 import type { Availability } from "@/lib/types";
 import { isImageKey } from "./media";
+import { isSafeSwatch, MAX_SWATCH_LENGTH } from "./swatch";
+
+export { isSafeSwatch };
 
 export const PRODUCT_STATUSES = ["draft", "published", "archived"] as const;
 export type ProductStatus = (typeof PRODUCT_STATUSES)[number];
@@ -15,8 +18,6 @@ export const MAX_DETAILS = 12;
 export const MAX_PRICE = 10_000_000;
 
 export const SLUG_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-/** Colours and gradients only. No url(), quotes or semicolons, so a swatch cannot load remote content. */
-const SWATCH_PATTERN = /^[#a-zA-Z0-9(),.%\s-]+$/;
 
 const money = z.number().int().min(0).max(MAX_PRICE);
 const optionalText = (max: number) =>
@@ -34,9 +35,8 @@ export const variantInputSchema = z.object({
     .string()
     .trim()
     .min(1, "Add a swatch colour")
-    .max(300)
-    .regex(SWATCH_PATTERN, "Use a colour like #E0799C or a CSS gradient")
-    .refine((value) => !/url\s*\(/i.test(value), "Swatches cannot load images"),
+    .max(MAX_SWATCH_LENGTH)
+    .refine(isSafeSwatch, "Use a colour like #E0799C or a CSS gradient"),
   availability: z.enum(AVAILABILITIES),
   /** R2 object keys (see src/domain/media.ts). */
   images: z.array(z.string().max(200).refine(isImageKey, "Unknown image")).max(MAX_IMAGES_PER_VARIANT),

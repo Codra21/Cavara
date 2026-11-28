@@ -11,6 +11,7 @@
 import { bestSale, type SaleRule, saleBadge, strikePrice } from "@/domain/discounts";
 import { collectionPath } from "@/domain/catalog";
 import { mediaUrl } from "@/domain/media";
+import { safeSwatch } from "@/domain/swatch";
 import type { DeliveryZone } from "@/domain/orders";
 import { MAX_QTY } from "@/lib/config";
 import type { Availability, Catalog, Category, Product, Variant } from "@/lib/types";
@@ -166,7 +167,7 @@ export function toProductSummary(product: ProductDetail): ProductSummary {
     images: first.images.slice(0, 2),
     variants: [first, ...rest].map((variant) => ({
       name: variant.name,
-      swatch: variant.swatch,
+      swatch: safeSwatch(variant.swatch),
       availability: variant.availability,
       image: variant.images[0] ?? null,
       stock: capVariantStock(variant.stock),
@@ -177,7 +178,7 @@ export function toProductSummary(product: ProductDetail): ProductSummary {
 export function toLegacyProduct(product: ProductDetail, imageBase: string): Product {
   const [first, ...rest] = product.variants.map((variant): Variant => ({
     name: variant.name,
-    swatch: variant.swatch,
+    swatch: safeSwatch(variant.swatch),
     images: variant.images.map((key) => mediaUrl(imageBase, key)),
     availability: variant.availability,
   }));
@@ -336,7 +337,7 @@ export function decodeSummary(json: string): CatalogSummary {
           bad(`variant of product ${id}`);
         return {
           name: variantName,
-          swatch,
+          swatch: safeSwatch(swatch),
           availability,
           image: index === 0 ? (images[0] ?? null) : (image ?? null),
           stock: capVariantStock(stock),
@@ -384,7 +385,11 @@ export function decodeDetail(json: string): ProductDetailDoc {
     product.variants.length === 0
   )
     throw new Error("product detail is malformed");
-  return { gen: doc.gen, product };
+  const [first, ...rest] = product.variants.map((variant) => ({
+    ...variant,
+    swatch: safeSwatch(variant.swatch),
+  }));
+  return { gen: doc.gen, product: { ...product, variants: [first as DetailVariant, ...rest] } };
 }
 
 // In-place patches (pure; the R2 read-modify-write lives in src/server/catalog-cache.server.ts)
@@ -545,6 +550,7 @@ export function resolveCard(product: ProductSummary, imageBase: string): Product
     images: product.images.map((key) => mediaUrl(imageBase, key)),
     variants: product.variants.map((variant) => ({
       ...variant,
+      swatch: safeSwatch(variant.swatch),
       image: variant.image ? mediaUrl(imageBase, variant.image) : null,
     })),
   };
@@ -557,6 +563,7 @@ export function resolveProduct(
   const { sort: _sort, ...rest } = product;
   const [first, ...others] = product.variants.map((variant) => ({
     ...variant,
+    swatch: safeSwatch(variant.swatch),
     images: variant.images.map((key) => mediaUrl(imageBase, key)),
   }));
   return { ...rest, variants: [first as DetailVariant, ...others] };

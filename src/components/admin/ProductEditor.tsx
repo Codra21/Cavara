@@ -22,6 +22,7 @@ import {
   type AdminProduct,
   AVAILABILITIES,
   emptyProductForm,
+  isSafeSwatch,
   MAX_DETAILS,
   MAX_IMAGES_PER_VARIANT,
   MAX_VARIANTS,
@@ -232,8 +233,8 @@ function VariantCard({
   const counted = stock !== null;
   const images = variant.images ?? [];
   const label = variant.name || `Colour ${index + 1}`;
-  // Preview only values that pass the server's swatch rule shape (no url()).
-  const previewable = !/url\s*\(/i.test(variant.swatch);
+  // Preview only values that pass the shared swatch allowlist.
+  const previewable = isSafeSwatch(variant.swatch);
 
   return (
     <li className="grid gap-4 rounded-md border border-border p-4">
@@ -241,7 +242,7 @@ function VariantCard({
         <div className="flex items-center gap-2">
           <span
             className="size-6 shrink-0 rounded-full border border-border"
-            style={previewable ? { background: variant.swatch } : undefined}
+            style={previewable ? { background: variant.swatch.trim() } : undefined}
             aria-hidden="true"
           />
           <span className="font-medium">{label}</span>
