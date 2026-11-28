@@ -97,12 +97,33 @@ function ImageUploadButton({ label, onUploaded }: { label: string; onUploaded: (
 
   return (
     <div className="grid gap-1">
-      <FileInput accept={UPLOAD_ACCEPT} value={NO_FILES} onValueChange={upload} disabled={busy}>
+      <FileInput
+        accept={UPLOAD_ACCEPT}
+        maxSize={MAX_SOURCE_BYTES}
+        value={NO_FILES}
+        onValueChange={upload}
+        onReject={(rejected) => {
+          const first = rejected[0];
+          if (!first) return;
+          if (first.reasons.includes("file-type")) {
+            setError(`${first.file.name} is not a supported image type.`);
+          } else if (first.reasons.includes("file-too-large")) {
+            setError(`Image must be under ${MAX_SOURCE_BYTES / 1024 / 1024} MB.`);
+          } else {
+            setError(`${first.file.name} could not be accepted.`);
+          }
+        }}
+        disabled={busy}
+      >
         <FileInputTrigger render={<Button type="button" variant="outline" size="sm" />}>
           <ImagePlus /> {busy ? "Uploading…" : label}
         </FileInputTrigger>
       </FileInput>
-      {error ? <p className="text-xs text-destructive">{error}</p> : null}
+      {error ? (
+        <p role="alert" className="text-xs text-destructive">
+          {error}
+        </p>
+      ) : null}
     </div>
   );
 }
