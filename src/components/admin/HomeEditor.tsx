@@ -35,6 +35,30 @@ import { ADMIN_QUERY_KEY } from "./queries";
 const NO_FILES: File[] = [];
 const MAX_PHILOSOPHY_IMAGES = 2;
 
+type EditableBanner = HomeBanner & { uid: string };
+type EditableHomeSettings = Omit<HomeSettings, "banners"> & { banners: EditableBanner[] };
+
+let nextBannerUid = 0;
+
+function createBannerUid(): string {
+  nextBannerUid += 1;
+  return `banner-${nextBannerUid}`;
+}
+
+function withBannerUids(settings: HomeSettings): EditableHomeSettings {
+  return {
+    ...settings,
+    banners: settings.banners.map((banner) => ({ ...banner, uid: createBannerUid() })),
+  };
+}
+
+function stripBannerUids(settings: EditableHomeSettings): HomeSettings {
+  return {
+    ...settings,
+    banners: settings.banners.map(({ uid: _uid, ...banner }) => banner),
+  };
+}
+
 function move<T>(list: T[], from: number, to: number): T[] {
   if (to < 0 || to >= list.length) return list;
   const next = [...list];
@@ -87,7 +111,7 @@ function ImageUploadButton({ label, onUploaded }: { label: string; onUploaded: (
 export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imageBase: string }) {
   const id = useId();
   const queryClient = useQueryClient();
-  const [settings, setSettings] = useState<HomeSettings>(initial);
+  const [settings, setSettings] = useState<EditableHomeSettings>(() => withBannerUids(initial));
   const [problems, setProblems] = useState<string[]>([]);
   const [notice, setNotice] = useState<{ text: string; warning: boolean } | null>(null);
 
@@ -95,7 +119,7 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
     mutationFn: (input: HomeSettings) => saveHomeSettingsFn({ data: input }),
     onSuccess: async (result) => {
       setProblems([]);
-      setSettings(result.settings);
+      setSettings(withBannerUids(result.settings));
       setNotice({
         text: result.warning ?? "Home page settings saved.",
         warning: Boolean(result.warning),
@@ -108,18 +132,38 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
     onError: (err) => setProblems([err.message || "Could not save home settings."]),
   });
 
-  const updateBanner = (index: number, patch: Partial<HomeBanner>) => {
+  const updateBanner = (uid: string, patch: Partial<HomeBanner>) => {
+    setNotice(null);
+    setSettings((prev) => {
+      if (!prev.banners.some((b) => b.uid === uid)) return prev;
+      return {
+        ...prev,
+        banners: prev.banners.map((b) => (b.uid === uid ? { ...b, ...patch } : b)),
+      };
+    });
+  };
+
+  const moveBanner = (uid: string, delta: -1 | 1) => {
+    setNotice(null);
+    setSettings((prev) => {
+      const from = prev.banners.findIndex((b) => b.uid === uid);
+      if (from === -1) return prev;
+      return { ...prev, banners: move(prev.banners, from, from + delta) };
+    });
+  };
+
+  const removeBanner = (uid: string) => {
     setNotice(null);
     setSettings((prev) => ({
       ...prev,
-      banners: prev.banners.map((b, i) => (i === index ? { ...b, ...patch } : b)),
+      banners: prev.banners.filter((b) => b.uid !== uid),
     }));
   };
 
   function submit(event: React.FormEvent) {
     event.preventDefault();
     if (save.isPending) return;
-    const parsed = homeSettingsSchema.safeParse(settings);
+    const parsed = homeSettingsSchema.safeParse(stripBannerUids(settings));
     if (!parsed.success) {
       setProblems([...new Set(parsed.error.issues.map((i) => i.message))]);
       return;
@@ -183,6 +227,7 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
                   banners: [
                     ...prev.banners,
                     {
+                      uid: createBannerUid(),
                       id: null,
                       desktopImage: "",
                       mobileImage: "",
@@ -210,15 +255,15 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
             </p>
           ) : null}
           {settings.banners.map((banner, index) => (
-            <div key={index} className="grid gap-3 rounded-md border border-border p-4">
+            <div key={banner.uid} className="grid gap-3 rounded-md border border-border p-4">
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <Checkbox
-                    id={`${id}-banner-active-${index}`}
+                    id={`${id}-banner-active-${banner.uid}`}
                     checked={banner.active}
-                    onCheckedChange={(checked) => updateBanner(index, { active: checked === true })}
+                    onCheckedChange={(checked) => updateBanner(banner.uid, { active: checked === true })}
                   />
-                  <Label htmlFor={`${id}-banner-active-${index}`}>Banner {index + 1} active</Label>
+                  <Label htmlFor={`${id}-banner-active-${banner.uid}`}>Banner {index + 1} active</Label>
                 </div>
                 <div className="flex items-center gap-1">
                   <Button
@@ -227,7 +272,7 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
                     size="icon-sm"
                     disabled={index === 0}
                     aria-label={`Move banner ${index + 1} up`}
-                    onClick={() => setSettings((prev) => ({ ...prev, banners: move(prev.banners, index, index - 1) }))}
+                    onClick={() => moveBanner(banner.uid, -1)}
                   >
                     <ArrowUp />
                   </Button>
@@ -237,7 +282,7 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
                     size="icon-sm"
                     disabled={index === settings.banners.length - 1}
                     aria-label={`Move banner ${index + 1} down`}
-                    onClick={() => setSettings((prev) => ({ ...prev, banners: move(prev.banners, index, index + 1) }))}
+                    onClick={() => moveBanner(banner.uid, 1)}
                   >
                     <ArrowDown />
                   </Button>
@@ -246,12 +291,7 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
                     variant="ghost"
                     size="icon-sm"
                     aria-label={`Remove banner ${index + 1}`}
-                    onClick={() =>
-                      setSettings((prev) => ({
-                        ...prev,
-                        banners: prev.banners.filter((_, i) => i !== index),
-                      }))
-                    }
+                    onClick={() => removeBanner(banner.uid)}
                   >
                     <Trash2 />
                   </Button>
@@ -259,16 +299,16 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
               </div>
               <div className="grid gap-3 sm:grid-cols-2">
                 <div className="grid gap-1.5">
-                  <Label htmlFor={`${id}-desktop-${index}`}>Desktop image key / URL</Label>
+                  <Label htmlFor={`${id}-desktop-${banner.uid}`}>Desktop image key / URL</Label>
                   <Input
-                    id={`${id}-desktop-${index}`}
+                    id={`${id}-desktop-${banner.uid}`}
                     value={banner.desktopImage}
-                    onChange={(e) => updateBanner(index, { desktopImage: e.target.value })}
+                    onChange={(e) => updateBanner(banner.uid, { desktopImage: e.target.value })}
                     placeholder="product-images/..."
                   />
                   <ImageUploadButton
                     label="Upload desktop image"
-                    onUploaded={(key) => updateBanner(index, { desktopImage: key })}
+                    onUploaded={(key) => updateBanner(banner.uid, { desktopImage: key })}
                   />
                   {banner.desktopImage ? (
                     <img
@@ -283,44 +323,44 @@ export function HomeEditor({ initial, imageBase }: { initial: HomeSettings; imag
                   ) : null}
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor={`${id}-mobile-${index}`}>Mobile image key / URL (optional)</Label>
+                  <Label htmlFor={`${id}-mobile-${banner.uid}`}>Mobile image key / URL (optional)</Label>
                   <Input
-                    id={`${id}-mobile-${index}`}
+                    id={`${id}-mobile-${banner.uid}`}
                     value={banner.mobileImage}
-                    onChange={(e) => updateBanner(index, { mobileImage: e.target.value })}
+                    onChange={(e) => updateBanner(banner.uid, { mobileImage: e.target.value })}
                     placeholder="Defaults to desktop image"
                   />
                   <ImageUploadButton
                     label="Upload mobile image"
-                    onUploaded={(key) => updateBanner(index, { mobileImage: key })}
+                    onUploaded={(key) => updateBanner(banner.uid, { mobileImage: key })}
                   />
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor={`${id}-heading-${index}`}>Heading (optional)</Label>
+                  <Label htmlFor={`${id}-heading-${banner.uid}`}>Heading (optional)</Label>
                   <Input
-                    id={`${id}-heading-${index}`}
+                    id={`${id}-heading-${banner.uid}`}
                     value={banner.heading}
                     maxLength={160}
-                    onChange={(e) => updateBanner(index, { heading: e.target.value })}
+                    onChange={(e) => updateBanner(banner.uid, { heading: e.target.value })}
                   />
                 </div>
                 <div className="grid gap-1.5">
-                  <Label htmlFor={`${id}-btn-${index}`}>Button text (optional)</Label>
+                  <Label htmlFor={`${id}-btn-${banner.uid}`}>Button text (optional)</Label>
                   <Input
-                    id={`${id}-btn-${index}`}
+                    id={`${id}-btn-${banner.uid}`}
                     value={banner.buttonText}
                     maxLength={60}
-                    onChange={(e) => updateBanner(index, { buttonText: e.target.value })}
+                    onChange={(e) => updateBanner(banner.uid, { buttonText: e.target.value })}
                   />
                 </div>
                 <div className="sm:col-span-2 grid gap-1.5">
-                  <Label htmlFor={`${id}-link-${index}`}>Link (product, category, page, or URL)</Label>
+                  <Label htmlFor={`${id}-link-${banner.uid}`}>Link (product, category, page, or URL)</Label>
                   <Input
-                    id={`${id}-link-${index}`}
+                    id={`${id}-link-${banner.uid}`}
                     value={banner.linkHref}
                     maxLength={300}
                     placeholder="/products, /collections/drinkware, /products/slug, or https://..."
-                    onChange={(e) => updateBanner(index, { linkHref: e.target.value })}
+                    onChange={(e) => updateBanner(banner.uid, { linkHref: e.target.value })}
                   />
                 </div>
               </div>
