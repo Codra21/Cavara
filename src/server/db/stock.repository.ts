@@ -374,3 +374,21 @@ export async function readOrderStockRefresh(
   }
   return { affectedProducts: [...affected], crossedProducts: [...crossed] };
 }
+
+/** Products whose counted stock moved in one status change, so their shop copy needs a patch. */
+export async function readMovedProducts(
+  db: D1Database,
+  orderId: string,
+  at: string,
+  reason: "order_cancel" | "order_reopen",
+): Promise<number[]> {
+  const { results } = await db
+    .prepare(
+      `SELECT product_id FROM stock_movements
+       WHERE order_id = ? AND created_at = ? AND reason = ?`,
+    )
+    .bind(orderId, at, reason)
+    .all<{ product_id: number }>();
+  // At most one row per colour in the order (30 lines), so de-duplicating here beats a temp B-tree for DISTINCT.
+  return [...new Set(results.map((row) => row.product_id))];
+}

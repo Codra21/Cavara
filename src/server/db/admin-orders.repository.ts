@@ -33,7 +33,7 @@ import {
 } from "@/domain/orders";
 import { auditStatement } from "@/server/admin/auth.server";
 import type { D1Database, D1PreparedStatement } from "./d1";
-import { orderStockStatements, readCrossedProducts, readReopenShortages, REOPEN_FITS } from "./stock.repository";
+import { orderStockStatements, readMovedProducts, readReopenShortages, REOPEN_FITS } from "./stock.repository";
 
 interface OrderRow {
   id: string;
@@ -198,7 +198,7 @@ const TIMESTAMP_COLUMN: Partial<Record<OrderStatus, string>> = {
   cancelled: "cancelled_at",
 };
 
-/** The result, plus the products whose count crossed 0 (so the caller can patch the shop's copy). */
+/** The result, plus the products whose counted stock moved (so the caller can patch the shop's copy). */
 export type UpdateOrderOutcome = UpdateOrderResult & { crossedProducts?: number[] };
 
 /**
@@ -423,7 +423,10 @@ export async function updateOrderStatus(
     if (refusal) return { ok: false, error: refusal };
     return { ok: false, conflict: true, error: "This order changed since you opened it. Reload to see the latest." };
   }
-  const crossedProducts = cancelling || reopening ? await readCrossedProducts(db, input.id, at) : [];
+  const crossedProducts =
+    cancelling || reopening
+      ? await readMovedProducts(db, input.id, at, cancelling ? "order_cancel" : "order_reopen")
+      : [];
   return { ok: true, version: current.version + 1, ...(crossedProducts.length ? { crossedProducts } : {}) };
 }
 

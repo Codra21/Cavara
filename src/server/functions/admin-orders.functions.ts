@@ -34,7 +34,7 @@ export const updateOrderFn = createServerFn({ method: "POST" })
   .validator(updateOrderSchema)
   .handler(async ({ data, context }) => {
     const { crossedProducts, ...result } = await updateOrderStatus(getDb(), context.admin, data);
-    // Cancelling or reopening can take a colour across 0; the shop's copy then needs that product patched.
+    // Cancelling or reopening can change a counted colour's stock; the shop's copy then needs that product patched.
     if (result.ok && crossedProducts?.length) {
       const refreshed = await refreshProducts(catalogSources(), crossedProducts);
       if (!refreshed) {
