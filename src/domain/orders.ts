@@ -501,13 +501,16 @@ export interface AdminZone extends DeliveryZone {
  * token and the atomic SQLite snapshot guard inside saveZones.
  */
 export function canonicalZonesSnapshot(zones: readonly AdminZone[]): string {
-  return [...zones]
-    .sort((a, b) => a.id.localeCompare(b.id))
-    .map(
-      (z) =>
-        `${z.id}${z.name}${z.charge}${z.perKgCharge ?? DEFAULT_PER_KG_CHARGE}${z.active ? 1 : 0}${z.sort}${z.updatedAt ?? ""}`,
-    )
-    .join("");
+  return (
+    [...zones]
+      // Binary order, matching SQLite's ORDER BY id; localeCompare can order ids differently and fail every save.
+      .sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0))
+      .map(
+        (z) =>
+          `${z.id}${z.name}${z.charge}${z.perKgCharge ?? DEFAULT_PER_KG_CHARGE}${z.active ? 1 : 0}${z.sort}${z.updatedAt ?? ""}`,
+      )
+      .join("")
+  );
 }
 
 /**

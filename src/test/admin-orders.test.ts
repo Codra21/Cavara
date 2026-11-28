@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { AdminIdentity } from "@/domain/admin";
 import {
+  canonicalZonesSnapshot,
   balanceDue,
   canChangeStatus,
   ORDER_PAGE_SIZE,
@@ -299,6 +300,18 @@ describe("saveZones", () => {
       { id: "outside-dhaka", name: "Outside Dhaka", charge: 150, active: true },
     ]);
     expect((await getOrder(db, id))!.deliveryCharge).toBe(100);
+  });
+
+  test("the zones revision orders ids the way SQLite's ORDER BY id does", () => {
+    const zone = (id: string) => ({ id, name: id, charge: 80, active: true, sort: 0 });
+    const ids = ["alpha", "Zeta", "inside-dhaka", "inside_dhaka"];
+    const db = createTestD1();
+    const sqliteOrder = (
+      db.sqlite.query(`SELECT value AS id FROM json_each(?) ORDER BY id`).all(JSON.stringify(ids)) as { id: string }[]
+    ).map((row) => row.id);
+    const snapshot = canonicalZonesSnapshot(ids.map(zone));
+    const positions = sqliteOrder.map((id) => snapshot.indexOf(`${id}\u001f${id}\u001f`));
+    expect(positions.every((at, index) => at >= 0 && (index === 0 || at > positions[index - 1]!))).toBe(true);
   });
 
   test("rejects stale concurrent edits with a conflict and preserves the first save (M1B-7)", async () => {
