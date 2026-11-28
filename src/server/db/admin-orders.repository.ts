@@ -334,8 +334,10 @@ export async function updateOrderStatus(
       ),
   ];
 
-  // Entering or leaving the "sold" set moves this order's revenue and profit on the day it was placed.
-  const soldDelta = Number(isSold(input.status)) - Number(isSold(current.status));
+  // Entering or leaving the "sold" set (including refunding or un-refunding) moves this order's revenue and profit on
+  // the day it was placed.
+  const soldDelta =
+    Number(isSold(input.status, input.paymentStatus)) - Number(isSold(current.status, current.paymentStatus));
   if (soldDelta !== 0) {
     const sales = orderSales(current.lines, current.subtotal, current.couponDiscount);
     statements.push(

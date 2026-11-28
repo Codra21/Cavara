@@ -136,6 +136,54 @@ describe("updateOrderStatus", () => {
     ).toEqual({ ok: true, version: 5 });
   });
 
+  test("refunding a delivered order subtracts it from daily_totals without double-subtracting, and un-refunding restores it", async () => {
+    const db = createTestD1();
+    db.sqlite.run("UPDATE products SET cost_price = 500");
+    const { id, price } = await placeOrder(db);
+    await updateOrderStatus(db, owner, change(id, 1, { status: "confirmed" }), T0);
+    await updateOrderStatus(db, owner, change(id, 2, { status: "dispatched" }), T0);
+    await updateOrderStatus(db, owner, change(id, 3, { status: "delivered", paymentStatus: "paid" }), T0);
+
+    const counted = {
+      orders_received: 1,
+      orders_sold: 1,
+      revenue: price * 2,
+      profit: (price - 500) * 2,
+      lines_without_cost: 0,
+    };
+    const backedOut = {
+      orders_received: 1,
+      orders_sold: 0,
+      revenue: 0,
+      profit: 0,
+      lines_without_cost: 0,
+    };
+    expect(totals(db)).toEqual(counted);
+
+    // Marking the delivered order refunded backs out its sale from daily_totals.
+    expect(
+      await updateOrderStatus(db, owner, change(id, 4, { status: "delivered", paymentStatus: "refunded" }), T0),
+    ).toEqual({ ok: true, version: 5 });
+    expect(totals(db)).toEqual(backedOut);
+
+    // Saving again while refunded does not double-subtract.
+    expect(
+      await updateOrderStatus(
+        db,
+        owner,
+        change(id, 5, { status: "delivered", paymentStatus: "refunded", note: "Refund receipt sent" }),
+        T0,
+      ),
+    ).toEqual({ ok: true, version: 6 });
+    expect(totals(db)).toEqual(backedOut);
+
+    // Un-refunding back to paid restores revenue, profit, and sold count.
+    expect(
+      await updateOrderStatus(db, owner, change(id, 6, { status: "delivered", paymentStatus: "paid" }), T0),
+    ).toEqual({ ok: true, version: 7 });
+    expect(totals(db)).toEqual(counted);
+  });
+
   test("a stale version changes nothing: no history, no totals, no audit", async () => {
     const db = createTestD1();
     const { id } = await placeOrder(db);

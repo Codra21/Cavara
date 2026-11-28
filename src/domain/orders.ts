@@ -9,9 +9,10 @@ export type OrderStatus = (typeof ORDER_STATUSES)[number];
 export const PAYMENT_STATUSES = ["unpaid", "partially_paid", "paid", "refunded"] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
-/** Statuses that count as a sale on the dashboard (revenue and profit). */
+/** Statuses that count as a sale on the dashboard (revenue and profit), excluding refunded orders. */
 export const SOLD_STATUSES: readonly OrderStatus[] = ["confirmed", "dispatched", "delivered"];
-export const isSold = (status: OrderStatus) => SOLD_STATUSES.includes(status);
+export const isSold = (status: OrderStatus, paymentStatus?: PaymentStatus) =>
+  SOLD_STATUSES.includes(status) && paymentStatus !== "refunded";
 
 /** Most distinct lines one order may hold; each line is still capped at MAX_QTY. */
 export const MAX_ORDER_LINES = 30;
