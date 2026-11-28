@@ -505,6 +505,28 @@ describe("placing an order", () => {
     expect(rowsIn(db, "orders")).toBe(0);
   });
 
+  test("a colour flipped to pre-order after the lines were read is refused without driving stock negative", async () => {
+    const db = createTestD1();
+    const product = await makeProduct(db, ["Sage"]);
+    const sage = product.variants[0]!;
+    await count(db, product.id, sage.id, 2);
+
+    changeOnOrderInsert(db, () => {
+      db.sqlite.run("UPDATE product_variants SET availability = 'preorder', stock = 0 WHERE id = ?", [sage.id]);
+    });
+
+    const result = await order(db, [{ productId: product.id, variant: 0, qty: 2 }]);
+    expect(result).toEqual({
+      ok: false,
+      code: "unavailable",
+      message: `${product.values.name} (Sage) is pre-order only. Request it on WhatsApp, and remove it from your cart to place this order.`,
+    });
+    expect(rowsIn(db, "orders")).toBe(0);
+    expect(rowsIn(db, "order_items")).toBe(0);
+    expect(rowsIn(db, "stock_movements")).toBe(1);
+    expect(stockOf(db, sage.id)).toEqual({ stock: 0, availability: "preorder" });
+  });
+
   test("a pre-order colour is refused at checkout; uncounted in-stock colours are not tracked", async () => {
     const db = createTestD1();
     const product = await makeProduct(db, ["Sage"], {

@@ -308,16 +308,16 @@ async function refusedAfterRead(
   const selections = await readSelections(db, input.items);
   for (const item of input.items) {
     const selection = selections.get(`${item.productId}:${item.variant}`);
-    // A missing colour, or a product that is no longer published, is the same answer as the first check.
-    if (!selection || selection.status !== "published") {
+    // A missing colour, unpublished product, or non-in-stock colour gets the same answer as the first check.
+    if (!selection || selection.status !== "published" || selection.availability !== "in_stock") {
       const name = selection ? `${selection.productName} (${selection.variantName})` : "A piece in your cart";
-      return {
-        ok: false,
-        code: "unavailable",
-        message: `${name} is no longer available. Remove it from your cart and send the order again.`,
-      };
+      const message =
+        selection?.status === "published" && selection.availability === "preorder"
+          ? `${name} is pre-order only. Request it on WhatsApp, and remove it from your cart to place this order.`
+          : `${name} is no longer available. Remove it from your cart and send the order again.`;
+      return { ok: false, code: "unavailable", message };
     }
-    if (selection.availability === "out_of_stock" || isShort({ ...selection, qty: item.qty })) {
+    if (isShort({ ...selection, qty: item.qty })) {
       return { ok: false, code: "unavailable", message: shortageMessage(selection) };
     }
   }

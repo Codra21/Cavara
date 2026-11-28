@@ -225,9 +225,8 @@ export const NO_SHORT_LINE = `NOT EXISTS (
   SELECT 1 FROM json_each(?) j
   LEFT JOIN product_variants v ON v.id = json_extract(j.value, '$[0]')
   LEFT JOIN products p ON p.id = v.product_id
-  WHERE v.id IS NULL OR p.status <> 'published'
-    OR (v.availability <> 'preorder'
-      AND (v.availability = 'out_of_stock' OR (v.stock IS NOT NULL AND v.stock < json_extract(j.value, '$[1]')))))`;
+  WHERE v.id IS NULL OR p.status <> 'published' OR v.availability <> 'in_stock'
+    OR (v.stock IS NOT NULL AND v.stock < json_extract(j.value, '$[1]')))`;
 
 const ORDER_LINES = `SELECT json_extract(j.value, '$[0]') AS variant_id, json_extract(j.value, '$[1]') AS qty
   FROM json_each(?) j`;
