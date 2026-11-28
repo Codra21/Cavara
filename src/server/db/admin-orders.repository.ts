@@ -199,7 +199,7 @@ const TIMESTAMP_COLUMN: Partial<Record<OrderStatus, string>> = {
 };
 
 /** The result, plus the products whose counted stock moved (so the caller can patch the shop's copy). */
-export type UpdateOrderOutcome = UpdateOrderResult & { crossedProducts?: number[] };
+export type UpdateOrderOutcome = UpdateOrderResult & { movedProducts?: number[] };
 
 /**
  * SQL (one order-id parameter) that is true unless the order gave its coupon use back and the coupon has none left to
@@ -423,11 +423,11 @@ export async function updateOrderStatus(
     if (refusal) return { ok: false, error: refusal };
     return { ok: false, conflict: true, error: "This order changed since you opened it. Reload to see the latest." };
   }
-  const crossedProducts =
+  const movedProducts =
     cancelling || reopening
       ? await readMovedProducts(db, input.id, at, cancelling ? "order_cancel" : "order_reopen")
       : [];
-  return { ok: true, version: current.version + 1, ...(crossedProducts.length ? { crossedProducts } : {}) };
+  return { ok: true, version: current.version + 1, ...(movedProducts.length ? { movedProducts } : {}) };
 }
 
 // Delivery zones -------------------------------------------------------------------------------------------------

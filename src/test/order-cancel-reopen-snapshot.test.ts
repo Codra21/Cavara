@@ -123,9 +123,9 @@ describe("C3: cancel/reopen refreshes R2 snapshots when counted stock changes wi
     // Cancel order: counted stock moves 2 -> 4 (never touches 0).
     store.resetCounts();
     const cancelled = await updateOrderStatus(d1.db, owner, change(orderRow.id, 1, "cancelled"), T0);
-    expect(cancelled).toMatchObject({ ok: true, version: 2, crossedProducts: [product.id] });
-    if (cancelled.ok && cancelled.crossedProducts?.length) {
-      expect(await refreshProducts(sources(), cancelled.crossedProducts)).toBe(true);
+    expect(cancelled).toMatchObject({ ok: true, version: 2, movedProducts: [product.id] });
+    if (cancelled.ok && cancelled.movedProducts?.length) {
+      expect(await refreshProducts(sources(), cancelled.movedProducts)).toBe(true);
     }
 
     expect(store.writes).toEqual([keys.detail(product.id), keys.summary, keys.legacy]);
@@ -135,9 +135,9 @@ describe("C3: cancel/reopen refreshes R2 snapshots when counted stock changes wi
     // Reopen order: counted stock moves 4 -> 2 (never touches 0).
     store.resetCounts();
     const reopened = await updateOrderStatus(d1.db, owner, change(orderRow.id, 2, "new"), T0);
-    expect(reopened).toMatchObject({ ok: true, version: 3, crossedProducts: [product.id] });
-    if (reopened.ok && reopened.crossedProducts?.length) {
-      expect(await refreshProducts(sources(), reopened.crossedProducts)).toBe(true);
+    expect(reopened).toMatchObject({ ok: true, version: 3, movedProducts: [product.id] });
+    if (reopened.ok && reopened.movedProducts?.length) {
+      expect(await refreshProducts(sources(), reopened.movedProducts)).toBe(true);
     }
 
     expect(store.writes).toEqual([keys.detail(product.id), keys.summary, keys.legacy]);

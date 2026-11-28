@@ -33,10 +33,10 @@ export const updateOrderFn = createServerFn({ method: "POST" })
   .middleware([adminAuthMiddleware])
   .validator(updateOrderSchema)
   .handler(async ({ data, context }) => {
-    const { crossedProducts, ...result } = await updateOrderStatus(getDb(), context.admin, data);
+    const { movedProducts, ...result } = await updateOrderStatus(getDb(), context.admin, data);
     // Cancelling or reopening can change a counted colour's stock; the shop's copy then needs that product patched.
-    if (result.ok && crossedProducts?.length) {
-      const refreshed = await refreshProducts(catalogSources(), crossedProducts);
+    if (result.ok && movedProducts?.length) {
+      const refreshed = await refreshProducts(catalogSources(), movedProducts);
       if (!refreshed) {
         return {
           ...result,

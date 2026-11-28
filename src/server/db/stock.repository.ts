@@ -20,6 +20,7 @@ import {
   type StopCountingResult,
   STOCK_MOVEMENT_PAGE_SIZE,
 } from "@/domain/stock";
+import { capVariantStock } from "@/domain/catalog-snapshot";
 import type { Availability } from "@/lib/types";
 import { auditStatement } from "@/server/admin/auth.server";
 import type { D1Database, D1PreparedStatement } from "./d1";
@@ -234,7 +235,7 @@ const ORDER_LINES = `SELECT json_extract(j.value, '$[0]') AS variant_id, json_ex
 /**
  * Takes the order's counted lines out of stock and records a movement for each. Both statements run only when the
  * order row (inserted by the statement before) exists, so an order refused for a short colour changes nothing.
- * Uncounted colours (stock NULL) are skipped. A counted colour on pre-order may go below 0.
+ * Uncounted colours (stock NULL) are skipped.
  */
 export function reserveStockStatements(
   db: D1Database,
@@ -348,9 +349,15 @@ export async function readCrossedProducts(db: D1Database, orderId: string, at: s
   return [...new Set(results.map((row) => row.product_id))];
 }
 
+/** True when a movement changes the stock figure the shop's copy stores (capped at MAX_QTY), so R2 needs a patch. */
+function changesShopStock(row: { delta: number; balance_after: number }): boolean {
+  return capVariantStock(row.balance_after - row.delta) !== capVariantStock(row.balance_after);
+}
+
 /**
- * Products whose counted stock changed in the movements one order action wrote, plus the subset whose count crossed 0.
+ * Products whose shop stock figure changed in the movements one order wrote, plus the subset whose count crossed 0.
  * Reading from the written movements ensures concurrent stock changes between read and insert cannot leave R2 stale.
+ * A move that stays above the cap (100 to 98) changes nothing the shop shows, so it costs no R2 write.
  */
 export async function readOrderStockRefresh(
   db: D1Database,
@@ -367,7 +374,7 @@ export async function readOrderStockRefresh(
   const affected = new Set<number>();
   const crossed = new Set<number>();
   for (const row of results) {
-    affected.add(row.product_id);
+    if (changesShopStock(row)) affected.add(row.product_id);
     if (row.balance_after - row.delta > 0 !== row.balance_after > 0) {
       crossed.add(row.product_id);
     }
@@ -375,7 +382,7 @@ export async function readOrderStockRefresh(
   return { affectedProducts: [...affected], crossedProducts: [...crossed] };
 }
 
-/** Products whose counted stock moved in one status change, so their shop copy needs a patch. */
+/** Products whose shop stock figure moved in one cancel or reopen, so their shop copy needs a patch. */
 export async function readMovedProducts(
   db: D1Database,
   orderId: string,
@@ -384,11 +391,11 @@ export async function readMovedProducts(
 ): Promise<number[]> {
   const { results } = await db
     .prepare(
-      `SELECT product_id FROM stock_movements
+      `SELECT product_id, delta, balance_after FROM stock_movements
        WHERE order_id = ? AND created_at = ? AND reason = ?`,
     )
     .bind(orderId, at, reason)
-    .all<{ product_id: number }>();
+    .all<{ product_id: number; delta: number; balance_after: number }>();
   // At most one row per colour in the order (30 lines), so de-duplicating here beats a temp B-tree for DISTINCT.
-  return [...new Set(results.map((row) => row.product_id))];
+  return [...new Set(results.filter(changesShopStock).map((row) => row.product_id))];
 }

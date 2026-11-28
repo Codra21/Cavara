@@ -611,6 +611,22 @@ describe("placing an order", () => {
       removeFakeCache();
     }
   });
+
+  test("an order that leaves stock above the shop's cap of 20 asks for no snapshot refresh (100 -> 98)", async () => {
+    const db = createTestD1();
+    const product = await makeProduct(db, ["Sage"]);
+    await count(db, product.id, product.variants[0]!.id, 100);
+    const result = await order(db, [{ productId: product.id, variant: 0, qty: 2 }]);
+    expect(result).toMatchObject({ ok: true, soldOutProducts: [], productsToRefresh: [] });
+  });
+
+  test("an order that brings stock under the cap asks for a refresh (21 -> 19)", async () => {
+    const db = createTestD1();
+    const product = await makeProduct(db, ["Sage"]);
+    await count(db, product.id, product.variants[0]!.id, 21);
+    const result = await order(db, [{ productId: product.id, variant: 0, qty: 2 }]);
+    expect(result).toMatchObject({ ok: true, productsToRefresh: [product.id] });
+  });
 });
 
 describe("cancel and reopen", () => {
@@ -622,6 +638,15 @@ describe("cancel and reopen", () => {
     return { db, product, sage };
   }
 
+  test("cancel and reopen above the shop's cap of 20 ask for no snapshot refresh", async () => {
+    const { db, product } = await counted(50);
+    const placed = (await order(db, [{ productId: product.id, variant: 0, qty: 2 }])) as { reference: string };
+    const id = orderId(db, placed.reference);
+    const cancelled = await updateOrderStatus(db, owner, change(id, 1, { status: "cancelled" }), T0);
+    expect(cancelled).toMatchObject({ ok: true });
+    expect(cancelled).not.toHaveProperty("movedProducts");
+  });
+
   test("cancelling returns the stock and reopening takes it again, in the status change's batch", async () => {
     const { db, product, sage } = await counted(3);
     const placed = (await order(db, [{ productId: product.id, variant: 0, qty: 3 }])) as { reference: string };
@@ -629,11 +654,11 @@ describe("cancel and reopen", () => {
     expect(stockOf(db, sage.id)).toEqual({ stock: 0, availability: "out_of_stock" });
 
     const cancelled = await updateOrderStatus(db, owner, change(id, 1, { status: "cancelled" }), T0);
-    expect(cancelled).toMatchObject({ ok: true, crossedProducts: [product.id] });
+    expect(cancelled).toMatchObject({ ok: true, movedProducts: [product.id] });
     expect(stockOf(db, sage.id)).toEqual({ stock: 3, availability: "in_stock" });
 
     const reopened = await updateOrderStatus(db, owner, change(id, 2, { status: "new" }), T0);
-    expect(reopened).toMatchObject({ ok: true, crossedProducts: [product.id] });
+    expect(reopened).toMatchObject({ ok: true, movedProducts: [product.id] });
     expect(stockOf(db, sage.id)).toEqual({ stock: 0, availability: "out_of_stock" });
 
     // A second round trip returns the same quantity, not twice.
