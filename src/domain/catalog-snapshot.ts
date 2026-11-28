@@ -471,8 +471,13 @@ export function summaryIndex(summary: CatalogSummary): SummaryIndex {
 // Sale prices
 
 /** One product with the best active sale applied (see src/domain/discounts.ts), or unchanged when none applies. */
-export function priceProduct(product: ProductSummary, sales: readonly SaleRule[], nowMs: number): ProductSummary {
-  const best = bestSale(sales, product, product.price, nowMs);
+export function priceProduct(
+  product: ProductSummary,
+  sales: readonly SaleRule[],
+  nowMs: number,
+  parentCategoryId?: string | null,
+): ProductSummary {
+  const best = bestSale(sales, { id: product.id, category: product.category, parentCategoryId }, product.price, nowMs);
   if (!best) return product;
   const strike = strikePrice(product.price, product.regularPrice);
   return {
@@ -496,9 +501,12 @@ export function priceSummary(summary: CatalogSummary, nowMs = Date.now()): Catal
   const minute = Math.floor(nowMs / 60_000);
   const hit = pricedSummaries.get(summary);
   if (hit && hit.minute === minute) return hit.value;
+  const { categoryById } = summaryIndex(summary);
   const value: CatalogSummary = {
     ...summary,
-    products: summary.products.map((product) => priceProduct(product, summary.sales, minute * 60_000)),
+    products: summary.products.map((product) =>
+      priceProduct(product, summary.sales, minute * 60_000, categoryById.get(product.category)?.parentId ?? null),
+    ),
   };
   pricedSummaries.set(summary, { minute, value });
   return value;

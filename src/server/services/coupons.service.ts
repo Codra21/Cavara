@@ -65,7 +65,7 @@ export async function checkCoupon(
     if (!selection || selection.status !== "published" || selection.availability !== "in_stock") continue;
     const sale = bestSale(
       sales,
-      { id: selection.productId, category: selection.category },
+      { id: selection.productId, category: selection.category, parentCategoryId: selection.parentCategoryId },
       selection.unitPrice,
       now.getTime(),
     );

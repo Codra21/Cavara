@@ -39,10 +39,11 @@ export interface SaleRule {
   endsAt: string | null;
 }
 
-/** What a rule is matched against: a product's id and its category id. */
+/** What a rule is matched against: a product's id, its category id, and its category's parent id if any. */
 export interface SaleTarget {
   id: number;
   category: string;
+  parentCategoryId?: string | null;
 }
 
 /** The price a product is charged now, and what it is struck down from when a sale applies. */
@@ -64,7 +65,12 @@ export function isSaleActive(rule: Pick<SaleRule, "startsAt" | "endsAt">, nowMs:
 
 export function saleCovers(rule: SaleRule, product: SaleTarget): boolean {
   if (rule.scope === "all") return true;
-  if (rule.scope === "category") return rule.categoryId === product.category;
+  if (rule.scope === "category") {
+    return (
+      rule.categoryId === product.category ||
+      (Boolean(product.parentCategoryId) && rule.categoryId === product.parentCategoryId)
+    );
+  }
   return rule.productId === product.id;
 }
 

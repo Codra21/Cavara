@@ -93,6 +93,8 @@ export interface Selection {
   productId: number;
   /** The product's category id, which a category sale is matched against. */
   category: string;
+  /** The product category's parent id when it is a subcategory, so parent category sales also apply. */
+  parentCategoryId: string | null;
   variant: number;
   productName: string;
   variantName: string;
@@ -119,12 +121,13 @@ export async function readSelections(
 ): Promise<Map<string, Selection>> {
   const { results } = await db
     .prepare(
-      `SELECT v.id AS variantId, v.product_id AS productId, p.category_id AS category, v.position AS variant, p.name AS productName, v.name AS variantName,
+      `SELECT v.id AS variantId, v.product_id AS productId, p.category_id AS category, c.parent_id AS parentCategoryId, v.position AS variant, p.name AS productName, v.name AS variantName,
          p.status, v.availability, p.price AS unitPrice, p.cost_price AS costPrice, v.stock, p.weight_g AS weightG
        FROM json_each(?) j
        JOIN product_variants v
          ON v.product_id = json_extract(j.value, '$[0]') AND v.position = json_extract(j.value, '$[1]')
-       JOIN products p ON p.id = v.product_id`,
+       JOIN products p ON p.id = v.product_id
+       LEFT JOIN categories c ON c.id = p.category_id`,
     )
     .bind(JSON.stringify(items.map((item) => [item.productId, item.variant])))
     .all<Selection>();

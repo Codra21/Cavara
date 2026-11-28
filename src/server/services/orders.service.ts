@@ -214,7 +214,7 @@ export async function submitOrder(db: D1Database, raw: unknown, context: SubmitC
     }
     const sale = bestSale(
       sales,
-      { id: selection.productId, category: selection.category },
+      { id: selection.productId, category: selection.category, parentCategoryId: selection.parentCategoryId },
       selection.unitPrice,
       now.getTime(),
     );
