@@ -190,6 +190,19 @@ describe("home settings validation (review fixes)", () => {
       expect(isSafeLink(bad), bad).toBe(false);
   });
 
+  test("isSafeLink rejects userinfo phishing, hostless URLs, control chars, and backslash paths (S4)", () => {
+    for (const good of ["", "/products", "/collections/mugs?sort=price", "https://facebook.com/cavarabd"])
+      expect(isSafeLink(good), good).toBe(true);
+    for (const bad of [
+      "https://cavarabd.com@evil.com",
+      "https://?foo",
+      "/products\u0000",
+      "https://example.com/\r\n",
+      "/\\evil.com",
+    ])
+      expect(isSafeLink(bad), bad).toBe(false);
+  });
+
   test("banner and philosophy pictures must be uploaded image keys", () => {
     const banner = { desktopImage: "products/home/0b9f8c1e-1234-4cde-9abc-0123456789ab.webp" };
     expect(homeBannerSchema.safeParse(banner).success).toBe(true);

@@ -23,14 +23,30 @@ export const HOME_SECTION_LABELS: Record<HomeSectionKey, string> = {
   ordering: "How to order",
 };
 
+function hasUnsafeLinkChar(value: string): boolean {
+  if (/[\s\\]/.test(value)) return true;
+  for (let i = 0; i < value.length; i++) {
+    const code = value.charCodeAt(i);
+    if (code <= 0x1f || code === 0x7f) return true;
+  }
+  return false;
+}
+
 /**
  * A banner link: a path on this site ("/products", but never "//host" or "/\host", which browsers read as another
- * site) or an https:// address. Anything else, javascript: and data: included, is refused.
+ * site) or an https:// address without userinfo. Anything else, javascript: and data: included, is refused.
  */
 export function isSafeLink(value: string): boolean {
   if (value === "") return true;
-  if (value.startsWith("/")) return !/^\/[/\\]/.test(value) && !/[\s\\]/.test(value);
-  return /^https:\/\/[^\s/\\]+(?:[/?#][^\s\\]*)?$/i.test(value);
+  if (hasUnsafeLinkChar(value)) return false;
+  if (value.startsWith("/")) return !value.startsWith("//");
+  if (!/^https:\/\//i.test(value) || /^https:\/\/[^/?#]*@/i.test(value)) return false;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" && parsed.hostname.length > 0 && !parsed.username && !parsed.password;
+  } catch {
+    return false;
+  }
 }
 
 const safeLinkSchema = z
