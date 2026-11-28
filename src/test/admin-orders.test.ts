@@ -349,6 +349,64 @@ describe("partial payment (C3.2)", () => {
     expect(await save(4, "refunded")).toMatchObject({ ok: true });
     expect((await getOrder(db, id))!).toMatchObject({ paymentStatus: "refunded", amountPaid: 300 });
   });
+
+  test("reverting a paid order to unpaid clears amountPaid and paymentMethod", async () => {
+    const db = createTestD1();
+    const { id } = await placeOrder(db);
+    const paid = await updateOrderStatus(db, owner, {
+      id,
+      version: 1,
+      status: "confirmed",
+      paymentStatus: "paid",
+      paymentMethod: "bkash",
+      note: "",
+    });
+    expect(paid).toEqual({ ok: true, version: 2 });
+
+    // Omitting paymentMethod when reverting to unpaid must not keep the stale bKash method.
+    const reverted = await updateOrderStatus(db, owner, {
+      id,
+      version: 2,
+      status: "confirmed",
+      paymentStatus: "unpaid",
+      note: "",
+    });
+    expect(reverted).toEqual({ ok: true, version: 3 });
+
+    const order = await getOrder(db, id);
+    expect(order?.paymentStatus).toBe("unpaid");
+    expect(order?.amountPaid).toBe(0);
+    expect(order?.paymentMethod).toBeNull();
+    expect(order?.history.at(-1)?.note).toBe("Paid ৳0");
+
+    // Passing a stale paymentMethod when reverting from partially_paid to unpaid also clears it.
+    const partial = await updateOrderStatus(db, owner, {
+      id,
+      version: 3,
+      status: "confirmed",
+      paymentStatus: "partially_paid",
+      amountPaid: 500,
+      paymentMethod: "bkash",
+      note: "",
+    });
+    expect(partial).toEqual({ ok: true, version: 4 });
+
+    const revertedAgain = await updateOrderStatus(db, owner, {
+      id,
+      version: 4,
+      status: "confirmed",
+      paymentStatus: "unpaid",
+      paymentMethod: "bkash",
+      note: "",
+    });
+    expect(revertedAgain).toEqual({ ok: true, version: 5 });
+
+    const after = await getOrder(db, id);
+    expect(after?.paymentStatus).toBe("unpaid");
+    expect(after?.amountPaid).toBe(0);
+    expect(after?.paymentMethod).toBeNull();
+    expect(after?.history.at(-1)?.note).toBe("Paid ৳0");
+  });
 });
 
 describe("balanceDue", () => {

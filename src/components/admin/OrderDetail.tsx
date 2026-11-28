@@ -140,7 +140,8 @@ export function OrderDetail({
   const [confirmCancel, setConfirmCancel] = useState(false);
 
   const parsedAmountPaid = Math.max(0, Math.trunc(Number(amountPaid) || 0));
-  const resolvedMethod: PaymentMethod | null = paymentMethod === "__none__" ? null : (paymentMethod as PaymentMethod);
+  const resolvedMethod: PaymentMethod | null =
+    payment === "unpaid" || paymentMethod === "__none__" ? null : (paymentMethod as PaymentMethod);
   const settled = settledAmount(payment, order.total, parsedAmountPaid, order.amountPaid ?? 0);
   // Only a partial payment takes a typed amount; the other statuses fix it (unpaid 0, paid the total).
   const shownAmount = payment === "partially_paid" ? amountPaid : String(settled.ok ? settled.amount : 0);
@@ -219,7 +220,9 @@ export function OrderDetail({
             <span className="font-medium text-foreground">{formatPrice(order.total)}</span> · Paid{" "}
             {formatPrice(order.amountPaid ?? 0)} · Balance due{" "}
             <span className="font-medium text-foreground">{formatPrice(due)}</span>
-            {order.paymentMethod ? ` (${PAYMENT_METHOD_LABELS[order.paymentMethod]})` : ""}
+            {order.paymentStatus !== "unpaid" && order.paymentMethod
+              ? ` (${PAYMENT_METHOD_LABELS[order.paymentMethod]})`
+              : ""}
           </p>
         </div>
         <div className="flex items-center gap-2 text-sm">
@@ -325,7 +328,10 @@ export function OrderDetail({
                     const nextPay = value as PaymentStatus;
                     setPayment(nextPay);
                     if (nextPay === "paid") setAmountPaid(String(order.total));
-                    else if (nextPay === "unpaid") setAmountPaid("0");
+                    else if (nextPay === "unpaid") {
+                      setAmountPaid("0");
+                      setPaymentMethod("__none__");
+                    }
                   }}
                 >
                   <SelectTrigger id={`${id}-payment`} className="w-full">
@@ -365,7 +371,11 @@ export function OrderDetail({
                 </div>
                 <div className="grid gap-1.5">
                   <Label htmlFor={`${id}-payment-method`}>Payment method</Label>
-                  <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                  <Select
+                    value={payment === "unpaid" ? "__none__" : paymentMethod}
+                    disabled={payment === "unpaid"}
+                    onValueChange={setPaymentMethod}
+                  >
                     <SelectTrigger id={`${id}-payment-method`} className="w-full">
                       <SelectValue />
                     </SelectTrigger>

@@ -175,3 +175,40 @@ test("cancelled order shows ৳0 balance due in header and footer", () => {
   expect(tfoot!.textContent).toContain("Balance to collect");
   expect(tfoot!.textContent).toContain(formatPrice(0));
 });
+
+test("reverting a paid bKash order to unpaid clears and disables payment method", async () => {
+  updateOrderFn.mockReset().mockResolvedValue({ ok: true, version: 2 });
+  const client = new QueryClient();
+  const user = userEvent.setup({ pointerEventsCheck: 0 });
+
+  render(
+    <QueryClientProvider client={client}>
+      <OrderDetail
+        order={{
+          ...baseOrder,
+          status: "confirmed",
+          paymentStatus: "paid",
+          amountPaid: baseOrder.total,
+          paymentMethod: "bkash",
+        }}
+        isOwner
+      />
+    </QueryClientProvider>,
+  );
+
+  await user.click(screen.getByRole("combobox", { name: /^Payment$/i }));
+  await user.click(await screen.findByRole("option", { name: /^Unpaid$/i }));
+
+  const methodSelect = screen.getByRole("combobox", { name: /Payment method/i });
+  expect(methodSelect).toHaveProperty("disabled", true);
+  expect(methodSelect.textContent).toContain("Not set");
+
+  await user.click(screen.getByRole("button", { name: /^Save$/i }));
+  await waitFor(() => expect(updateOrderFn).toHaveBeenCalledTimes(1));
+  expect(updateOrderFn).toHaveBeenCalledWith({
+    data: expect.objectContaining({
+      paymentStatus: "unpaid",
+      paymentMethod: null,
+    }),
+  });
+});

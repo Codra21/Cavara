@@ -265,7 +265,8 @@ export async function updateOrderStatus(
   const settled = settledAmount(input.paymentStatus, current.total, input.amountPaid, currentPaid);
   if (!settled.ok) return { ok: false, error: settled.error };
   const nextAmountPaid = settled.amount;
-  const nextPaymentMethod = input.paymentMethod !== undefined ? input.paymentMethod : currentMethod;
+  const nextPaymentMethod =
+    input.paymentStatus === "unpaid" ? null : input.paymentMethod !== undefined ? input.paymentMethod : currentMethod;
   const paymentChanged =
     current.paymentStatus !== input.paymentStatus ||
     nextAmountPaid !== currentPaid ||
