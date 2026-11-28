@@ -160,12 +160,10 @@ if (!current) {
 }
 
 if (command === "rename") {
-  const nextSlug = flag("slug") ?? current.slug;
-  const nextName = flag("name") ?? current.name;
   const parsed = categoryInputSchema.safeParse({
     id: current.id,
-    name: nextName,
-    slug: nextSlug,
+    name: flag("name") ?? current.name,
+    slug: flag("slug") ?? current.slug,
     description: current.description,
     image: current.image,
     parentId: current.parentId,
@@ -176,6 +174,8 @@ if (command === "rename") {
     console.error("Validation error:", parsed.error.issues.map((i) => i.message).join("; "));
     process.exit(1);
   }
+  const nextSlug = parsed.data.slug;
+  const nextName = parsed.data.name;
   if (existing.some((c) => c.id !== current.id && c.slug === nextSlug)) {
     console.error(`Conflict: another category already uses slug "${nextSlug}".`);
     process.exit(1);
