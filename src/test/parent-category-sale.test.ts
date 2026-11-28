@@ -195,6 +195,24 @@ describe("M6: parent category sales apply to subcategory products", () => {
     });
   });
 
+  test("an inactive parent's sale does not price its subcategory products at checkout", async () => {
+    const db = createTestD1();
+    const mug = setupSubcategoryProduct(db);
+    addSale(db, { scope: "category", category_id: "drinkware", type: "percent", value: 20 });
+    db.sqlite.query("UPDATE categories SET active = 0 WHERE id = 'drinkware'").run();
+
+    const result = await submitOrder(
+      db,
+      checkoutRequest([{ productId: mug.id, variant: 0, qty: 1, unitPrice: 1000 }]),
+      { client: crypto.randomUUID(), limitSecret: SECRET, now: T0 },
+    );
+    if (!result.ok) throw new Error(result.message);
+    expect(db.sqlite.query("SELECT unit_price, discount_id FROM order_items").get()).toEqual({
+      unit_price: 1000,
+      discount_id: null,
+    });
+  });
+
   test("checkCoupon computes itemsTotal after the parent category sale for a subcategory product", async () => {
     const db = createTestD1();
     const mug = setupSubcategoryProduct(db);

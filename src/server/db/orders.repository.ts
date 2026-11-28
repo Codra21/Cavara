@@ -121,13 +121,15 @@ export async function readSelections(
 ): Promise<Map<string, Selection>> {
   const { results } = await db
     .prepare(
-      `SELECT v.id AS variantId, v.product_id AS productId, p.category_id AS category, c.parent_id AS parentCategoryId, v.position AS variant, p.name AS productName, v.name AS variantName,
+      `SELECT v.id AS variantId, v.product_id AS productId, p.category_id AS category, pc.id AS parentCategoryId, v.position AS variant, p.name AS productName, v.name AS variantName,
          p.status, v.availability, p.price AS unitPrice, p.cost_price AS costPrice, v.stock, p.weight_g AS weightG
        FROM json_each(?) j
        JOIN product_variants v
          ON v.product_id = json_extract(j.value, '$[0]') AND v.position = json_extract(j.value, '$[1]')
        JOIN products p ON p.id = v.product_id
-       LEFT JOIN categories c ON c.id = p.category_id`,
+       LEFT JOIN categories c ON c.id = p.category_id
+       -- An inactive parent is dropped, as the shop's snapshot does, so a parent sale never charges what the shelf hides.
+       LEFT JOIN categories pc ON pc.id = c.parent_id AND pc.active = 1`,
     )
     .bind(JSON.stringify(items.map((item) => [item.productId, item.variant])))
     .all<Selection>();
