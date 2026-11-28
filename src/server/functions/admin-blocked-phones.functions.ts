@@ -7,8 +7,14 @@ import {
   listBlockedPhones,
   unblockPhone,
 } from "@/server/db/admin-blocked-phones.repository";
-import { getDb } from "@/server/env";
+import { getDb, getOwnerCredentials } from "@/server/env";
 import { ownerAuthMiddleware } from "@/server/middleware/auth";
+
+function requireAuditSecret(): string {
+  const owner = getOwnerCredentials();
+  if (!owner) throw new Error("ADMIN_SECRET is not configured.");
+  return owner.secret;
+}
 
 export const listBlockedPhonesFn = createServerFn({ method: "GET" })
   .middleware([ownerAuthMiddleware])
@@ -24,7 +30,7 @@ export const blockPhoneFn = createServerFn({ method: "POST" })
   .validator(blockPhoneSchema)
   .handler(async ({ data, context }) => ({
     ok: true as const,
-    changed: await blockPhone(getDb(), context.admin, data),
+    changed: await blockPhone(getDb(), context.admin, data, requireAuditSecret()),
   }));
 
 export const unblockPhoneFn = createServerFn({ method: "POST" })
@@ -32,5 +38,5 @@ export const unblockPhoneFn = createServerFn({ method: "POST" })
   .validator(unblockPhoneSchema)
   .handler(async ({ data, context }) => ({
     ok: true as const,
-    changed: await unblockPhone(getDb(), context.admin, data.phone),
+    changed: await unblockPhone(getDb(), context.admin, data.phone, requireAuditSecret()),
   }));

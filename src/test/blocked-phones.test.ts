@@ -20,6 +20,7 @@ import { createTestD1, type TestD1 } from "./helpers/d1";
 const owner: AdminIdentity = { id: "owner", username: "owner", role: "owner" };
 const T0 = new Date("2026-11-07T04:00:00.000Z");
 const PHONE = "01712345678";
+const AUDIT_SECRET = "test-admin-secret-32-chars-minimum";
 const BLOCKED_MESSAGE =
   "We can't take online orders from this number. Please message us on WhatsApp to place your order.";
 
@@ -64,7 +65,13 @@ const change = (id: string, version: number, status: UpdateOrderInput["status"])
 describe("blocked phones", () => {
   test("a blocked number is refused with the rate-limit answer and nothing is written", async () => {
     const db = createTestD1();
-    await blockPhone(db, owner, blockPhoneSchema.parse({ phone: "+880 1712-345678", reason: "fake orders" }), T0);
+    await blockPhone(
+      db,
+      owner,
+      blockPhoneSchema.parse({ phone: "+880 1712-345678", reason: "fake orders" }),
+      AUDIT_SECRET,
+      T0,
+    );
     const before = {
       orders: count(db, "orders"),
       items: count(db, "order_items"),
@@ -94,7 +101,7 @@ describe("blocked phones", () => {
     );
     db.sqlite.run("UPDATE product_variants SET stock = 5 WHERE id = (SELECT MIN(id) FROM product_variants)");
     const stockBefore = db.sqlite.query("SELECT id, stock FROM product_variants WHERE stock IS NOT NULL").all();
-    await blockPhone(db, owner, blockPhoneSchema.parse({ phone: PHONE }), T0);
+    await blockPhone(db, owner, blockPhoneSchema.parse({ phone: PHONE }), AUDIT_SECRET, T0);
     const body = { ...checkout(db), couponCode: "SAVE10", couponDiscount: 10 };
     expect(await submitOrder(db, body, { client: "203.0.113.9", limitSecret: "x".repeat(40), now: T0 })).toMatchObject({
       ok: false,
@@ -111,7 +118,7 @@ describe("blocked phones", () => {
     // insertOrder is the atomic guard: block between the service's read and the batch by calling it directly.
     const db = createTestD1();
     const { insertOrder } = await import("@/server/db/orders.repository");
-    await blockPhone(db, owner, blockPhoneSchema.parse({ phone: PHONE }), T0);
+    await blockPhone(db, owner, blockPhoneSchema.parse({ phone: PHONE }), AUDIT_SECRET, T0);
     const input = (await import("@/domain/orders")).checkoutSchema.parse(checkout(db));
     const placed = await insertOrder(db, {
       id: crypto.randomUUID(),
@@ -136,10 +143,10 @@ describe("blocked phones", () => {
 
   test("other numbers still order, and unblocking lets the number order again", async () => {
     const db = createTestD1();
-    await blockPhone(db, owner, blockPhoneSchema.parse({ phone: PHONE }), T0);
+    await blockPhone(db, owner, blockPhoneSchema.parse({ phone: PHONE }), AUDIT_SECRET, T0);
     expect(await place(db, { phone: "01812345678" })).toMatchObject({ ok: true });
     expect(await place(db)).toMatchObject({ ok: false, code: "phone_blocked" });
-    expect(await unblockPhone(db, owner, PHONE, T0)).toBe(true);
+    expect(await unblockPhone(db, owner, PHONE, AUDIT_SECRET, T0)).toBe(true);
     expect(await place(db)).toMatchObject({ ok: true });
   });
 
@@ -147,7 +154,7 @@ describe("blocked phones", () => {
     const db = createTestD1();
     const first = await place(db);
     if (!first.ok) throw new Error("setup");
-    await blockPhone(db, owner, blockPhoneSchema.parse({ phone: PHONE }), T0);
+    await blockPhone(db, owner, blockPhoneSchema.parse({ phone: PHONE }), AUDIT_SECRET, T0);
     expect(db.sqlite.query("SELECT status FROM orders").all()).toEqual([{ status: "new" }]);
   });
 
@@ -160,14 +167,14 @@ describe("blocked phones", () => {
     });
     expect(input.phone).toBe(PHONE);
     expect(input.reason).toBe("repeat fake");
-    expect(await blockPhone(db, owner, input, T0)).toBe(true);
-    expect(await blockPhone(db, owner, input, T0)).toBe(false);
+    expect(await blockPhone(db, owner, input, AUDIT_SECRET, T0)).toBe(true);
+    expect(await blockPhone(db, owner, input, AUDIT_SECRET, T0)).toBe(false);
     expect(await isPhoneBlocked(db, PHONE)).toBe(true);
     expect(await listBlockedPhones(db)).toEqual([
       { phone: PHONE, reason: "repeat fake", createdAt: T0.toISOString(), createdBy: "owner" },
     ]);
-    expect(await unblockPhone(db, owner, PHONE, T0)).toBe(true);
-    expect(await unblockPhone(db, owner, PHONE, T0)).toBe(false);
+    expect(await unblockPhone(db, owner, PHONE, AUDIT_SECRET, T0)).toBe(true);
+    expect(await unblockPhone(db, owner, PHONE, AUDIT_SECRET, T0)).toBe(false);
     expect(await isPhoneBlocked(db, PHONE)).toBe(false);
     const audit = await listAudit(db);
     expect(audit.map((row) => row.action).sort()).toEqual(["phone.blocked", "phone.unblocked"]);
