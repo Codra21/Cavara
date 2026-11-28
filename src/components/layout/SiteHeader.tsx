@@ -66,7 +66,7 @@ export function SiteHeader() {
 
   return (
     <header className={classes} id="top">
-      <Popover open={menuOpen} onOpenChange={setMenuOpen}>
+      <Popover open={menuOpen} onOpenChange={setMenuOpen} modal="trap-focus">
         <div className="container-wide header-inner">
           <div className="header-start">
             <PopoverTrigger className="icon-button menu-toggle">
@@ -115,7 +115,7 @@ export function SiteHeader() {
           </div>
         </div>
 
-        <PopoverContent inline initialFocus="none" className="mobile-nav">
+        <PopoverContent inline className="mobile-nav">
           <div className="container">
             <nav aria-label="Mobile">
               {NAV_LINKS.map((link) => (
