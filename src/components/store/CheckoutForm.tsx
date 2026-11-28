@@ -85,10 +85,12 @@ export function CheckoutForm({
   const orderCheck = useRef<HTMLDivElement>(null);
   const couponCheck = useRef<HTMLDivElement>(null);
 
-  const lines = buyable.map((line) => ({
-    ...line,
-    unitPrice: serverPrices.get(priceKey(line.item.id, line.item.variant)) ?? line.product.price,
-  }));
+  const withPrices = (prices: ReadonlyMap<string, number>) =>
+    buyable.map((line) => ({
+      ...line,
+      unitPrice: prices.get(priceKey(line.item.id, line.item.variant)) ?? line.product.price,
+    }));
+  const lines = withPrices(serverPrices);
   const totalWeightG = calculateTotalWeightG(
     lines.map((line) => ({ weightG: line.product.weightG, qty: line.item.qty })),
   );
@@ -103,9 +105,9 @@ export function CheckoutForm({
   const couponDiscount = coupon?.discount ?? 0;
   const total = Math.max(0, subtotal - couponDiscount) + deliveryCharge;
 
-  const bagSignature = lines
-    .map((line) => `${line.item.id}:${line.item.variant}:${line.item.qty}:${line.unitPrice}`)
-    .join(",");
+  const signatureOf = (items: typeof lines) =>
+    items.map((line) => `${line.item.id}:${line.item.variant}:${line.item.qty}:${line.unitPrice}`).join(",");
+  const bagSignature = signatureOf(lines);
   const prevBagSignature = useRef(bagSignature);
   useEffect(() => {
     if (prevBagSignature.current === bagSignature) return;
@@ -233,9 +235,12 @@ export function CheckoutForm({
       setErrors(result.fieldErrors);
       focusField = (["name", "phone", "zoneId", "address", "note"] as const).find((field) => result.fieldErrors[field]);
     } else if (result.code === "price_changed") {
-      setServerPrices(
-        new Map(result.prices.map((price) => [priceKey(price.productId, price.variant), price.unitPrice])),
+      const nextPrices = new Map(
+        result.prices.map((price) => [priceKey(price.productId, price.variant), price.unitPrice]),
       );
+      // Syncing server-confirmed prices must not trip the bag-change effect and wipe result.coupon.
+      prevBagSignature.current = signatureOf(withPrices(nextPrices));
+      setServerPrices(nextPrices);
       setServerCharge({ zoneId, charge: result.deliveryCharge, weightG: totalWeightG });
       // A coupon that changed or stopped applying: show its new discount, or drop it and say why next to the field.
       if (result.coupon) {

@@ -104,3 +104,57 @@ test("changing buyable bag quantities clears a previously applied coupon instead
 
   expect(screen.queryByRole("button", { name: /Remove/i })).toBeNull();
 });
+
+test("price_changed response with updated prices keeps the server-recalculated coupon applied", async () => {
+  getTurnstileToken.mockReset().mockResolvedValue("tok-1");
+  checkCouponFn.mockReset().mockResolvedValue({ ok: true, code: "SAVE10", discount: 50 });
+  submitOrderFn
+    .mockReset()
+    .mockResolvedValueOnce({
+      ok: false,
+      code: "price_changed",
+      message: "Prices updated. Review the new total and place your order again.",
+      prices: [{ productId: 1, variant: 0, unitPrice: 600 }],
+      deliveryCharge: 80,
+      coupon: { ok: true, code: "SAVE10", discount: 60 },
+    })
+    .mockResolvedValueOnce({ ok: true, reference: "CV-222222", total: 620, replayed: false });
+
+  const user = userEvent.setup();
+  const onPlaced = vi.fn();
+  const draft = { name: "Ayesha", phone: "01711000001", zoneId: "inside-dhaka", address: "Dhaka, Road 1", note: "" };
+
+  render(
+    <CheckoutForm
+      lines={lines}
+      zones={zones}
+      draft={draft}
+      onDraftChange={vi.fn()}
+      onBack={vi.fn()}
+      onPlaced={onPlaced}
+    />,
+  );
+
+  await user.click(screen.getByText(/Have a code/i));
+  await user.type(screen.getByLabelText("Coupon code"), "SAVE10");
+  await user.click(screen.getByRole("button", { name: "Apply" }));
+  expect(await screen.findByRole("button", { name: /Remove/i })).toBeTruthy();
+
+  await user.click(screen.getByRole("button", { name: /Place order/i }));
+  expect(await screen.findByText(/Prices updated/i)).toBeTruthy();
+
+  // The server-recalculated coupon must remain applied rather than being wiped by the price sync.
+  expect(screen.getByRole("button", { name: /Remove/i })).toBeTruthy();
+  expect(screen.queryByText(/Your cart changed/i)).toBeNull();
+
+  // Re-submitting sends the server-updated unit price and recalculated coupon discount.
+  await user.click(screen.getByRole("button", { name: /Place order/i }));
+  expect(onPlaced).toHaveBeenCalledWith({ reference: "CV-222222", total: 620, phone: "01711000001" });
+  expect(submitOrderFn).toHaveBeenLastCalledWith({
+    data: expect.objectContaining({
+      couponCode: "SAVE10",
+      couponDiscount: 60,
+      items: [expect.objectContaining({ productId: 1, variant: 0, qty: 1, unitPrice: 600 })],
+    }),
+  });
+});
