@@ -132,4 +132,29 @@ describe("home settings validation (review fixes)", () => {
     );
     expect(resolved.philosophy.images).toEqual([]);
   });
+
+  test("resolving strips unsafe banner links while preserving valid relative and https links", () => {
+    const baseBanner = {
+      desktopImage: "product-images/banner-1.webp",
+      mobileImage: "",
+      heading: "Banner",
+      buttonText: "Shop",
+      active: true,
+      sort: 0,
+    };
+    const resolved = resolveHomeSettings(
+      {
+        ...DEFAULT_HOME_SETTINGS,
+        banners: [
+          { ...baseBanner, linkHref: "javascript:alert(1)" },
+          { ...baseBanner, linkHref: "data:text/html,<script>alert(1)</script>" },
+          { ...baseBanner, linkHref: "//evil.example/phish" },
+          { ...baseBanner, linkHref: "/products" },
+          { ...baseBanner, linkHref: "https://facebook.com/cavarabd" },
+        ],
+      },
+      "",
+    );
+    expect(resolved.banners.map((b) => b.linkHref)).toEqual(["", "", "", "/products", "https://facebook.com/cavarabd"]);
+  });
 });

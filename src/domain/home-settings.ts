@@ -116,13 +116,18 @@ export const DEFAULT_HOME_SETTINGS: HomeSettings = {
 };
 
 export function resolveHomeSettings(settings: HomeSettings, imageBase: string): HomeSettings {
-  // Stored values were validated on save; a row edited by hand that is not an image key is dropped, not served.
+  // Stored values were validated on save; rows edited by hand with bad image keys or unsafe links are dropped, not served.
   const resolveImg = (value: string) => (value && isImageKey(value) ? mediaUrl(imageBase, value) : "");
+  const resolveLink = (value: string) => {
+    const trimmed = typeof value === "string" ? value.trim() : "";
+    return isSafeLink(trimmed) ? trimmed : "";
+  };
   return {
     banners: settings.banners.map((banner) => ({
       ...banner,
       desktopImage: resolveImg(banner.desktopImage),
       mobileImage: resolveImg(banner.mobileImage || banner.desktopImage),
+      linkHref: resolveLink(banner.linkHref),
     })),
     sections: settings.sections,
     philosophy: {
