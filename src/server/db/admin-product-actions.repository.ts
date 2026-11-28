@@ -183,8 +183,8 @@ const COLLISION = /UNIQUE constraint failed: products\.(?:slug|id)/i;
 const ATTEMPTS = 3;
 
 /**
- * Copies text, prices (cost price included), the category and every colour into a new draft with a new URL name
- * (`<slug>-copy`, then `-copy-2`, ...). It is not featured and has no orders. The copy runs inside the database
+ * Copies text, prices (cost price included), weight, the category and every colour into a new draft with a new URL name
+ * (`<slug>-copy`, then `-copy-2`, ...). It is not featured or a new arrival and has no orders. The copy runs inside the database
  * (INSERT ... SELECT from the original), so it cannot mix two versions of the original; only the new name and id are
  * worked out first. A second tab taking the same name or id fails on the UNIQUE constraint, and the copy retries.
  *
@@ -222,9 +222,9 @@ export async function duplicateProduct(db: D1Database, options: DuplicateOptions
       db
         .prepare(
           `INSERT INTO products (id, slug, name, category_id, summary, details, note, price, regular_price, cost_price,
-             status, featured, sort, archived_at, revision, created_at, updated_at)
+             weight_g, status, featured, new_arrival, sort, archived_at, revision, created_at, updated_at)
            SELECT ?, ?, ?, category_id, summary, details, note, price, regular_price, cost_price,
-             'draft', 0, sort, NULL, ?, ?, ?
+             weight_g, 'draft', 0, 0, sort, NULL, ?, ?, ?
            FROM products WHERE id = ?`,
         )
         .bind(newId, slug, name, revision, now, now, id),

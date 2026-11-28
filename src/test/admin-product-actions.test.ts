@@ -498,6 +498,31 @@ describe("duplicate product", () => {
     expect((await getPublishedCatalog(db)).products.some((p) => p.id === copy.id)).toBe(false);
   });
 
+  test("preserves weight_g and resets new_arrival when duplicating a product", async () => {
+    const db = createTestD1();
+    const source = await create(db, {
+      slug: "heavy-kettle",
+      name: "Heavy Kettle",
+      weightG: 3500,
+      newArrival: true,
+      featured: true,
+      status: "published",
+    });
+    const copy = await duplicateProduct(db, { actor: owner, id: source.id, includeImages: false });
+    if (!copy.ok) throw new Error(copy.error);
+
+    const copied = (await getAdminProduct(db, copy.id))!;
+    expect(copied.weightG).toBe(3500);
+    expect(copied.newArrival).toBe(false);
+    expect(copied.featured).toBe(false);
+
+    // Also verify a product with null weight_g keeps weightG as null.
+    const lightSource = await create(db, { slug: "default-mug", name: "Default Mug", weightG: null });
+    const lightCopy = await duplicateProduct(db, { actor: owner, id: lightSource.id, includeImages: false });
+    if (!lightCopy.ok) throw new Error(lightCopy.error);
+    expect((await getAdminProduct(db, lightCopy.id))!.weightG).toBeNull();
+  });
+
   test("includeImages reuses the same R2 keys; each product then edits its own picture rows", async () => {
     const db = createTestD1();
     const source = await create(db);
