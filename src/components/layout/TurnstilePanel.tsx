@@ -12,7 +12,7 @@ export function TurnstilePanel() {
     startTurnstile();
   }, []);
   return (
-    <div className="turnstile-panel" id="turnstile-panel" aria-live="polite">
+    <div className="turnstile-panel" id="turnstile-panel" aria-live="polite" aria-hidden="true" inert>
       <div className="turnstile-card" role="dialog" aria-labelledby="turnstile-title" aria-describedby="turnstile-text">
         <p className="turnstile-title" id="turnstile-title">
           One quick check

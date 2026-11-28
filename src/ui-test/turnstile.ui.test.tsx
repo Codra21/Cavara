@@ -1,4 +1,4 @@
-import { render } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { TurnstilePanel } from "@/components/layout/TurnstilePanel";
 import { ensureClearance, getTurnstileToken, resetTurnstileForTests } from "@/lib/turnstile";
@@ -177,6 +177,37 @@ test("activating the turnstile panel promotes it to the top layer and exempts it
   expect(panel.hasAttribute("data-active")).toBe(false);
   expect(hidePopover).toHaveBeenCalledTimes(1);
   expect(panel.hasAttribute("popover")).toBe(false);
+
+  widgets[0]?.options.callback?.("pass");
+  await blocked;
+});
+
+test("TurnstilePanel exposes no dialog role when inactive and becomes accessible when active", async () => {
+  render(<TurnstilePanel />);
+  await flush();
+  const panel = document.getElementById("turnstile-panel") as HTMLElement;
+
+  expect(panel.getAttribute("aria-hidden")).toBe("true");
+  expect(panel.hasAttribute("inert")).toBe(true);
+  expect(screen.queryByRole("dialog")).toBeNull();
+
+  // Unrevealed page-load widget stays hidden from assistive technology too.
+  widgets[0]?.options["before-interactive-callback"]?.();
+  expect(panel.getAttribute("aria-hidden")).toBe("true");
+  expect(panel.hasAttribute("inert")).toBe(true);
+  expect(screen.queryByRole("dialog")).toBeNull();
+
+  // Once revealed, the dialog becomes accessible and interactive.
+  const blocked = ensureClearance({ force: true });
+  expect(panel.hasAttribute("aria-hidden")).toBe(false);
+  expect(panel.hasAttribute("inert")).toBe(false);
+  expect(screen.getByRole("dialog", { name: "One quick check" })).toBeTruthy();
+
+  // Returning to inactive hides the dialog from the accessibility tree again.
+  widgets[0]?.options["after-interactive-callback"]?.();
+  expect(panel.getAttribute("aria-hidden")).toBe("true");
+  expect(panel.hasAttribute("inert")).toBe(true);
+  expect(screen.queryByRole("dialog")).toBeNull();
 
   widgets[0]?.options.callback?.("pass");
   await blocked;

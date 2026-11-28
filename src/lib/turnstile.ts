@@ -85,7 +85,9 @@ function setActive(element: HTMLElement | null, active: boolean) {
   if (!element) return;
   element.toggleAttribute("data-active", active);
   if (element.id !== PANEL_ID) return;
+  element.toggleAttribute("inert", !active);
   if (active) {
+    element.removeAttribute("aria-hidden");
     if (typeof element.showPopover === "function") {
       element.setAttribute("popover", "manual");
       try {
@@ -94,15 +96,18 @@ function setActive(element: HTMLElement | null, active: boolean) {
         // Already open or unsupported in this environment.
       }
     }
-  } else if (element.hasAttribute("popover")) {
-    if (typeof element.hidePopover === "function") {
-      try {
-        element.hidePopover();
-      } catch {
-        // Already closed.
+  } else {
+    element.setAttribute("aria-hidden", "true");
+    if (element.hasAttribute("popover")) {
+      if (typeof element.hidePopover === "function") {
+        try {
+          element.hidePopover();
+        } catch {
+          // Already closed.
+        }
       }
+      element.removeAttribute("popover");
     }
-    element.removeAttribute("popover");
   }
 }
 
