@@ -309,11 +309,16 @@ export function ProductPage({
 
   const maxQty = maxQtyForStock(variant.stock);
   const pickerMax = Math.max(1, maxQty);
+  const effectiveQuantity = Math.min(quantity, pickerMax);
   const lowStock = variant.availability === "in_stock" ? lowStockLabel(variant.stock) : null;
+
+  useEffect(() => {
+    setQuantity((current) => Math.min(current, pickerMax));
+  }, [pickerMax]);
 
   const add = () => {
     if (stockTag) return;
-    const result = addToBag(product.id, variantIndex, quantity, maxQty);
+    const result = addToBag(product.id, variantIndex, effectiveQuantity, maxQty);
     if (!result.added) {
       showToast(BAG_FULL_MESSAGE, { actionLabel: "View cart", action: openBag });
       return;
@@ -330,13 +335,13 @@ export function ProductPage({
       return;
     }
     showToast(
-      result.addedQty < quantity
+      result.addedQty < effectiveQuantity
         ? `${pluralize(result.addedQty, "item")} added (max ${maxQty} available) · ${variant.name}`
         : `${pluralize(result.addedQty, "item")} added · ${variant.name}`,
       { actionLabel: "View cart", action: openBag },
     );
   };
-  const addLabel = stockTag ?? (quantity > 1 ? `Add ${quantity} to cart` : "Add to cart");
+  const addLabel = stockTag ?? (effectiveQuantity > 1 ? `Add ${effectiveQuantity} to cart` : "Add to cart");
 
   return (
     <section className="pdp" aria-labelledby="pdp-title">
@@ -422,7 +427,7 @@ export function ProductPage({
                 <>
                   <div className="pdp-buy" ref={buyRef}>
                     <Quantity
-                      value={Math.min(quantity, pickerMax)}
+                      value={effectiveQuantity}
                       max={pickerMax}
                       onChange={(next) => setQuantity(Math.min(pickerMax, Math.max(1, next)))}
                     />
@@ -433,7 +438,7 @@ export function ProductPage({
                   {stockTag === null ? (
                     <a
                       className="button button-outline pdp-now"
-                      href={whatsappUrl(singleOrderMessage(product, variant, quantity))}
+                      href={whatsappUrl(singleOrderMessage(product, variant, effectiveQuantity))}
                       target="_blank"
                       rel="noopener noreferrer"
                     >

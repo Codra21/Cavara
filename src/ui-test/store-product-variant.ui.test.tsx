@@ -271,3 +271,52 @@ test("addToBag persists stock cap-down when saved bag quantity exceeds current s
   expect(JSON.parse(screen.getByTestId("bag").textContent ?? "[]")).toEqual([{ id: 1, variant: 0, qty: 2 }]);
   expect(JSON.parse(localStorage.getItem(STORAGE_KEYS.bag) ?? "[]")).toEqual([{ id: 1, variant: 0, qty: 2 }]);
 });
+
+test("switching to a lower-stock colour variant clamps displayed quantity, Add button label, and WhatsApp link", async () => {
+  Object.defineProperty(window, "matchMedia", {
+    writable: true,
+    value: () => ({ matches: false, addEventListener: () => {}, removeEventListener: () => {} }),
+  });
+  localStorage.clear();
+  const stockProduct: PublicProduct = {
+    ...product,
+    variants: [
+      { name: "Off-white", swatch: "#f5f5f0", availability: "in_stock", stock: 10, images: ["/media/a.webp"] },
+      { name: "Crimson", swatch: "#8b1e24", availability: "in_stock", stock: 2, images: ["/media/b.webp"] },
+    ],
+  };
+  const queryClient = new QueryClient();
+  const user = userEvent.setup();
+  render(
+    <QueryClientProvider client={queryClient}>
+      <StoreProvider>
+        <ProductPage
+          product={stockProduct}
+          category={{ id: "drinkware", name: "Drinkware", description: "", image: "" }}
+        />
+      </StoreProvider>
+    </QueryClientProvider>,
+  );
+
+  const increase = screen.getByRole("button", { name: "Increase quantity" });
+  for (let i = 0; i < 4; i++) {
+    await user.click(increase);
+  }
+
+  expect(screen.getByRole("status").textContent).toBe("5");
+  expect(screen.getByRole("button", { name: "Add 5 to cart" })).toBeTruthy();
+  const waBefore = decodeURIComponent(
+    screen.getByRole("link", { name: /Order now on WhatsApp/i }).getAttribute("href") ?? "",
+  );
+  expect(waBefore).toContain("Color: Off-white - Qty: 5");
+
+  await user.click(screen.getByRole("radio", { name: "Crimson" }));
+
+  expect(screen.getByRole("status").textContent).toBe("2");
+  expect(screen.getByRole("button", { name: "Add 2 to cart" })).toBeTruthy();
+  const waAfter = decodeURIComponent(
+    screen.getByRole("link", { name: /Order now on WhatsApp/i }).getAttribute("href") ?? "",
+  );
+  expect(waAfter).toContain("Color: Crimson - Qty: 2");
+  expect(waAfter).not.toContain("Qty: 5");
+});
