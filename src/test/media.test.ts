@@ -1,5 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { resolveCategory, toLegacyCatalog } from "@/domain/catalog-snapshot";
 import { contentTypeForKey, isImageKey, mediaUrl, sniffImageType } from "@/domain/media";
+import type { Category } from "@/lib/types";
 import { getPublishedCatalog } from "@/server/db/catalog.repository";
 import { createTestD1 } from "./helpers/d1";
 
@@ -48,6 +50,45 @@ describe("mediaUrl", () => {
         expect(result).toBe("");
       }
     }
+  });
+
+  test("returns empty string for empty or whitespace-only keys instead of a broken root URL (C5)", () => {
+    expect(mediaUrl("https://images.cavarabd.com", "")).toBe("");
+    expect(mediaUrl("", "")).toBe("");
+    expect(mediaUrl("/media", "   ")).toBe("");
+    expect(mediaUrl("https://images.cavarabd.com", "   ")).toBe("");
+  });
+
+  test("resolveCategory and snapshot resolution preserve empty category.image (C5)", () => {
+    const emptyCategory: Category = {
+      id: "ceramic-mugs",
+      name: "Ceramic Mugs",
+      description: "Hand-painted mugs",
+      image: "",
+      parentId: "drinkware",
+      slug: "ceramic-mugs",
+    };
+    const whitespaceCategory: Category = {
+      ...emptyCategory,
+      id: "glass-mugs",
+      slug: "glass-mugs",
+      image: "   ",
+    };
+
+    expect(resolveCategory(emptyCategory, "https://images.cavarabd.com").image).toBe("");
+    expect(resolveCategory(emptyCategory, "").image).toBe("");
+    expect(resolveCategory(whitespaceCategory, "https://images.cavarabd.com").image).toBe("");
+
+    const legacy = toLegacyCatalog(
+      {
+        categories: [emptyCategory, whitespaceCategory],
+        products: [],
+        zones: [],
+        sales: [],
+      },
+      "https://images.cavarabd.com",
+    );
+    expect(legacy.categories.map((category) => category.image)).toEqual(["", ""]);
   });
 });
 

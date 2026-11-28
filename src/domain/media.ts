@@ -15,7 +15,7 @@ export function isImageKey(value: string): boolean {
 }
 
 export function mediaUrl(base: string, key: string): string {
-  if (/^\/[/\\]/.test(key)) return "";
+  if (key.trim() === "" || /^\/[\/\\]/.test(key)) return "";
   if (key.startsWith("/")) return key;
   const path = key.split("/").map(encodeURIComponent).join("/");
   return base ? `${base}/${path}` : `${MEDIA_ROUTE}${path}`;
