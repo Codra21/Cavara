@@ -237,7 +237,8 @@ if (command === "move") {
     process.exit(1);
   }
   const nextParent = parentArg === "none" ? null : parentArg;
-  const err = validateCategoryParent(current.id, nextParent, existing);
+  // Pass the category's own state: an inactive category may sit under an inactive parent.
+  const err = validateCategoryParent(current.id, nextParent, existing, current.active === 1);
   if (err) {
     console.error("Hierarchy error:", err);
     process.exit(1);

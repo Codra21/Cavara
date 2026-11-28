@@ -637,8 +637,15 @@ export function ProductPage({
             </p>
           </div>
           {variant.availability === "preorder" ? (
-            <a className="button" href={preorderHref} target="_blank" rel="noopener noreferrer">
-              <Icon name="fa-brands fa-whatsapp" /> Request on WhatsApp
+            <a
+              className="button"
+              href={preorderHref}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="Request on WhatsApp"
+            >
+              {/* Short label: the sticky bar also holds the name and price, and a long one squeezes them at 320px. */}
+              <Icon name="fa-brands fa-whatsapp" /> WhatsApp
             </a>
           ) : (
             <button className="button" type="button" onClick={add} disabled={stockTag !== null}>
